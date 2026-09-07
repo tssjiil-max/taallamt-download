@@ -6,16 +6,21 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const firebase = isFirebaseAdminConfigured();
-  const guardianSecrets = Boolean(
+  const guardianAuth = Boolean(
     process.env.GUARDIAN_CODE_PEPPER &&
     (process.env.GUARDIAN_SESSION_PEPPER || process.env.GUARDIAN_CODE_PEPPER),
+  );
+  const teacherAuth = Boolean(
+    process.env.TEACHER_ACCESS_PIN_HASH &&
+    process.env.TEACHER_SESSION_PEPPER,
   );
 
   return NextResponse.json(
     {
-      ready: firebase && guardianSecrets,
+      ready: firebase && guardianAuth && teacherAuth,
       firebase,
-      guardianAuth: guardianSecrets,
+      guardianAuth,
+      teacherAuth,
     },
     { headers: { "Cache-Control": "no-store" } },
   );
