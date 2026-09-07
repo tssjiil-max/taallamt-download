@@ -1,6 +1,6 @@
 import type { DocumentData } from "firebase-admin/firestore";
 import { initialData } from "../lib/sample-data";
-import { getAdminDb } from "../lib/server/firebase-admin";
+import { firestoreCollectionName, getAdminDb } from "../lib/server/firebase-admin";
 import { normalizeGuardianSearchName } from "../lib/server/guardian-auth";
 
 if (process.env.ALLOW_FIRESTORE_SEED !== "YES") {
@@ -22,7 +22,7 @@ function clean(value: unknown): DocumentData {
 
 function put(collection: string, id: string, data: unknown) {
   writes += 1;
-  writer.set(db.collection(collection).doc(id), clean(data), { merge: true });
+  writer.set(db.collection(firestoreCollectionName(collection)).doc(id), clean(data), { merge: true });
 }
 
 for (const term of initialData.terms) put("terms", term.id, term);
@@ -52,4 +52,4 @@ for (const message of initialData.messages) put("messages", message.id, message)
 for (const [studentId, followUp] of Object.entries(initialData.followUps)) put("followUps", studentId, followUp);
 
 await writer.close();
-console.log(`Taallamt Firestore seed completed: ${writes} documents merged.`);
+console.log(`Taallamt Firestore seed completed in isolated collections: ${writes} documents merged.`);
