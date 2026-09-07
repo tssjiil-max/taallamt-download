@@ -4,6 +4,14 @@ import { normalizeGuardianSearchName } from "@/lib/server/guardian-auth";
 
 export const runtime = "nodejs";
 
+type SearchStudent = {
+  id: string;
+  active?: boolean;
+  guardianAccessEnabled?: boolean;
+  name?: unknown;
+  className?: unknown;
+};
+
 export async function POST(request: Request) {
   if (!isFirebaseAdminConfigured()) {
     return NextResponse.json({ error: "BACKEND_NOT_CONFIGURED" }, { status: 503 });
@@ -23,7 +31,7 @@ export async function POST(request: Request) {
     .get();
 
   const students = snap.docs
-    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .map((doc): SearchStudent => ({ id: doc.id, ...(doc.data() as Omit<SearchStudent, "id">) }))
     .filter((student) => student.active === true && student.guardianAccessEnabled === true)
     .slice(0, 8)
     .map((student) => ({
