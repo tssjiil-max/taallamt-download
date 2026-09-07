@@ -8,6 +8,15 @@ async function readJson<T>(response: Response): Promise<T> {
   return payload;
 }
 
+export async function teacherSetup(pin: string) {
+  const response = await fetch("/api/teacher/setup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pin }),
+  });
+  return readJson<{ ok: true; expiresAtMs: number }>(response);
+}
+
 export async function teacherLogin(pin: string) {
   const response = await fetch("/api/teacher/login", {
     method: "POST",
