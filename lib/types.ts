@@ -23,6 +23,26 @@ export type WeeklyPlan = {
   title: string;
 };
 
+export type Skill = {
+  id: string;
+  termId: string;
+  subjectId: string;
+  week: number;
+  category: string;
+  title: string;
+  active: boolean;
+  source: "curriculum" | "register" | "teacher";
+};
+
+export type SkillAssessment = {
+  id: string;
+  studentId: string;
+  skillId: string;
+  level: MasteryLevel;
+  assessedAt: string;
+  note?: string;
+};
+
 export type SpecialFollowUp = {
   studentId: string;
   category: FollowUpCategory;
@@ -48,6 +68,8 @@ export type TaallamtData = {
   subjects: Subject[];
   students: Student[];
   weeklyPlans: WeeklyPlan[];
+  skills: Skill[];
+  assessments: SkillAssessment[];
   followUps: Record<string, SpecialFollowUp>;
   messages: Message[];
 };
