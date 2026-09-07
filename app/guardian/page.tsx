@@ -88,26 +88,27 @@ export default function GuardianPage() {
     );
   }
 
+  const studentId = student.id;
   const subjects = store.subjects.filter((subject) => subject.enabled && subject.termId === store.activeTermId).sort((a, b) => a.order - b.order);
   const activeSkills = store.skills.filter((skill) => skill.active && skill.termId === store.activeTermId);
-  const needsSkills = skillsNeedingTraining(activeSkills, store.assessments, student.id, store.activeTermId);
-  const followUp = store.followUps[student.id];
-  const messages = store.messages.filter((item) => item.studentId === student.id);
+  const needsSkills = skillsNeedingTraining(activeSkills, store.assessments, studentId, store.activeTermId);
+  const followUp = store.followUps[studentId];
+  const messages = store.messages.filter((item) => item.studentId === studentId);
   const week = academicWeek();
   const weekly = plansForWeek(store.weeklyPlans, week);
   const tomorrow = tomorrowAnnouncement(store.weeklyPlans, store.subjects);
-  const sentResources = store.resources.filter((resource) => resource.publishedToGuardian && resource.audienceStudentIds.includes(student.id)).length;
-  const stars = store.valueStars.filter((star) => star.studentId === student.id).length;
+  const sentResources = store.resources.filter((resource) => resource.publishedToGuardian && resource.audienceStudentIds.includes(studentId)).length;
+  const stars = store.valueStars.filter((star) => star.studentId === studentId).length;
 
   function send(event: FormEvent) {
     event.preventDefault();
-    store.sendMessage(student.id, "guardian", message);
+    store.sendMessage(studentId, "guardian", message);
     setMessage("");
   }
 
   function submitStatement(event: FormEvent) {
     event.preventDefault();
-    store.saveGuardianStatement(student.id, category, statement);
+    store.saveGuardianStatement(studentId, category, statement);
     setStatement("");
     alert("تم إرسال الملاحظة للمعلم وإضافتها إلى ملف المتابعة الخاصة");
   }
@@ -119,16 +120,16 @@ export default function GuardianPage() {
 
       <section className="hero section"><div><h2>{student.name}</h2><p>هذه الصفحة تخص ابنك فقط: خطة الأسبوع، ماذا لديه غدًا، المهارات التي تحتاج تدريبًا، القيم، والإرسال المباشر من المعلم.</p></div><div className="hero-stats"><div className="stat"><b>{week}</b><span>الأسبوع الحالي</span></div><div className="stat"><b>{sentResources}</b><span>أوراق واختبارات</span></div><div className="stat"><b>{stars}</b><span>نجوم قيم</span></div><div className="stat"><b>{needsSkills.length}</b><span>مهارات تحتاج تدريبًا</span></div></div></section>
 
-      <NotificationPanel role="guardian" studentId={student.id} />
+      <NotificationPanel role="guardian" studentId={studentId} />
 
       <section className="section"><div className="section-head"><h2>📌 ماذا لدينا غدًا؟</h2><span className="pill">{tomorrow.tomorrow}</span></div><div className="card">{tomorrow.items.length ? <ul>{tomorrow.items.map((item) => <li key={item} style={{ marginBottom: 9 }}>{item}</li>)}</ul> : <div className="notice">لا يوجد تفصيل يومي محفوظ للغد بعد.</div>}{tomorrow.weeklyOnly.length > 0 && <><h3 className="section">مواد هذا الأسبوع</h3><ul>{tomorrow.weeklyOnly.map((item) => <li key={item} style={{ marginBottom: 8 }}>{item}</li>)}</ul></>}</div></section>
 
       <section className="section"><div className="section-head"><h2>خطة الأسبوع {week}</h2><span className="pill">تُنشر من السبت</span></div><div className="grid">{weekly.map((plan) => { const subject = subjects.find((item) => item.id === plan.subjectId); return <div className="card" key={plan.id}><div className="icon">📘</div><h3>{subject?.name ?? plan.subjectId}</h3><p>{plan.title}</p></div>; })}</div></section>
 
       <GuardianSpellingPractice />
-      <GuardianValues studentId={student.id} />
-      <GuardianResources studentId={student.id} />
-      <GuardianSkillProgress studentId={student.id} />
+      <GuardianValues studentId={studentId} />
+      <GuardianResources studentId={studentId} />
+      <GuardianSkillProgress studentId={studentId} />
 
       <section className="section"><div className="section-head"><h2>المستوى العام للمواد</h2></div><div className="grid">{subjects.map((subject) => { const level = student.subjectLevels[subject.id]; return <div className="card" key={subject.id}><div className="icon">📚</div><h3>{subject.name}</h3>{level ? <span className={`badge ${level === "needs_training" ? "warn" : ""}`}>{labels[level]}</span> : <span className="badge">لم يقيّم بعد</span>}</div>; })}</div></section>
 
