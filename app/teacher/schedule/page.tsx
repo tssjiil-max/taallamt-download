@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DateBar } from "@/components/DateBar";
 import { useTaallamt } from "@/lib/store";
 import { academicWeek, dailyBreakdown, plansForWeek, tomorrowAnnouncement } from "@/lib/schedule";
 
@@ -16,9 +17,10 @@ export default function SchedulePage() {
         <div className="brand"><div className="logo">🗓️</div><div><h1>الخطة والنشر الآلي</h1><p>خطة أسبوعية لولي الأمر + إعلان يومي عن الغد</p></div></div>
         <Link className="btn secondary no-print" href="/">لوحة المعلم</Link>
       </header>
+      <DateBar />
 
-      <section className="hero">
-        <div><h2>الأسبوع {week}</h2><p>تظهر خطة الأسبوع تلقائيًا لولي الأمر من بداية يوم السبت، ويتغير إعلان «ماذا لدينا غدًا؟» يوميًا حسب التاريخ.</p></div>
+      <section className="hero section">
+        <div><h2>الأسبوع {week}</h2><p>تظهر خطة الأسبوع تلقائيًا لولي الأمر من بداية يوم السبت، ويتغير إعلان «ماذا لدينا غدًا؟» يوميًا حسب تاريخ المدينة المنورة/الرياض.</p></div>
         <div className="hero-stats"><div className="stat"><b>السبت</b><span>فتح الخطة الأسبوعية</span></div><div className="stat"><b>{tomorrow.tomorrow}</b><span>إعلان الغد</span></div><div className="stat"><b>{plans.length}</b><span>مواد هذا الأسبوع</span></div><div className="stat"><b>تلقائي</b><span>التحديث حسب التاريخ</span></div></div>
       </section>
 
@@ -47,7 +49,7 @@ export default function SchedulePage() {
         <div className="card"><h3>غدًا {tomorrow.tomorrow}</h3>{tomorrow.items.length ? <ul>{tomorrow.items.map((item) => <li key={item}>{item}</li>)}</ul> : <p>لا يوجد تفصيل يومي محفوظ للغد بعد.</p>}{tomorrow.weeklyOnly.length > 0 && <><h3 className="section">مواد بخطة أسبوعية فقط</h3><ul>{tomorrow.weeklyOnly.map((item) => <li key={item}>{item}</li>)}</ul></>}</div>
       </section>
 
-      <section className="section"><div className="notice">هذه المرحلة تجعل المحتوى يظهر تلقائيًا حسب اليوم عند فتح الموقع. الإشعار المدفوع الذي يصل للجوال دون فتح الموقع سيُربط لاحقًا مع التخزين الخلفي وخدمة الإشعارات.</div></section>
+      <section className="section"><div className="notice">تمت إضافة مركز إشعارات للمعلم وولي الأمر مع إذن إشعارات الجهاز وService Worker جاهز لاستقبال Web Push. الإرسال التلقائي عندما يكون الموقع مغلقًا يحتاج فقط ربط خدمة Push الخلفية ومفاتيحها عند النشر النهائي.</div></section>
     </main>
   );
 }
