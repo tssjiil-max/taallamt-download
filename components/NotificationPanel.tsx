@@ -49,26 +49,33 @@ export function NotificationPanel({ role, studentId }: { role: Role; studentId?:
     if (role === "teacher") {
       const guardianMessages = store.messages.filter((m) => m.author === "guardian").length;
       const needsReview = Object.values(store.followUps).filter((f) => f.status === "needs_review").length;
+      const publishedResources = store.resources.filter((resource) => resource.publishedToGuardian).length;
       const tomorrowText = tomorrow.items.length ? tomorrow.items.join(" • ") : "لا يوجد تفصيل يومي محفوظ للغد بعد.";
       return [
         { title: `غدًا ${tomorrow.tomorrow}`, body: tomorrowText, url: "/teacher/schedule" },
         { title: "رسائل أولياء الأمور", body: guardianMessages ? `لديك ${guardianMessages} رسالة من أولياء الأمور.` : "لا توجد رسائل جديدة من أولياء الأمور." },
+        { title: "الأوراق والاختبارات", body: publishedResources ? `لديك ${publishedResources} ورقة أو اختبار منشور لولي الأمر.` : "لا توجد أوراق أو اختبارات منشورة بعد.", url: "/teacher/resources" },
         { title: "المتابعة الخاصة", body: needsReview ? `${needsReview} ملفات تحتاج مراجعة.` : "لا توجد ملفات متابعة خاصة معلقة.", level: needsReview ? "warn" : "normal" },
       ];
     }
 
     const teacherMessages = store.messages.filter((m) => m.author === "teacher" && (!studentId || m.studentId === studentId)).length;
     const followUp = studentId ? store.followUps[studentId] : undefined;
+    const studentResources = studentId ? store.resources.filter((resource) => resource.publishedToGuardian && resource.audienceStudentIds.includes(studentId)) : [];
     const tomorrowText = tomorrow.items.length ? tomorrow.items.join(" • ") : "لا يوجد تفصيل يومي محفوظ للغد بعد.";
     const result: Notice[] = [];
     if (today === "السبت") {
       result.push({ title: `خطة الأسبوع ${week}`, body: `تم نشر خطة الأسبوع، وتشمل ${weekly.length} مواد أو بنود رئيسية.`, url: "/guardian" });
     }
     result.push({ title: `ماذا لدينا غدًا؟ — ${tomorrow.tomorrow}`, body: tomorrowText, url: "/guardian" });
+    if (studentResources.length) {
+      const latest = studentResources[0];
+      result.push({ title: "ورقة أو اختبار من المعلم", body: latest.title, url: `/guardian/resources/${latest.id}` });
+    }
     if (teacherMessages) result.push({ title: "رسالة من المعلم", body: `لديك ${teacherMessages} رسالة محفوظة من المعلم.`, url: "/guardian" });
     if (followUp?.status === "needs_review") result.push({ title: "متابعة الطالب", body: "يوجد ملف متابعة يحتاج مراجعة أو تحديثًا مع المدرسة.", level: "warn", url: "/guardian" });
     return result;
-  }, [role, studentId, store.messages, store.followUps, store.weeklyPlans, store.subjects, today, week, weekly.length, tomorrow]);
+  }, [role, studentId, store.messages, store.followUps, store.weeklyPlans, store.subjects, store.resources, today, week, weekly.length, tomorrow]);
 
   async function enableNotifications() {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
