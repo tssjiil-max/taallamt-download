@@ -1,32 +1,29 @@
+"use client";
+
 import Link from "next/link";
-import { students, subjects, terms } from "@/lib/sample-data";
+import { useTaallamt } from "@/lib/store";
 
 export default function TeacherHome() {
-  const activeTerm = terms.find((term) => term.active)!;
+  const { students, subjects, terms, followUps } = useTaallamt();
+  const activeTerm = terms.find((term) => term.active) ?? terms[0];
   const activeStudents = students.filter((student) => student.active);
-  const activeSubjects = subjects.filter((subject) => subject.enabled && subject.termId === activeTerm.id);
-  const specialCount = activeStudents.filter((student) => student.specialFollowUp).length;
+  const activeSubjects = subjects.filter((subject) => subject.enabled && subject.termId === activeTerm?.id);
+  const specialCount = Object.keys(followUps).length;
 
   return (
     <main className="shell">
       <header className="topbar">
         <div className="brand">
           <div className="logo">🎓</div>
-          <div>
-            <h1>تعلّمت</h1>
-            <p>لوحة المعلم — الإدارة والمتابعة والتحفيز</p>
-          </div>
+          <div><h1>تعلّمت</h1><p>لوحة المعلم — الإدارة والمتابعة والتحفيز</p></div>
         </div>
-        <span className="pill">{activeTerm.name} · {activeTerm.academicYear}</span>
+        {activeTerm && <span className="pill">{activeTerm.name} · {activeTerm.academicYear}</span>}
       </header>
 
       <section className="hero">
         <div>
           <h2>مرحبًا أ. سلطان</h2>
-          <p>
-            هذه هي الواجهة الأساسية للمعلم. كل الطلاب والمواد والمهارات قابلة للإضافة والتعديل والأرشفة،
-            بحيث ينتقل النظام للفصل القادم بدون إعادة بناء.
-          </p>
+          <p>إدارة الفصل من مكان واحد. الطلاب والمواد والفصول قابلة للإضافة والتعديل والأرشفة، مع بقاء السجل السابق محفوظًا.</p>
         </div>
         <div className="hero-stats">
           <div className="stat"><b>{activeStudents.length}</b><span>طالب حالي</span></div>
@@ -37,49 +34,19 @@ export default function TeacherHome() {
       </section>
 
       <section className="grid">
-        <Link className="card" href="/teacher/students">
-          <div className="icon">👥</div>
-          <h3>الطلاب والمتابعة</h3>
-          <p>إضافة وأرشفة الطلاب، التقييم، المهارات، الخطط العلاجية وسجل الطالب.</p>
-        </Link>
-        <Link className="card" href="/teacher/settings">
-          <div className="icon green">⚙️</div>
-          <h3>إدارة الفصل والمواد</h3>
-          <p>تغيير الفصل الدراسي، إضافة مادة أو إيقافها وترتيبها بدون تعديل الكود.</p>
-        </Link>
-        <Link className="card" href="/guardian">
-          <div className="icon amber">🏠</div>
-          <h3>معاينة بوابة ولي الأمر</h3>
-          <p>متابعة الطالب، الخطة العلاجية، التواصل والطباعة على جهازين.</p>
-        </Link>
-        <Link className="card" href="/teacher/portfolio">
-          <div className="icon green">📁</div>
-          <h3>ملف إنجاز المعلم</h3>
-          <p>يتجمع تلقائيًا طوال الفصل، ثم يطبع أو يشارك كرابط أو PDF.</p>
-        </Link>
-        <Link className="card" href="/teacher/students/s1">
-          <div className="icon red">🩺</div>
-          <h3>المتابعة الخاصة</h3>
-          <p>ملف مستقل للحالة الصحية أو التعليمية أو السلوكية مع أهداف ومراجعات.</p>
-        </Link>
-        <div className="card">
-          <div className="icon">📚</div>
-          <h3>المهارات والتوزيع</h3>
-          <p>الهيكلة جاهزة لربط كل مهارة بالمادة والفصل والتوزيع الأسبوعي المعتمد.</p>
-        </div>
+        <Link className="card" href="/teacher/students"><div className="icon">👥</div><h3>الطلاب والمتابعة</h3><p>إضافة وأرشفة الطلاب، التقييم، المهارات، الخطط العلاجية وسجل الطالب.</p></Link>
+        <Link className="card" href="/teacher/settings"><div className="icon green">⚙️</div><h3>إدارة الفصل والمواد</h3><p>إنشاء فصل جديد وإضافة أو تعديل أو إيقاف المواد دون تغيير الكود.</p></Link>
+        <Link className="card" href="/guardian"><div className="icon amber">🏠</div><h3>بوابة ولي الأمر</h3><p>متابعة وتواصل وخطة علاجية وطباعة، مع حد جهازين لكل طالب.</p></Link>
+        <Link className="card" href="/student"><div className="icon green">🧒</div><h3>صفحة الطالب</h3><p>واجهة مستقلة للطالب للمهام والتقدم والتحفيز، وليست مدمجة مع ولي الأمر.</p></Link>
+        <Link className="card" href="/teacher/portfolio"><div className="icon green">📁</div><h3>ملف إنجاز المعلم</h3><p>يتجمع من العمل المسجل، ثم يطبع أو يشارك بصورة منظمة.</p></Link>
+        <Link className="card shak-card" href="/teacher/shakabumbo"><img className="shak-thumb" src="/shakabumbo.jpg" alt="شكابمبو" /><div><h3>شكابمبو</h3><p>مساعد صفي لاختيار طالب، القراءة والتسميع والتصحيح باستخدام محادثة ChatGPT Plus حاليًا.</p></div></Link>
       </section>
 
       <section className="section">
         <div className="section-head"><h2>تنبيهات تحتاج انتباهك</h2></div>
         <div className="list">
-          <div className="row">
-            <div className="row-main"><div className="avatar">📖</div><div><h4>مهارات تحتاج تدريب</h4><small>سيتم تجميع الطلاب حسب المهارة لتسهيل الخطة العلاجية الجماعية.</small></div></div>
-            <span className="badge warn">متابعة</span>
-          </div>
-          <div className="row">
-            <div className="row-main"><div className="avatar">🔒</div><div><h4>أجهزة ولي الأمر</h4><small>الحد الافتراضي جهازان لكل طالب مع إمكانية إلغاء جهاز من لوحة المعلم.</small></div></div>
-            <span className="badge">مضبوط</span>
-          </div>
+          <div className="row"><div className="row-main"><div className="avatar">📖</div><div><h4>التقييم والخطط</h4><small>أي طالب يحتاج تدريبًا يمكن تحويل تقييمه إلى متابعة وخطة علاجية قابلة للطباعة.</small></div></div><span className="badge warn">متابعة</span></div>
+          <div className="row"><div className="row-main"><div className="avatar">🔒</div><div><h4>خصوصية ولي الأمر</h4><small>النموذج النهائي سيربط كل جلسة بولي الأمر بابنه فقط؛ وضع المعاينة الحالي مخصص للبناء والاختبار.</small></div></div><span className="badge">مخطط</span></div>
         </div>
       </section>
     </main>
