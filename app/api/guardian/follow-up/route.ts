@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
+import { firestoreCollectionName, getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
 import { GUARDIAN_COOKIE, GuardianAuthError, readGuardianSession } from "@/lib/server/guardian-auth";
 
 export const runtime = "nodejs";
@@ -33,8 +33,8 @@ export async function POST(request: Request) {
     }
 
     const db = getAdminDb();
-    const followRef = db.collection("followUps").doc(session.studentId);
-    const studentRef = db.collection("students").doc(session.studentId);
+    const followRef = db.collection(firestoreCollectionName("followUps")).doc(session.studentId);
+    const studentRef = db.collection(firestoreCollectionName("students")).doc(session.studentId);
 
     await db.runTransaction(async (transaction) => {
       const currentSnap = await transaction.get(followRef);
