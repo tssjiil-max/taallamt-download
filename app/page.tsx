@@ -23,6 +23,7 @@ export default function TeacherHome() {
         <Link className="card" href="/teacher/distribution"><div className="icon">📅</div><h3>التوزيع الأسبوعي</h3><p>توزيع القرآن والدراسات الإسلامية ولغتي أسبوعًا بأسبوع مع إمكانية التعديل.</p></Link>
         <Link className="card" href="/teacher/schedule"><div className="icon amber">🗓️</div><h3>الخطة والنشر الآلي</h3><p>خطة أسبوعية تظهر السبت لولي الأمر، وإعلان يومي تلقائي عن محتوى الغد.</p></Link>
         <Link className="card" href="/teacher/settings"><div className="icon green">⚙️</div><h3>إدارة الفصل والمواد</h3><p>إنشاء فصل جديد وإضافة أو تعديل أو إيقاف المواد دون تغيير الكود.</p></Link>
+        <Link className="card" href="/teacher/data-exchange"><div className="icon green">🔄</div><h3>نقل وتبادل البيانات</h3><p>تصدير الطلاب والتقييمات، نسخة احتياطية، ومعاينة ملفات نور ومدرستي قبل النقل.</p></Link>
         <Link className="card" href="/guardian"><div className="icon amber">🏠</div><h3>بوابة ولي الأمر</h3><p>متابعة وتواصل وخطة علاجية وطباعة، مع حد جهازين لكل طالب.</p></Link>
         <Link className="card" href="/student"><div className="icon green">🧒</div><h3>صفحة الطالب</h3><p>واجهة مستقلة للطالب للمهام والتقدم والتحفيز، وليست مدمجة مع ولي الأمر.</p></Link>
         <Link className="card" href="/teacher/portfolio"><div className="icon green">📁</div><h3>ملف إنجاز المعلم</h3><p>يتجمع من العمل المسجل، ثم يطبع أو يشارك بصورة منظمة.</p></Link>
