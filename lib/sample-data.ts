@@ -109,6 +109,7 @@ export const initialData: TaallamtData = {
   weeklyPlans,
   skills,
   assessments: [],
+  resources: [],
   followUps: {},
   messages: [],
 };
