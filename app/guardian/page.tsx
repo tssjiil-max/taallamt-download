@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { DateBar } from "@/components/DateBar";
+import { GuardianResources } from "@/components/GuardianResources";
 import { GuardianSkillProgress } from "@/components/GuardianSkillProgress";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { PrintButton } from "@/components/PrintButton";
@@ -44,6 +45,7 @@ export default function GuardianPage() {
       <section className="section"><div className="section-head"><h2>خطة هذا الأسبوع — الأسبوع {week}</h2></div><div className="grid">{weekly.map((plan) => { const subject = subjects.find((s) => s.id === plan.subjectId); return <div className="card" key={plan.id}><h3>{subject?.name ?? plan.subjectId}</h3><p>{plan.title}</p></div>; })}</div></section>
       <section className="section"><div className="section-head"><h2>ماذا لدينا غدًا؟</h2><span className="pill">{tomorrow.tomorrow}</span></div><div className="card">{tomorrow.items.length ? <ul>{tomorrow.items.map((item) => <li key={item} style={{marginBottom: 8}}>{item}</li>)}</ul> : <div className="notice">لا يوجد تفصيل يومي محفوظ للغد بعد.</div>}{tomorrow.weeklyOnly.length > 0 && <><h3 className="section">تنبيه أسبوعي</h3><ul>{tomorrow.weeklyOnly.map((item) => <li key={item} style={{marginBottom: 8}}>{item}</li>)}</ul></>}</div></section>
 
+      <GuardianResources studentId={student.id} />
       <GuardianSkillProgress studentId={student.id} />
 
       <section className="section"><div className="section-head"><h2>المواد</h2></div><div className="grid">{subjects.map((subject) => { const value = student.subjectLevels[subject.id] ?? "partial"; return <div className="card" key={subject.id}><div className="icon">📘</div><h3>{subject.name}</h3><span className={`badge ${value === "needs_training" ? "warn" : ""}`}>{labels[value]}</span></div>; })}</div></section>
