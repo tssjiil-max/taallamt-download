@@ -1,4 +1,4 @@
-import type { Student, Subject, Term, SpecialFollowUp } from "./types";
+import type { Student, Subject, TaallamtData, Term } from "./types";
 
 export const terms: Term[] = [
   { id: "term-1", name: "الفصل الدراسي الأول", academicYear: "1448هـ", active: true },
@@ -11,23 +11,54 @@ export const subjects: Subject[] = [
   { id: "lughati", termId: "term-1", name: "لغتي", enabled: true, order: 3 },
 ];
 
-export const students: Student[] = [
-  { id: "s1", name: "نموذج طالب 1", className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 2, specialFollowUp: true },
-  { id: "s2", name: "نموذج طالب 2", className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 1, specialFollowUp: false },
-  { id: "s3", name: "نموذج طالب 3", className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 1, specialFollowUp: false },
+const names = [
+  "أحمد بسام صالح الأحمد",
+  "أسامه سلطان بن بخيت الصاعدي",
+  "أمير نايف عبدالهادي الحجيلي",
+  "أنس أحمد عبدالله الجهني",
+  "أوس نايف بن حمد الشريف",
+  "أويس عادل فيصل المالكي",
+  "تميم ماجد جابر الحجيلي",
+  "ثامر عبدالله رجاء العوفي",
+  "راكان حاتم مهل الجهني",
+  "ريان محمود باري",
+  "سلطان فهد زعل الجهني",
+  "شليخ بدر لافي الجهني",
+  "عادل غالب عبدالله العنزي",
+  "عبدالجليل سالم محمد عبدالجليل",
+  "عبدالرحمن نواف هندي الحازمي",
+  "عمر حميد بن سليم العروي",
+  "فيصل محمد عويض المطيري",
+  "قصي عبدالله ظاهر الحجيلي",
+  "كنان محمد عبدالعزيز اليوسفي",
+  "محمد سماح سعد اللوفي",
+  "محمد صلاح حمد عواد",
+  "موسى ريض صالح الأحمد",
+  "نايف أحمد صوير الجهني",
+  "نواف مطلق صلاح العمري",
+  "وائل محمد حسين روزي",
+  "وسام سلطان عبيد السندي",
+  "وليد عطاف علي العمري",
+  "يمان أحمد بن عايد الجهني",
+  "يوسف فلاح خلف الحربي",
+  "يوسف محمد لافي الجهني",
 ];
 
-export const specialFollowUp: SpecialFollowUp = {
-  studentId: "s1",
-  category: "learning",
-  guardianStatement: "ذكر ولي الأمر وجود صعوبة مستمرة في القراءة المنزلية.",
-  schoolImpact: "بطء في قراءة الكلمات الجديدة والحاجة إلى تكرار أكثر.",
-  goal: "تحسين الطلاقة وتقليل التردد في قراءة الكلمات المقررة.",
-  plan: [
-    "تدريب قصير يومي على مجموعة كلمات محددة.",
-    "تقسيم المهمة إلى خطوات صغيرة مع تعزيز فوري.",
-    "مراجعة التقدم أسبوعيًا مع ولي الأمر.",
-  ],
-  status: "needs_review",
-  nextReviewAt: "بعد أسبوعين",
+export const students: Student[] = names.map((name, index) => ({
+  id: `s${index + 1}`,
+  name,
+  className: "ثاني/4",
+  active: true,
+  guardianDeviceLimit: 2,
+  guardianDevices: 0,
+  specialFollowUp: false,
+  subjectLevels: {},
+}));
+
+export const initialData: TaallamtData = {
+  terms,
+  subjects,
+  students,
+  followUps: {},
+  messages: [],
 };
