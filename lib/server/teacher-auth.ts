@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from "node:crypto";
-import { getAdminDb } from "./firebase-admin";
+import { firestoreCollectionName, getAdminDb } from "./firebase-admin";
 
 export const TEACHER_COOKIE = "taallamt_teacher_session";
 const SESSION_DAYS = 7;
@@ -70,7 +70,7 @@ export async function createTeacherSession(pin: string) {
   const expiresAtMs = now + SESSION_DAYS * 24 * 60 * 60 * 1000;
   const sessionId = randomUUID();
   const token = randomBytes(32).toString("base64url");
-  await getAdminDb().collection("teacherSessions").doc(sessionId).set({
+  await getAdminDb().collection(firestoreCollectionName("teacherSessions")).doc(sessionId).set({
     tokenHash: hashToken(sessionId, token),
     createdAtMs: now,
     expiresAtMs,
@@ -82,7 +82,7 @@ export async function createTeacherSession(pin: string) {
 export async function readTeacherSession(cookieValue?: string) {
   const parsed = parseCookie(cookieValue);
   if (!parsed) throw new TeacherAuthError("INVALID_SESSION");
-  const snap = await getAdminDb().collection("teacherSessions").doc(parsed.sessionId).get();
+  const snap = await getAdminDb().collection(firestoreCollectionName("teacherSessions")).doc(parsed.sessionId).get();
   if (!snap.exists) throw new TeacherAuthError("INVALID_SESSION");
   const session = snap.data() as TeacherSession;
   if (!session.tokenHash || session.revokedAtMs || !session.expiresAtMs || session.expiresAtMs <= Date.now()) {
@@ -98,7 +98,7 @@ export async function readTeacherSession(cookieValue?: string) {
 export async function revokeTeacherSession(cookieValue?: string) {
   const parsed = parseCookie(cookieValue);
   if (!parsed) return;
-  const ref = getAdminDb().collection("teacherSessions").doc(parsed.sessionId);
+  const ref = getAdminDb().collection(firestoreCollectionName("teacherSessions")).doc(parsed.sessionId);
   const snap = await ref.get();
   if (!snap.exists) return;
   const session = snap.data() as TeacherSession;
