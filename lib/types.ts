@@ -1,5 +1,6 @@
 export type MasteryLevel = "mastered" | "partial" | "needs_training";
 export type FollowUpCategory = "health" | "learning" | "behavior" | "family" | "other";
+export type ResourceKind = "worksheet" | "skills_practice" | "midterm" | "final";
 
 export type Term = { id: string; name: string; academicYear: string; active: boolean };
 export type Subject = { id: string; termId: string; name: string; enabled: boolean; order: number };
@@ -43,6 +44,21 @@ export type SkillAssessment = {
   note?: string;
 };
 
+export type LearningResource = {
+  id: string;
+  termId: string;
+  subjectId: string;
+  kind: ResourceKind;
+  title: string;
+  week?: number;
+  createdAt: string;
+  instructions: string;
+  items: string[];
+  answerGuide: string[];
+  audienceStudentIds: string[];
+  publishedToGuardian: boolean;
+};
+
 export type SpecialFollowUp = {
   studentId: string;
   category: FollowUpCategory;
@@ -70,6 +86,7 @@ export type TaallamtData = {
   weeklyPlans: WeeklyPlan[];
   skills: Skill[];
   assessments: SkillAssessment[];
+  resources: LearningResource[];
   followUps: Record<string, SpecialFollowUp>;
   messages: Message[];
 };
