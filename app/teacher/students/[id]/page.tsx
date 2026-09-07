@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import { GuardianAccessManager } from "@/components/GuardianAccessManager";
 import { PrintButton } from "@/components/PrintButton";
 import { assessedSkills, latestAssessmentBySkill, remedialAction, skillsNeedingTraining } from "@/lib/assessment";
 import { useTaallamt } from "@/lib/store";
@@ -58,8 +59,8 @@ export default function StudentPage() {
       <header className="topbar"><div className="brand"><div className="logo">🧒</div><div><h1>{student.name}</h1><p>{student.className} · سجل الطالب</p></div></div><div className="mini-actions"><PrintButton label="طباعة سجل الطالب" /><Link className="btn secondary no-print" href="/teacher/students">الطلاب</Link></div></header>
 
       <section className="two">
-        <div className="card"><h3>الوصول والمتابعة</h3><div className="kv"><span>الحالة</span><b>{student.active ? "طالب حالي" : "مؤرشف"}</b></div><div className="kv"><span>ولي الأمر</span><span>مسموح جهازان في الوقت نفسه</span></div><div className="kv"><span>الأجهزة</span><span>{student.guardianDevices}/{student.guardianDeviceLimit}</span></div><div className="mini-actions no-print" style={{ marginTop: 12 }}><button className="btn secondary" onClick={() => store.setGuardianDevices(student.id, 0)}>إلغاء الأجهزة</button><Link className="btn" href="/guardian">معاينة بوابة الولي</Link></div></div>
-        <div className="card"><h3>ملخص المهارات</h3><div className="kv"><span>مقيّمة</span><b>{assessed.length}</b></div><div className="kv"><span>متقنة</span><b>{masteredCount}</b></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsSkills.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div></div>
+        <GuardianAccessManager studentId={student.id} />
+        <div className="card"><h3>ملخص المهارات</h3><div className="kv"><span>مقيّمة</span><b>{assessed.length}</b></div><div className="kv"><span>متقنة</span><b>{masteredCount}</b></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsSkills.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div><div className="mini-actions section no-print"><Link className="btn" href="/guardian">فتح بوابة ولي الأمر</Link></div></div>
       </section>
 
       <section className="section">
