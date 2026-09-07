@@ -1,4 +1,5 @@
-import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from "node:crypto";
+import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { authSecretConfigured, requireAuthSecret } from "./auth-secret";
 import { firestoreCollectionName, getAdminDb } from "./firebase-admin";
 
 export const TEACHER_COOKIE = "taallamt_teacher_session";
@@ -36,9 +37,17 @@ export class TeacherAuthError extends Error {
   }
 }
 
+function teacherSecret() {
+  try {
+    return requireAuthSecret();
+  } catch {
+    throw new TeacherAuthError("BACKEND_NOT_CONFIGURED");
+  }
+}
+
 function parsePinHash(value: string) {
-  const [salt, hash] = value.split(":", 2);
-  if (!salt || !hash || salt.length < 16 || hash.length !== 64) {
+  const [version, salt, hash] = value.split(":", 3);
+  if (version !== "scrypt-v2" || !salt || !hash || salt.length < 16 || hash.length !== 64) {
     throw new TeacherAuthError("BACKEND_NOT_CONFIGURED");
   }
   return { salt, hash };
@@ -46,14 +55,11 @@ function parsePinHash(value: string) {
 
 export function hashTeacherPin(pin: string, salt = randomBytes(16).toString("hex")) {
   if (!/^\d{6}$/.test(pin)) throw new TeacherAuthError("INVALID_PIN");
-  const hash = scryptSync(pin, salt, 32).toString("hex");
-  return `${salt}:${hash}`;
+  const hash = scryptSync(`${teacherSecret()}:${pin}`, salt, 32).toString("hex");
+  return `scrypt-v2:${salt}:${hash}`;
 }
 
 async function storedPinHash() {
-  const envHash = process.env.TEACHER_ACCESS_PIN_HASH?.trim();
-  if (envHash) return envHash;
-
   const snap = await getAdminDb()
     .collection(firestoreCollectionName("system"))
     .doc("teacherAuth")
@@ -64,6 +70,7 @@ async function storedPinHash() {
 }
 
 export async function teacherAuthConfigured() {
+  if (!authSecretConfigured()) return false;
   try {
     const value = await storedPinHash();
     if (!value) return false;
@@ -76,7 +83,7 @@ export async function teacherAuthConfigured() {
 
 export async function setupTeacherPin(pin: string) {
   if (!/^\d{6}$/.test(pin)) throw new TeacherAuthError("INVALID_PIN");
-  if (process.env.TEACHER_ACCESS_PIN_HASH?.trim()) throw new TeacherAuthError("ALREADY_CONFIGURED");
+  teacherSecret();
 
   const db = getAdminDb();
   const ref = db.collection(firestoreCollectionName("system")).doc("teacherAuth");
@@ -93,7 +100,7 @@ export async function setupTeacherPin(pin: string) {
       {
         pinHash,
         configuredAt: new Date().toISOString(),
-        version: 1,
+        version: 2,
       },
       { merge: true },
     );
@@ -105,13 +112,12 @@ async function verifyTeacherPin(pin: string) {
   const value = await storedPinHash();
   if (!value) throw new TeacherAuthError("BACKEND_NOT_CONFIGURED");
   const expected = parsePinHash(value);
-  const actual = scryptSync(pin, expected.salt, 32).toString("hex");
+  const actual = scryptSync(`${teacherSecret()}:${pin}`, expected.salt, 32).toString("hex");
   return timingSafeEqual(Buffer.from(actual, "hex"), Buffer.from(expected.hash, "hex"));
 }
 
 function hashToken(sessionId: string, token: string) {
-  // The cookie carries a random 256-bit token. Only its digest is persisted.
-  return createHash("sha256").update(`${sessionId}:${token}`, "utf8").digest("hex");
+  return createHmac("sha256", teacherSecret()).update(`${sessionId}:${token}`, "utf8").digest("hex");
 }
 
 function safeHexEqual(left: string, right: string) {
@@ -127,6 +133,7 @@ function parseCookie(value?: string) {
 }
 
 export async function createTeacherSession(pin: string) {
+  teacherSecret();
   if (!(await verifyTeacherPin(pin))) throw new TeacherAuthError("INVALID_PIN");
   const now = Date.now();
   const expiresAtMs = now + SESSION_DAYS * 24 * 60 * 60 * 1000;
@@ -142,6 +149,7 @@ export async function createTeacherSession(pin: string) {
 }
 
 export async function readTeacherSession(cookieValue?: string) {
+  teacherSecret();
   const parsed = parseCookie(cookieValue);
   if (!parsed) throw new TeacherAuthError("INVALID_SESSION");
   const snap = await getAdminDb().collection(firestoreCollectionName("teacherSessions")).doc(parsed.sessionId).get();
@@ -156,6 +164,7 @@ export async function readTeacherSession(cookieValue?: string) {
 }
 
 export async function revokeTeacherSession(cookieValue?: string) {
+  teacherSecret();
   const parsed = parseCookie(cookieValue);
   if (!parsed) return;
   const ref = getAdminDb().collection(firestoreCollectionName("teacherSessions")).doc(parsed.sessionId);
