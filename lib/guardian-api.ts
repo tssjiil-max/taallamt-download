@@ -12,6 +12,7 @@ export type GuardianBackendStatus = {
   ready: boolean;
   firebaseConfigured?: boolean;
   firebase: boolean;
+  authSecret?: boolean;
   guardianAuth: boolean;
   teacherAuth?: boolean;
   teacherSetupRequired?: boolean;
