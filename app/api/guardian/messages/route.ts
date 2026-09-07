@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
+import { firestoreCollectionName, getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
 import { GUARDIAN_COOKIE, GuardianAuthError, readGuardianSession } from "@/lib/server/guardian-auth";
 
 export const runtime = "nodejs";
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    await getAdminDb().collection("messages").doc(id).set(message);
+    await getAdminDb().collection(firestoreCollectionName("messages")).doc(id).set(message);
     return NextResponse.json({ ok: true, message }, { status: 201 });
   } catch (error) {
     if (error instanceof GuardianAuthError) return unauthorized();
