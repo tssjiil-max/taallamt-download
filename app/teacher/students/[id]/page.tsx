@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { PrintButton } from "@/components/PrintButton";
+import { assessedSkills, latestAssessmentBySkill, remedialAction, skillsNeedingTraining } from "@/lib/assessment";
 import { useTaallamt } from "@/lib/store";
 import type { FollowUpCategory, MasteryLevel, SpecialFollowUp } from "@/lib/types";
 
@@ -32,18 +33,23 @@ export default function StudentPage() {
   const plan = useMemo(() => current?.plan?.length ? current.plan : suggestedPlan(category), [current?.plan, category]);
 
   if (!student) return <main className="shell"><div className="notice warn">الطالب غير موجود أو تم حذفه.</div><Link className="btn section" href="/teacher/students">العودة للطلاب</Link></main>;
-  const activeSubjects = store.subjects.filter((subject) => subject.enabled && subject.termId === store.activeTermId);
-  const needsTraining = activeSubjects.filter((subject) => student.subjectLevels[subject.id] === "needs_training");
+
+  const activeSubjects = store.subjects.filter((subject) => subject.enabled && subject.termId === store.activeTermId).sort((a, b) => a.order - b.order);
+  const activeSkills = store.skills.filter((skill) => skill.active && skill.termId === store.activeTermId);
+  const latest = latestAssessmentBySkill(store.assessments, student.id);
+  const assessed = assessedSkills(activeSkills, store.assessments, student.id, store.activeTermId);
+  const needsSkills = skillsNeedingTraining(activeSkills, store.assessments, student.id, store.activeTermId);
+  const masteredCount = assessed.filter(({ assessment }) => assessment.level === "mastered").length;
   const studentMessages = store.messages.filter((message) => message.studentId === student.id);
 
   function saveSpecial() {
-    store.saveFollowUp({ studentId: student!.id, category, guardianStatement: current?.guardianStatement ?? "", schoolImpact: impact, goal, plan: suggestedPlan(category), status, nextReviewAt: review, guardianVisible: true });
+    store.saveFollowUp({ studentId: student.id, category, guardianStatement: current?.guardianStatement ?? "", schoolImpact: impact, goal, plan: suggestedPlan(category), status, nextReviewAt: review, guardianVisible: true });
     alert("تم حفظ ملف المتابعة الخاصة");
   }
 
   function sendTeacherMessage(event: FormEvent) {
     event.preventDefault();
-    store.sendMessage(student!.id, "teacher", teacherMessage);
+    store.sendMessage(student.id, "teacher", teacherMessage);
     setTeacherMessage("");
   }
 
@@ -53,12 +59,21 @@ export default function StudentPage() {
 
       <section className="two">
         <div className="card"><h3>الوصول والمتابعة</h3><div className="kv"><span>الحالة</span><b>{student.active ? "طالب حالي" : "مؤرشف"}</b></div><div className="kv"><span>ولي الأمر</span><span>مسموح جهازان في الوقت نفسه</span></div><div className="kv"><span>الأجهزة</span><span>{student.guardianDevices}/{student.guardianDeviceLimit}</span></div><div className="mini-actions no-print" style={{ marginTop: 12 }}><button className="btn secondary" onClick={() => store.setGuardianDevices(student.id, 0)}>إلغاء الأجهزة</button><Link className="btn" href="/guardian">معاينة بوابة الولي</Link></div></div>
-        <div className="card"><h3>ملخص التقييم</h3><div className="kv"><span>المواد</span><span>{activeSubjects.length}</span></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsTraining.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div></div>
+        <div className="card"><h3>ملخص المهارات</h3><div className="kv"><span>مقيّمة</span><b>{assessed.length}</b></div><div className="kv"><span>متقنة</span><b>{masteredCount}</b></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsSkills.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div></div>
       </section>
 
-      <section className="section"><div className="section-head"><h2>تقييم المواد والمهارات العامة</h2></div><div className="list">{activeSubjects.map((subject) => { const value = student.subjectLevels[subject.id] ?? "partial"; return <div className="row" key={subject.id}><div className="grow"><h4>{subject.name}</h4><small>سيتم تفصيل التقييم إلى مهارات كل درس</small></div><select className="field no-print" value={value} onChange={(e) => store.setMastery(student.id, subject.id, e.target.value as MasteryLevel)}><option value="mastered">متقن</option><option value="partial">أتقن البعض</option><option value="needs_training">يحتاج تدريب</option></select><span className={`badge ${value === "needs_training" ? "warn" : ""}`}>{masteryLabels[value]}</span></div>; })}</div></section>
+      <section className="section">
+        <div className="section-head"><h2>سجل متابعة المهارات</h2><Link className="btn no-print" href="/teacher/assessment">فتح شاشة التقييم</Link></div>
+        <div className="card">
+          {assessed.length === 0 ? <div className="notice">لم تُسجل تقييمات مهارية لهذا الطالب بعد. ابدأ من شاشة «سجل متابعة المهارات».</div> : <div className="list">{activeSubjects.map((subject) => {
+            const rows = activeSkills.filter((skill) => skill.subjectId === subject.id && latest.has(skill.id));
+            if (!rows.length) return null;
+            return <div key={subject.id}><h3 className="section">{subject.name}</h3>{rows.map((skill) => { const assessment = latest.get(skill.id)!; return <div className="row" key={skill.id}><div className="grow"><h4>{skill.title}</h4><small>{skill.category} · الأسبوع {skill.week}</small></div><span className={`badge ${assessment.level === "needs_training" ? "warn" : ""}`}>{masteryLabels[assessment.level]}</span></div>; })}</div>;
+          })}</div>}
+        </div>
+      </section>
 
-      <section className="section"><div className="section-head"><h2>الخطة العلاجية</h2></div><div className="card">{needsTraining.length ? <><p>المواد التي تحتاج تدخلًا حاليًا: <b>{needsTraining.map((s) => s.name).join("، ")}</b></p><div className="notice section">الخطة التفصيلية ستُبنى على المهارات غير المتقنة من توزيع كل مادة، وتظهر لولي الأمر جاهزة للطباعة.</div></> : <div className="notice">لا توجد مادة مصنفة «يحتاج تدريب» حاليًا.</div>}</div></section>
+      <section className="section"><div className="section-head"><h2>الخطة العلاجية المبنية على المهارات</h2><span className={`badge ${needsSkills.length ? "warn" : ""}`}>{needsSkills.length} مهارة</span></div><div className="card">{needsSkills.length ? <div className="list">{needsSkills.map((skill) => { const subject = activeSubjects.find((item) => item.id === skill.subjectId); return <div className="row" key={skill.id}><div><h4>{subject?.name ?? "المادة"} — {skill.category}</h4><small><b>{skill.title}</b><br />{remedialAction(skill)}</small></div><span className="badge warn">يحتاج تدريب</span></div>; })}</div> : <div className="notice">لا توجد مهارة مصنفة «يحتاج تدريب» في آخر تقييم مسجل. تستمر المراجعة العادية حسب الخطة الأسبوعية.</div>}</div></section>
 
       <section className="section">
         <div className="section-head"><h2>ملف المتابعة الخاصة</h2><span className="badge red">خاص</span></div>
