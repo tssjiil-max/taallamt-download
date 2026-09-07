@@ -1,8 +1,9 @@
+import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { getAdminDb } from "./firebase-admin";
 
 type LooseDoc = { id: string } & Record<string, unknown>;
 
-function docsWithIds(docs: FirebaseFirestore.QueryDocumentSnapshot[]): LooseDoc[] {
+function docsWithIds(docs: QueryDocumentSnapshot[]): LooseDoc[] {
   return docs.map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }));
 }
 
