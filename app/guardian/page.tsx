@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DateBar } from "@/components/DateBar";
 import { GuardianResources } from "@/components/GuardianResources";
 import { GuardianSkillProgress } from "@/components/GuardianSkillProgress";
@@ -16,17 +16,77 @@ import type { FollowUpCategory, MasteryLevel } from "@/lib/types";
 
 const labels: Record<MasteryLevel, string> = { mastered: "متقن", partial: "أتقن البعض", needs_training: "يحتاج تدريب" };
 const progressLabels = { improving: "يتحسن", stable: "مستقر", needs_review: "يحتاج مراجعة" } as const;
+const SESSION_KEY = "taallamt-guardian-session";
 
 export default function GuardianPage() {
   const store = useTaallamt();
   const active = store.students.filter((student) => student.active);
-  const [previewId, setPreviewId] = useState("");
-  const student = active.find((item) => item.id === previewId) ?? active[0];
+  const [sessionStudentId, setSessionStudentId] = useState("");
+  const [sessionReady, setSessionReady] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState("");
+  const [code, setCode] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [category, setCategory] = useState<FollowUpCategory>("learning");
   const [statement, setStatement] = useState("");
   const [message, setMessage] = useState("");
 
-  if (!student) return <main className="shell"><div className="notice">لا يوجد طلاب حاليون.</div></main>;
+  useEffect(() => {
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (saved) setSessionStudentId(saved);
+    setSessionReady(true);
+  }, []);
+
+  const student = active.find((item) => item.id === sessionStudentId);
+  const matches = useMemo(() => {
+    const q = search.trim();
+    if (q.length < 2) return [];
+    return active.filter((item) => item.name.includes(q)).slice(0, 8);
+  }, [active, search]);
+
+  async function login(event: FormEvent) {
+    event.preventDefault();
+    setLoginError("");
+    const target = active.find((item) => item.id === selectedId);
+    if (!target) { setLoginError("اختر اسم الطالب أولًا."); return; }
+    if (!target.guardianAccessEnabled) { setLoginError("وصول ولي الأمر لهذا الطالب غير مفعّل بعد. تواصل مع المعلم."); return; }
+    const ok = await store.verifyGuardianAccess(target.id, code);
+    if (!ok) { setLoginError("رمز الوصول غير صحيح."); return; }
+    if (target.guardianDevices >= target.guardianDeviceLimit) { setLoginError("تم الوصول للحد المسموح من الأجهزة. اطلب من المعلم إلغاء أحد الأجهزة."); return; }
+    store.setGuardianDevices(target.id, target.guardianDevices + 1);
+    localStorage.setItem(SESSION_KEY, target.id);
+    setSessionStudentId(target.id);
+    setCode("");
+  }
+
+  function logout() {
+    if (student) store.setGuardianDevices(student.id, Math.max(0, student.guardianDevices - 1));
+    localStorage.removeItem(SESSION_KEY);
+    setSessionStudentId("");
+    setSelectedId("");
+    setSearch("");
+  }
+
+  if (!store.ready || !sessionReady) return <main className="shell"><div className="notice">جاري فتح بوابة ولي الأمر…</div></main>;
+
+  if (!student) {
+    return (
+      <main className="shell">
+        <header className="topbar"><div className="brand"><div className="logo">🏠</div><div><h1>متابعة الطالب</h1><p>بوابة ولي الأمر — تعلّمت</p></div></div></header>
+        <DateBar />
+        <section className="hero section"><div><h2>دخول ولي الأمر</h2><p>ابحث عن اسم الطالب ثم أدخل رمز الوصول المكوّن من 6 أرقام الذي استلمته من المعلم.</p></div><div className="hero-stats"><div className="stat"><b>6</b><span>أرقام</span></div><div className="stat"><b>2</b><span>أقصى أجهزة</span></div><div className="stat"><b>🔒</b><span>خاص بابنك</span></div><div className="stat"><b>بدون حساب</b><span>لا بريد ولا جوال</span></div></div></section>
+        <section className="section"><form className="card stack" onSubmit={login}>
+          <label className="stack">ابحث عن اسم الطالب<input className="field" value={search} onChange={(e) => { setSearch(e.target.value); setSelectedId(""); }} placeholder="اكتب أول حرفين أو أكثر من الاسم" /></label>
+          {matches.length > 0 && <div className="list">{matches.map((item) => <button className={`row guardian-pick ${selectedId === item.id ? "selected" : ""}`} type="button" key={item.id} onClick={() => setSelectedId(item.id)}><div className="row-main"><div className="avatar">🧒</div><div><h4>{item.name}</h4><small>{item.className}</small></div></div><span className="badge">{selectedId === item.id ? "محدد" : "اختيار"}</span></button>)}</div>}
+          {selectedId && <label className="stack">رمز الوصول<input className="field guardian-code" required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></label>}
+          {loginError && <div className="notice warn">{loginError}</div>}
+          <button className="btn" type="submit" disabled={!selectedId || code.length !== 6}>دخول</button>
+          <small>في النسخة الإنتاجية يتم التحقق في الخادم ولا يظهر رمز الوصول أو قائمة الطلاب كاملة للمتصفح.</small>
+        </form></section>
+        <footer className="site-credit">برمجة سلطان الصاعدي</footer>
+      </main>
+    );
+  }
 
   const subjects = store.subjects.filter((subject) => subject.enabled && subject.termId === store.activeTermId).sort((a, b) => a.order - b.order);
   const activeSkills = store.skills.filter((skill) => skill.active && skill.termId === store.activeTermId);
@@ -54,12 +114,10 @@ export default function GuardianPage() {
 
   return (
     <main className="shell">
-      <header className="topbar"><div className="brand"><div className="logo">🏠</div><div><h1>متابعة الطالب</h1><p>بوابة ولي الأمر — خطة، مستوى، مهام وتواصل</p></div></div><span className="pill no-print">الأجهزة {student.guardianDevices}/{student.guardianDeviceLimit}</span></header>
+      <header className="topbar"><div className="brand"><div className="logo">🏠</div><div><h1>متابعة الطالب</h1><p>بوابة ولي الأمر — خطة، مستوى، مهام وتواصل</p></div></div><div className="mini-actions no-print"><span className="pill">الأجهزة {student.guardianDevices}/{student.guardianDeviceLimit}</span><button className="btn secondary" type="button" onClick={logout}>خروج</button></div></header>
       <DateBar />
 
-      <div className="card no-print section"><div className="toolbar"><span>معاينة أثناء البناء:</span><select className="field grow" value={student.id} onChange={(e) => setPreviewId(e.target.value)}>{active.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><Link className="btn secondary" href="/">لوحة المعلم</Link></div><small>في النسخة النهائية لن يختار ولي الأمر طالبًا؛ الجلسة الآمنة تفتح ابنه فقط.</small></div>
-
-      <section className="hero section"><div><h2>{student.name}</h2><p>هذه الصفحة تعرض فقط ما يحتاجه ولي الأمر الآن: ماذا يدرس ابنه، ماذا لديه غدًا، ما الذي يحتاج تدريبًا، وما الذي أرسله المعلم.</p></div><div className="hero-stats"><div className="stat"><b>{week}</b><span>الأسبوع الحالي</span></div><div className="stat"><b>{sentResources}</b><span>أوراق واختبارات</span></div><div className="stat"><b>{stars}</b><span>نجوم قيم</span></div><div className="stat"><b>{needsSkills.length}</b><span>مهارات تحتاج تدريبًا</span></div></div></section>
+      <section className="hero section"><div><h2>{student.name}</h2><p>هذه الصفحة تخص ابنك فقط: خطة الأسبوع، ماذا لديه غدًا، المهارات التي تحتاج تدريبًا، القيم، والإرسال المباشر من المعلم.</p></div><div className="hero-stats"><div className="stat"><b>{week}</b><span>الأسبوع الحالي</span></div><div className="stat"><b>{sentResources}</b><span>أوراق واختبارات</span></div><div className="stat"><b>{stars}</b><span>نجوم قيم</span></div><div className="stat"><b>{needsSkills.length}</b><span>مهارات تحتاج تدريبًا</span></div></div></section>
 
       <NotificationPanel role="guardian" studentId={student.id} />
 
@@ -82,7 +140,6 @@ export default function GuardianPage() {
 
       <section className="section no-print"><div className="section-head"><h2>التواصل مع المعلم</h2></div><div className="card"><div className="list">{messages.slice(-8).map((item) => <div className="row" key={item.id}><div><h4>{item.author === "guardian" ? "ولي الأمر" : "المعلم"}</h4><small>{item.body}</small></div></div>)}{messages.length === 0 && <div className="notice">لا توجد رسائل بعد.</div>}</div><form className="toolbar section" onSubmit={send}><input className="field grow" required value={message} onChange={(e) => setMessage(e.target.value)} placeholder="اكتب رسالة قصيرة للمعلم" /><button className="btn" type="submit">إرسال</button></form></div></section>
 
-      <section className="section no-print"><div className="card"><h3>أجهزة ولي الأمر</h3><p>مسموح بجهازين في الوقت نفسه. النسخة الحالية تحاكي العدد، والنسخة الخلفية ستربط كل جلسة بجهاز فعلي.</p><button className="btn section" disabled={student.guardianDevices >= student.guardianDeviceLimit} onClick={() => store.setGuardianDevices(student.id, student.guardianDevices + 1)}>{student.guardianDevices >= student.guardianDeviceLimit ? "تم الوصول للحد" : "محاكاة تفعيل جهاز"}</button></div></section>
       <footer className="site-credit">برمجة سلطان الصاعدي</footer>
     </main>
   );
