@@ -30,7 +30,5 @@ export function getAdminDb() {
       }),
     });
 
-  const db = getFirestore(app);
-  db.settings({ ignoreUndefinedProperties: true });
-  return db;
+  return getFirestore(app);
 }
