@@ -35,22 +35,23 @@ export default function StudentPage() {
 
   if (!student) return <main className="shell"><div className="notice warn">الطالب غير موجود أو تم حذفه.</div><Link className="btn section" href="/teacher/students">العودة للطلاب</Link></main>;
 
+  const studentId = student.id;
   const activeSubjects = store.subjects.filter((subject) => subject.enabled && subject.termId === store.activeTermId).sort((a, b) => a.order - b.order);
   const activeSkills = store.skills.filter((skill) => skill.active && skill.termId === store.activeTermId);
-  const latest = latestAssessmentBySkill(store.assessments, student.id);
-  const assessed = assessedSkills(activeSkills, store.assessments, student.id, store.activeTermId);
-  const needsSkills = skillsNeedingTraining(activeSkills, store.assessments, student.id, store.activeTermId);
+  const latest = latestAssessmentBySkill(store.assessments, studentId);
+  const assessed = assessedSkills(activeSkills, store.assessments, studentId, store.activeTermId);
+  const needsSkills = skillsNeedingTraining(activeSkills, store.assessments, studentId, store.activeTermId);
   const masteredCount = assessed.filter(({ assessment }) => assessment.level === "mastered").length;
-  const studentMessages = store.messages.filter((message) => message.studentId === student.id);
+  const studentMessages = store.messages.filter((message) => message.studentId === studentId);
 
   function saveSpecial() {
-    store.saveFollowUp({ studentId: student.id, category, guardianStatement: current?.guardianStatement ?? "", schoolImpact: impact, goal, plan: suggestedPlan(category), status, nextReviewAt: review, guardianVisible: true });
+    store.saveFollowUp({ studentId, category, guardianStatement: current?.guardianStatement ?? "", schoolImpact: impact, goal, plan: suggestedPlan(category), status, nextReviewAt: review, guardianVisible: true });
     alert("تم حفظ ملف المتابعة الخاصة");
   }
 
   function sendTeacherMessage(event: FormEvent) {
     event.preventDefault();
-    store.sendMessage(student.id, "teacher", teacherMessage);
+    store.sendMessage(studentId, "teacher", teacherMessage);
     setTeacherMessage("");
   }
 
@@ -59,7 +60,7 @@ export default function StudentPage() {
       <header className="topbar"><div className="brand"><div className="logo">🧒</div><div><h1>{student.name}</h1><p>{student.className} · سجل الطالب</p></div></div><div className="mini-actions"><PrintButton label="طباعة سجل الطالب" /><Link className="btn secondary no-print" href="/teacher/students">الطلاب</Link></div></header>
 
       <section className="two">
-        <GuardianAccessManager studentId={student.id} />
+        <GuardianAccessManager studentId={studentId} />
         <div className="card"><h3>ملخص المهارات</h3><div className="kv"><span>مقيّمة</span><b>{assessed.length}</b></div><div className="kv"><span>متقنة</span><b>{masteredCount}</b></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsSkills.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div><div className="mini-actions section no-print"><Link className="btn" href="/guardian">فتح بوابة ولي الأمر</Link></div></div>
       </section>
 
