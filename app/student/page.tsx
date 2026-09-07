@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { DateBar } from "@/components/DateBar";
 import { StudentValues } from "@/components/StudentValues";
+import { skillsNeedingTraining, studentGoal } from "@/lib/assessment";
 import { academicWeek } from "@/lib/schedule";
 import { useTaallamt } from "@/lib/store";
 import type { MasteryLevel } from "@/lib/types";
@@ -23,6 +24,11 @@ export default function StudentPortal() {
   const week = academicWeek();
   const spelling = store.spellingPractices.find((item) => item.active && item.termId === store.activeTermId && item.week === week);
   const stars = store.valueStars.filter((star) => star.studentId === student.id).length;
+  const activeSkills = store.skills.filter((skill) => skill.active && skill.termId === store.activeTermId);
+  const needsSkills = skillsNeedingTraining(activeSkills, store.assessments, student.id, store.activeTermId);
+  const weeklySkills = activeSkills.filter((skill) => skill.week === week);
+  const focusSkill = needsSkills[0] ?? weeklySkills[0];
+  const focusSubject = focusSkill ? subjects.find((subject) => subject.id === focusSkill.subjectId) : undefined;
 
   return (
     <main className="shell">
@@ -30,9 +36,12 @@ export default function StudentPortal() {
       <DateBar />
       <div className="card no-print"><div className="toolbar"><span>معاينة الطالب:</span><select className="field grow" value={student.id} onChange={(e) => setPreviewId(e.target.value)}>{active.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></div></div>
 
-      <section className="hero section"><div><h2>أهلًا يا {firstName} 👋</h2><p>ركز اليوم على مهمة واحدة، ثم احتفل بتقدمك. النجاح خطوات صغيرة تتكرر.</p></div><div className="hero-stats"><div className="stat"><b>{mastered}</b><span>مواد متقنة</span></div><div className="stat"><b>{week}</b><span>الأسبوع</span></div><div className="stat"><b>{stars}</b><span>نجوم قيم</span></div><div className="stat"><b>🎯</b><span>مهمة واحدة الآن</span></div></div></section>
+      <section className="hero section"><div><h2>أهلًا يا {firstName} 👋</h2><p>ركز اليوم على مهمة واحدة، ثم احتفل بتقدمك. النجاح خطوات صغيرة تتكرر.</p></div><div className="hero-stats"><div className="stat"><b>{mastered}</b><span>مواد متقنة</span></div><div className="stat"><b>{week}</b><span>الأسبوع</span></div><div className="stat"><b>{stars}</b><span>نجوم قيم</span></div><div className="stat"><b>{needsSkills.length}</b><span>أهداف تدريب</span></div></div></section>
 
-      <section className="section two"><div className="card"><div className="icon amber">🎯</div><h3>مهمتي الآن</h3><p>أقرأ أو أسمّع أو أتدرب على المهارة التي حددها المعلم، ثم أحاول مرة أخرى إذا احتجت.</p></div>{spelling && <div className="card"><div className="icon green">✍️</div><h3>إملاء هذا الأسبوع</h3><p>{spelling.skill}</p><span className="badge section">{spelling.unitName}</span></div>}</section>
+      <section className="section two">
+        <div className="card"><div className="icon amber">🎯</div><h3>مهمتي الآن</h3>{focusSkill ? <><p>{studentGoal(focusSkill)}</p><div className="toolbar section"><span className="badge">{focusSubject?.name ?? "المادة"}</span><span className="badge">{focusSkill.category}</span>{needsSkills.some((skill) => skill.id === focusSkill.id) && <span className="badge warn">أحاول مرة أخرى</span>}</div></> : <p>لا توجد مهمة مهارية محددة الآن. اتبع تعليمات المعلم وخطة الأسبوع.</p>}</div>
+        {spelling && <div className="card"><div className="icon green">✍️</div><h3>إملاء هذا الأسبوع</h3><p>{spelling.skill}</p><span className="badge section">{spelling.unitName}</span></div>}
+      </section>
 
       <StudentValues studentId={student.id} />
 
