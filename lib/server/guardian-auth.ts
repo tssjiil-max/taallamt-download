@@ -1,4 +1,5 @@
-import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { requireAuthSecret } from "./auth-secret";
 import { firestoreCollectionName, getAdminDb } from "./firebase-admin";
 
 export const GUARDIAN_COOKIE = "taallamt_guardian_session";
@@ -47,8 +48,12 @@ export class GuardianAuthError extends Error {
   }
 }
 
-function sha256(value: string) {
-  return createHash("sha256").update(value, "utf8").digest("hex");
+function guardianSecret() {
+  try {
+    return requireAuthSecret();
+  } catch {
+    throw new GuardianAuthError("BACKEND_NOT_CONFIGURED");
+  }
 }
 
 function safeHexEqual(left: string, right: string) {
@@ -71,34 +76,20 @@ export function normalizeGuardianSearchName(value: string) {
 
 export function hashGuardianAccessCode(studentId: string, code: string, salt = randomBytes(16).toString("hex")) {
   if (!studentId || !/^\d{6}$/.test(code)) throw new GuardianAuthError("INVALID_CODE");
-  const hash = scryptSync(`${studentId}:${code}`, salt, 32).toString("hex");
-  return `scrypt:${salt}:${hash}`;
+  const hash = scryptSync(`${guardianSecret()}:${studentId}:${code}`, salt, 32).toString("hex");
+  return `scrypt-v2:${salt}:${hash}`;
 }
 
 function verifyGuardianAccessCode(studentId: string, code: string, storedHash: string) {
   if (!/^\d{6}$/.test(code)) return false;
-
-  if (storedHash.startsWith("scrypt:")) {
-    const [, salt, expected] = storedHash.split(":", 3);
-    if (!salt || salt.length < 16 || !expected || expected.length !== 64) return false;
-    const actual = scryptSync(`${studentId}:${code}`, salt, 32).toString("hex");
-    return safeHexEqual(actual, expected);
-  }
-
-  // Backward compatibility for hashes created by the earlier pepper-based prototype.
-  const legacyPepper = process.env.GUARDIAN_CODE_PEPPER;
-  if (legacyPepper && /^[a-f0-9]{64}$/i.test(storedHash)) {
-    const actual = sha256(`${legacyPepper}:${studentId}:${code}`);
-    return safeHexEqual(actual, storedHash);
-  }
-
-  return false;
+  const [version, salt, expected] = storedHash.split(":", 3);
+  if (version !== "scrypt-v2" || !salt || salt.length < 16 || !expected || expected.length !== 64) return false;
+  const actual = scryptSync(`${guardianSecret()}:${studentId}:${code}`, salt, 32).toString("hex");
+  return safeHexEqual(actual, expected);
 }
 
 function hashSessionToken(sessionId: string, token: string) {
-  // The cookie contains a cryptographically random 256-bit token. Storing only a SHA-256
-  // digest means a Firestore leak is not enough to impersonate a guardian session.
-  return sha256(`${sessionId}:${token}`);
+  return createHmac("sha256", guardianSecret()).update(`${sessionId}:${token}`, "utf8").digest("hex");
 }
 
 function parseCookie(value?: string) {
@@ -110,6 +101,7 @@ function parseCookie(value?: string) {
 
 export async function createGuardianSession(studentId: string, code: string) {
   if (!studentId || !/^\d{6}$/.test(code)) throw new GuardianAuthError("INVALID_CODE");
+  guardianSecret();
 
   const db = getAdminDb();
   const now = Date.now();
@@ -155,6 +147,7 @@ export async function createGuardianSession(studentId: string, code: string) {
 }
 
 export async function readGuardianSession(cookieValue?: string) {
+  guardianSecret();
   const parsed = parseCookie(cookieValue);
   if (!parsed) throw new GuardianAuthError("INVALID_SESSION");
 
@@ -184,6 +177,7 @@ export async function readGuardianSession(cookieValue?: string) {
 }
 
 export async function revokeGuardianSession(cookieValue?: string) {
+  guardianSecret();
   const parsed = parseCookie(cookieValue);
   if (!parsed) return;
 
