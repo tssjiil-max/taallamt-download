@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { DateBar } from "@/components/DateBar";
+import { NotificationPanel } from "@/components/NotificationPanel";
 import { useTaallamt } from "@/lib/store";
 
 export default function TeacherHome() {
@@ -13,7 +15,9 @@ export default function TeacherHome() {
   return (
     <main className="shell">
       <header className="topbar"><div className="brand"><div className="logo">🎓</div><div><h1>تعلّمت</h1><p>لوحة المعلم — الإدارة والمتابعة والتحفيز</p></div></div>{activeTerm && <span className="pill">{activeTerm.name} · {activeTerm.academicYear}</span>}</header>
-      <section className="hero"><div><h2>مرحبًا أ. سلطان</h2><p>إدارة الفصل من مكان واحد. الطلاب والمواد والفصول قابلة للإضافة والتعديل والأرشفة، مع بقاء السجل السابق محفوظًا.</p></div><div className="hero-stats"><div className="stat"><b>{activeStudents.length}</b><span>طالب حالي</span></div><div className="stat"><b>{activeSubjects.length}</b><span>مواد مفعلة</span></div><div className="stat"><b>{specialCount}</b><span>متابعة خاصة</span></div><div className="stat"><b>2</b><span>أقصى أجهزة ولي الأمر</span></div></div></section>
+      <DateBar />
+      <NotificationPanel role="teacher" />
+      <section className="hero section"><div><h2>مرحبًا أ. سلطان</h2><p>إدارة الفصل من مكان واحد. الطلاب والمواد والفصول قابلة للإضافة والتعديل والأرشفة، مع بقاء السجل السابق محفوظًا.</p></div><div className="hero-stats"><div className="stat"><b>{activeStudents.length}</b><span>طالب حالي</span></div><div className="stat"><b>{activeSubjects.length}</b><span>مواد مفعلة</span></div><div className="stat"><b>{specialCount}</b><span>متابعة خاصة</span></div><div className="stat"><b>2</b><span>أقصى أجهزة ولي الأمر</span></div></div></section>
       <section className="grid">
         <Link className="card" href="/teacher/students"><div className="icon">👥</div><h3>الطلاب والمتابعة</h3><p>إضافة وأرشفة الطلاب، التقييم، المهارات، الخطط العلاجية وسجل الطالب.</p></Link>
         <Link className="card" href="/teacher/distribution"><div className="icon">📅</div><h3>التوزيع الأسبوعي</h3><p>توزيع القرآن والدراسات الإسلامية ولغتي أسبوعًا بأسبوع مع إمكانية التعديل.</p></Link>
