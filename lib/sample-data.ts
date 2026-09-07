@@ -1,4 +1,4 @@
-import type { Student, Subject, TaallamtData, Term, WeeklyPlan } from "./types";
+import type { Skill, Student, Subject, TaallamtData, Term, WeeklyPlan } from "./types";
 
 export const terms: Term[] = [
   { id: "term-1", name: "الفصل الدراسي الأول", academicYear: "1448هـ", active: true },
@@ -52,6 +52,63 @@ function plans(subjectId: string, titles: string[]): WeeklyPlan[] {
 
 export const weeklyPlans: WeeklyPlan[] = [...plans("quran", quran), ...plans("islamic", islamic), ...plans("lughati", lughati)];
 
+function skill(subjectId: string, week: number, category: string, title: string, suffix: string): Skill {
+  return {
+    id: `${subjectId}-w${week}-${suffix}`,
+    termId: "term-1",
+    subjectId,
+    week,
+    category,
+    title,
+    active: true,
+    source: "register",
+  };
+}
+
+const quranSkills: Skill[] = quran.flatMap((title, index) => {
+  const week = index + 1;
+  const target = title.replace(/^حفظ:\s*/, "");
+  if (title.includes("مراجعة")) {
+    return [
+      skill("quran", week, "الحفظ", "يثبت الحفظ السابق ويستظهره دون تردد قدر الإمكان", "memorization"),
+      skill("quran", week, "التلاوة والمراجعة", "يراجع السور السابقة بتلاوة صحيحة وواضحة", "recitation"),
+    ];
+  }
+  return [
+    skill("quran", week, "الحفظ", `يحفظ المقطع المقرر: ${target}`, "memorization"),
+    skill("quran", week, "التلاوة", `يتلو المقطع المقرر تلاوة صحيحة: ${target}`, "recitation"),
+  ];
+});
+
+function islamicCategory(title: string) {
+  return /(الله|العبادة|الشرك|خلقنا)/.test(title) ? "التوحيد" : "الفقه والسلوك";
+}
+
+const islamicSkills: Skill[] = islamic.map((title, index) => {
+  const week = index + 1;
+  const category = islamicCategory(title);
+  return skill("islamic", week, category, `يفهم ويطبق ما تعلمه في: ${title}`, "main");
+});
+
+const lughatiSkills: Skill[] = lughati.flatMap((title, index) => {
+  const week = index + 1;
+  return [
+    skill("lughati", week, "القراءة", `يقرأ محتوى الأسبوع قراءة مناسبة لمستواه: ${title}`, "reading"),
+    skill("lughati", week, "الفهم القرائي", `يفهم المفردات والأفكار الرئيسة في: ${title}`, "comprehension"),
+    skill("lughati", week, "الكتابة والإملاء", `يكتب ويملي الكلمات والتراكيب المستهدفة في: ${title}`, "writing"),
+    skill("lughati", week, "المهارات اللغوية", `يطبق المهارات اللغوية المرتبطة بـ: ${title}`, "language"),
+  ];
+});
+
+export const skills: Skill[] = [...quranSkills, ...islamicSkills, ...lughatiSkills];
+
 export const initialData: TaallamtData = {
-  terms, subjects, students, weeklyPlans, followUps: {}, messages: [],
+  terms,
+  subjects,
+  students,
+  weeklyPlans,
+  skills,
+  assessments: [],
+  followUps: {},
+  messages: [],
 };
