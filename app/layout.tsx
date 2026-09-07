@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./resources.css";
 import { TaallamtProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
