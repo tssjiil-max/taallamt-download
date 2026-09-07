@@ -34,6 +34,7 @@ export default function TeacherHome() {
         <Link className="card" href="/teacher/settings"><div className="icon green">⚙️</div><h3>إدارة الفصل والمواد</h3><p>الفصول والمواد والفصول الدراسية قابلة للتعديل دون تغيير الكود.</p></Link>
         <Link className="card" href="/teacher/data-exchange"><div className="icon green">🔄</div><h3>نقل وتبادل البيانات</h3><p>تصدير واستيراد ونسخ احتياطي وتجهيز بيانات نور ومدرستي.</p></Link>
         <Link className="card" href="/teacher/portfolio"><div className="icon green">📁</div><h3>ملف إنجاز المعلم</h3><p>يتجمع من أعمال الفصل المسجلة ويطبع أو يشارك.</p></Link>
+        <Link className="card" href="/teacher/backend"><div className="icon green">🔐</div><h3>الربط الآمن وولي الأمر</h3><p>فحص Firestore، حماية دخول المعلم، مزامنة البيانات، وتفعيل رموز أولياء الأمور.</p></Link>
         <Link className="card shak-card" href="/teacher/shakabumbo"><img className="shak-thumb" src="/shakabumbo.jpg" alt="شكابمبو" /><div><h3>شكابمبو</h3><p>مساعد صفي للقراءة والتسميع والتصحيح باستخدام محادثة ChatGPT.</p></div></Link>
         <Link className="card" href="/guardian"><div className="icon amber">🏠</div><h3>معاينة ولي الأمر</h3><p>شاهد بالضبط ما سيظهر لولي الأمر قبل النشر النهائي.</p></Link>
       </div></section>
