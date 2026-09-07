@@ -1,0 +1,10 @@
+{
+  "name": "تعلّمت",
+  "short_name": "تعلّمت",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#377cc7",
+  "lang": "ar",
+  "dir": "rtl"
+}
