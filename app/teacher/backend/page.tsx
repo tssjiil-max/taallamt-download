@@ -23,6 +23,7 @@ export default function TeacherBackendPage() {
   const [pin, setPin] = useState("");
   const [setupPin, setSetupPin] = useState("");
   const [setupPinConfirm, setSetupPinConfirm] = useState("");
+  const [generatedSecret, setGeneratedSecret] = useState("");
   const [codeByStudent, setCodeByStudent] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -48,6 +49,21 @@ export default function TeacherBackendPage() {
   }
 
   useEffect(() => { void refresh(); }, []);
+
+  function generateAuthSecret() {
+    const bytes = new Uint8Array(48);
+    window.crypto.getRandomValues(bytes);
+    const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
+    const secret = window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    setGeneratedSecret(secret);
+    setNotice("تم توليد المفتاح على جهازك فقط. انسخه إلى Vercel ثم لا تحفظه في أي مكان آخر.");
+  }
+
+  async function copyGeneratedSecret() {
+    if (!generatedSecret) return;
+    await navigator.clipboard.writeText(generatedSecret);
+    setNotice("تم نسخ مفتاح الحماية. ضعه كقيمة للمتغير TAALLAMT_AUTH_PEPPER في Vercel.");
+  }
 
   async function setup(event: FormEvent) {
     event.preventDefault();
@@ -180,7 +196,7 @@ export default function TeacherBackendPage() {
           <div className="card"><h3>المعلم</h3><p>{status.teacherAuth ? "✅ الحماية مهيأة" : status.teacherSetupRequired ? "🔐 أنشئ رمز المعلم مرة واحدة" : "⏳ ينتظر اكتمال الحماية"}</p></div>
         </div>
         {!status.firebase && <div className="notice warn">لن يكتب الموقع أي بيانات حتى ينجح اختبار اتصال Firestore الفعلي.</div>}
-        {setupBlockedBySecret && <div className="notice warn">أضف متغير Vercel السري <b>TAALLAMT_AUTH_PEPPER</b> بقيمة عشوائية طويلة لا تقل عن 32 حرفًا، ثم أعد النشر. لا تضع هذه القيمة داخل الكود أو الصفحة.</div>}
+        {setupBlockedBySecret && <div className="card stack"><h3>إنشاء مفتاح الحماية</h3><p>يُولّد محليًا في متصفحك ولا يُرسل إلى الموقع. انسخه مرة واحدة إلى Vercel كقيمة للمتغير <b>TAALLAMT_AUTH_PEPPER</b> في Production وPreview.</p><button className="btn secondary" type="button" onClick={generateAuthSecret}>توليد مفتاح عشوائي آمن</button>{generatedSecret && <><input className="field" readOnly value={generatedSecret} aria-label="مفتاح الحماية المولد" /><button className="btn" type="button" onClick={() => void copyGeneratedSecret()}>نسخ المفتاح</button></>}</div>}
       </section>
 
       {status.teacherSetupRequired && !authenticated && <section className="section"><form className="card stack" onSubmit={setup}><h2>إعداد رمز المعلم لأول مرة</h2><p>اختر رمزًا خاصًا بك من 6 أرقام. يُحفظ Hash مملّح ومحمي بمفتاح الخادم فقط، ولا يُحفظ الرمز الصريح.</p><label className="stack">رمز المعلم<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={setupPin} onChange={(event) => setSetupPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><label className="stack">تأكيد الرمز<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={setupPinConfirm} onChange={(event) => setSetupPinConfirm(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><button className="btn" disabled={busy || setupPin.length !== 6 || setupPinConfirm.length !== 6}>إنشاء الرمز وفتح الجلسة</button></form></section>}
