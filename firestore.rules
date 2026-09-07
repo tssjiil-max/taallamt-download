@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Taallamt uses Firebase Admin from trusted server routes.
+    // Browsers must not read or write Firestore directly.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
