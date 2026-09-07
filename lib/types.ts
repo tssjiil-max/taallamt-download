@@ -59,6 +59,38 @@ export type LearningResource = {
   publishedToGuardian: boolean;
 };
 
+export type ValueTarget = {
+  id: string;
+  termId: string;
+  unitName: string;
+  title: string;
+  studentText: string;
+  homeSuggestion: string;
+  weekFrom: number;
+  weekTo: number;
+  active: boolean;
+  source: "unit_guide" | "teacher";
+};
+
+export type ValueStar = {
+  id: string;
+  studentId: string;
+  valueId: string;
+  awardedAt: string;
+  reason?: string;
+};
+
+export type SpellingPractice = {
+  id: string;
+  termId: string;
+  week: number;
+  unitName: string;
+  skill: string;
+  scoreTotal: number;
+  handwritingChecklist: string[];
+  active: boolean;
+};
+
 export type SpecialFollowUp = {
   studentId: string;
   category: FollowUpCategory;
@@ -87,6 +119,9 @@ export type TaallamtData = {
   skills: Skill[];
   assessments: SkillAssessment[];
   resources: LearningResource[];
+  values: ValueTarget[];
+  valueStars: ValueStar[];
+  spellingPractices: SpellingPractice[];
   followUps: Record<string, SpecialFollowUp>;
   messages: Message[];
 };
