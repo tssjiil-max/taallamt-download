@@ -3,16 +3,26 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DateBar } from "@/components/DateBar";
 import { guardianBackendStatus, type GuardianBackendStatus } from "@/lib/guardian-api";
-import { disableGuardianAccess, setGuardianAccessCode, teacherLogin, teacherLogout, teacherMe, teacherSync } from "@/lib/teacher-api";
+import {
+  disableGuardianAccess,
+  setGuardianAccessCode,
+  teacherLogin,
+  teacherLogout,
+  teacherMe,
+  teacherSetup,
+  teacherSync,
+} from "@/lib/teacher-api";
 import { useTaallamt } from "@/lib/store";
 import type { TaallamtData } from "@/lib/types";
 
 export default function TeacherBackendPage() {
   const store = useTaallamt();
   const students = useMemo(() => store.students.filter((student) => student.active), [store.students]);
-  const [status, setStatus] = useState<(GuardianBackendStatus & { teacherAuth?: boolean }) | null>(null);
+  const [status, setStatus] = useState<GuardianBackendStatus | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [pin, setPin] = useState("");
+  const [setupPin, setSetupPin] = useState("");
+  const [setupPinConfirm, setSetupPinConfirm] = useState("");
   const [codeByStudent, setCodeByStudent] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,7 +31,7 @@ export default function TeacherBackendPage() {
     try {
       const backend = await guardianBackendStatus();
       setStatus(backend);
-      if (backend.ready) {
+      if (backend.teacherAuth) {
         try {
           await teacherMe();
           setAuthenticated(true);
@@ -32,12 +42,41 @@ export default function TeacherBackendPage() {
         setAuthenticated(false);
       }
     } catch {
-      setStatus({ ready: false, firebase: false, guardianAuth: false, teacherAuth: false });
+      setStatus({ ready: false, firebaseConfigured: false, firebase: false, guardianAuth: false, teacherAuth: false });
       setAuthenticated(false);
     }
   }
 
   useEffect(() => { void refresh(); }, []);
+
+  async function setup(event: FormEvent) {
+    event.preventDefault();
+    if (setupPin !== setupPinConfirm) {
+      setNotice("رمزا المعلم غير متطابقين.");
+      return;
+    }
+    if (!/^\d{6}$/.test(setupPin)) {
+      setNotice("رمز المعلم يجب أن يكون 6 أرقام.");
+      return;
+    }
+
+    setBusy(true);
+    setNotice("");
+    try {
+      await teacherSetup(setupPin);
+      setSetupPin("");
+      setSetupPinConfirm("");
+      setAuthenticated(true);
+      setNotice("تم إنشاء رمز المعلم وتخزينه بصورة مشفرة، وفتحت الجلسة الآمنة.");
+      await refresh();
+    } catch (error) {
+      const payload = (error as { payload?: { error?: string } })?.payload;
+      setNotice(payload?.error === "ALREADY_CONFIGURED" ? "تم إعداد رمز المعلم مسبقًا؛ استخدم شاشة الدخول." : "تعذر إنشاء رمز المعلم. تحقق من اتصال Firestore ثم أعد المحاولة.");
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function login(event: FormEvent) {
     event.preventDefault();
@@ -49,7 +88,7 @@ export default function TeacherBackendPage() {
       setAuthenticated(true);
       setNotice("تم فتح جلسة المعلم الآمنة.");
     } catch {
-      setNotice("تعذر الدخول. تحقق من رمز المعلم أو إعدادات الخادم.");
+      setNotice("تعذر الدخول. تحقق من رمز المعلم.");
     } finally {
       setBusy(false);
     }
@@ -126,18 +165,20 @@ export default function TeacherBackendPage() {
 
   return (
     <main className="shell">
-      <header className="topbar"><div className="brand"><div className="logo">🔐</div><div><h1>الربط الخلفي</h1><p>اختبار قاعدة البيانات والجلسات قبل تحويل الموقع بالكامل</p></div></div>{authenticated && <button className="btn secondary no-print" type="button" onClick={logout}>خروج المعلم</button>}</header>
+      <header className="topbar"><div className="brand"><div className="logo">🔐</div><div><h1>الربط الخلفي</h1><p>قاعدة البيانات والجلسات الآمنة للمعلم وولي الأمر</p></div></div>{authenticated && <button className="btn secondary no-print" type="button" onClick={logout}>خروج المعلم</button>}</header>
       <DateBar />
 
       <section className="section">
-        <div className="section-head"><h2>حالة الجاهزية</h2><span className={`badge ${status.ready ? "" : "warn"}`}>{status.ready ? "جاهز للاختبار" : "يحتاج إعداد"}</span></div>
+        <div className="section-head"><h2>حالة الجاهزية</h2><span className={`badge ${status.ready ? "" : "warn"}`}>{status.ready ? "جاهز للاستخدام" : status.teacherSetupRequired ? "بقي إنشاء رمز المعلم" : "يحتاج إعداد"}</span></div>
         <div className="grid">
-          <div className="card"><h3>Firestore</h3><p>{status.firebase ? "✅ متصل" : "⏳ غير مهيأ"}</p></div>
-          <div className="card"><h3>ولي الأمر</h3><p>{status.guardianAuth ? "✅ أسرار الجلسات موجودة" : "⏳ يحتاج متغيرات البيئة"}</p></div>
-          <div className="card"><h3>المعلم</h3><p>{status.teacherAuth ? "✅ الحماية مهيأة" : "⏳ يحتاج PIN hash وSession secret"}</p></div>
+          <div className="card"><h3>Firestore</h3><p>{status.firebase ? "✅ اتصال فعلي ناجح" : status.firebaseConfigured ? "⚠️ بيانات الربط موجودة لكن الاتصال فشل" : "⏳ غير مهيأ"}</p></div>
+          <div className="card"><h3>ولي الأمر</h3><p>{status.guardianAuth ? "✅ التشفير والجلسات جاهزة" : "⏳ ينتظر اتصال Firestore"}</p></div>
+          <div className="card"><h3>المعلم</h3><p>{status.teacherAuth ? "✅ الحماية مهيأة" : status.teacherSetupRequired ? "🔐 أنشئ رمز المعلم مرة واحدة" : "⏳ ينتظر اتصال Firestore"}</p></div>
         </div>
-        {!status.ready && <div className="notice warn">لا تُدخل أي مفاتيح خاصة داخل الصفحة. إعداد Firebase والأسرار يتم في متغيرات بيئة الاستضافة فقط.</div>}
+        {!status.firebase && <div className="notice warn">لن يكتب الموقع أي بيانات حتى ينجح اختبار اتصال Firestore الفعلي.</div>}
       </section>
+
+      {status.teacherSetupRequired && !authenticated && <section className="section"><form className="card stack" onSubmit={setup}><h2>إعداد رمز المعلم لأول مرة</h2><p>اختر رمزًا خاصًا بك من 6 أرقام. يُحفظ Hash فقط داخل مساحة تعلّمت الجديدة في Firestore، ولا يُحفظ الرمز الصريح.</p><label className="stack">رمز المعلم<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={setupPin} onChange={(event) => setSetupPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><label className="stack">تأكيد الرمز<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={setupPinConfirm} onChange={(event) => setSetupPinConfirm(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><button className="btn" disabled={busy || setupPin.length !== 6 || setupPinConfirm.length !== 6}>إنشاء الرمز وفتح الجلسة</button></form></section>}
 
       {status.ready && !authenticated && <section className="section"><form className="card stack" onSubmit={login}><h2>دخول المعلم الآمن</h2><label className="stack">رمز المعلم من 6 أرقام<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><button className="btn" disabled={busy || pin.length !== 6}>دخول</button></form></section>}
 
