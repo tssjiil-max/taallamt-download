@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-import { getAdminDb } from "./firebase-admin";
+import { firestoreCollectionName, getAdminDb } from "./firebase-admin";
 
 export const GUARDIAN_COOKIE = "taallamt_guardian_session";
 export const GUARDIAN_SESSION_DAYS = 30;
@@ -100,8 +100,8 @@ export async function createGuardianSession(studentId: string, code: string) {
   const expiresAtMs = now + GUARDIAN_SESSION_DAYS * 24 * 60 * 60 * 1000;
   const sessionId = randomUUID();
   const token = randomBytes(32).toString("base64url");
-  const studentRef = db.collection("students").doc(studentId);
-  const sessionRef = db.collection("guardianSessions").doc(sessionId);
+  const studentRef = db.collection(firestoreCollectionName("students")).doc(studentId);
+  const sessionRef = db.collection(firestoreCollectionName("guardianSessions")).doc(sessionId);
 
   await db.runTransaction(async (transaction) => {
     const studentSnap = await transaction.get(studentRef);
@@ -144,7 +144,7 @@ export async function readGuardianSession(cookieValue?: string) {
   if (!parsed) throw new GuardianAuthError("INVALID_SESSION");
 
   const db = getAdminDb();
-  const sessionSnap = await db.collection("guardianSessions").doc(parsed.sessionId).get();
+  const sessionSnap = await db.collection(firestoreCollectionName("guardianSessions")).doc(parsed.sessionId).get();
   if (!sessionSnap.exists) throw new GuardianAuthError("INVALID_SESSION");
   const session = sessionSnap.data() as SessionData;
 
@@ -159,7 +159,7 @@ export async function readGuardianSession(cookieValue?: string) {
     throw new GuardianAuthError("INVALID_SESSION");
   }
 
-  const studentSnap = await db.collection("students").doc(session.studentId).get();
+  const studentSnap = await db.collection(firestoreCollectionName("students")).doc(session.studentId).get();
   const student = studentSnap.data() as StudentAuthData | undefined;
   if (!studentSnap.exists || !student?.active || !student.guardianAccessEnabled) {
     throw new GuardianAuthError("INVALID_SESSION");
@@ -173,14 +173,14 @@ export async function revokeGuardianSession(cookieValue?: string) {
   if (!parsed) return;
 
   const db = getAdminDb();
-  const sessionRef = db.collection("guardianSessions").doc(parsed.sessionId);
+  const sessionRef = db.collection(firestoreCollectionName("guardianSessions")).doc(parsed.sessionId);
   const sessionSnap = await sessionRef.get();
   if (!sessionSnap.exists) return;
   const session = sessionSnap.data() as SessionData;
   if (!session.studentId || !session.tokenHash) return;
   if (!safeHashEqual(hashSessionToken(parsed.sessionId, parsed.token), session.tokenHash)) return;
 
-  const studentRef = db.collection("students").doc(session.studentId);
+  const studentRef = db.collection(firestoreCollectionName("students")).doc(session.studentId);
   await db.runTransaction(async (transaction) => {
     const studentSnap = await transaction.get(studentRef);
     const student = studentSnap.data() as StudentAuthData | undefined;
