@@ -75,6 +75,8 @@ export async function loadGuardianBundle(studentId: string) {
       className: String(rawStudent.className ?? ""),
       subjectLevels: rawStudent.subjectLevels ?? {},
       specialFollowUp: rawStudent.specialFollowUp === true,
+      guardianDevices: Number(rawStudent.guardianDevices ?? 0),
+      guardianDeviceLimit: Math.max(1, Math.min(2, Number(rawStudent.guardianDeviceLimit ?? 2))),
     },
     activeTerm,
     subjects: guardianSubjects,
