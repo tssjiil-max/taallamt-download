@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
+import { firestoreCollectionName, getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
 import { normalizeGuardianSearchName } from "@/lib/server/guardian-auth";
 
 export const runtime = "nodejs";
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
   const db = getAdminDb();
   const snap = await db
-    .collection("students")
+    .collection(firestoreCollectionName("students"))
     .where("guardianSearchName", ">=", query)
     .where("guardianSearchName", "<", `${query}\uf8ff`)
     .limit(20)
