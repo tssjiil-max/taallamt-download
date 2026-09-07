@@ -1,26 +1,37 @@
 import { NextResponse } from "next/server";
-import { isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
+import { firestoreCollectionName, getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
+import { teacherAuthConfigured } from "@/lib/server/teacher-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const firebase = isFirebaseAdminConfigured();
-  const guardianAuth = Boolean(
-    process.env.GUARDIAN_CODE_PEPPER &&
-    (process.env.GUARDIAN_SESSION_PEPPER || process.env.GUARDIAN_CODE_PEPPER),
-  );
-  const teacherAuth = Boolean(
-    process.env.TEACHER_ACCESS_PIN_HASH &&
-    process.env.TEACHER_SESSION_PEPPER,
-  );
+  const firebaseConfigured = isFirebaseAdminConfigured();
+  let firebase = false;
+  let teacherAuth = false;
+
+  if (firebaseConfigured) {
+    try {
+      // A real Firestore read verifies the service-account credentials, project ID and network path.
+      await getAdminDb().collection(firestoreCollectionName("system")).doc("health").get();
+      firebase = true;
+      teacherAuth = await teacherAuthConfigured();
+    } catch (error) {
+      console.error("backend status Firestore check failed", error);
+    }
+  }
+
+  const guardianAuth = firebase;
+  const teacherSetupRequired = firebase && !teacherAuth;
 
   return NextResponse.json(
     {
-      ready: firebase && guardianAuth && teacherAuth,
+      ready: firebase && teacherAuth,
+      firebaseConfigured,
       firebase,
       guardianAuth,
       teacherAuth,
+      teacherSetupRequired,
     },
     { headers: { "Cache-Control": "no-store" } },
   );
