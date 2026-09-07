@@ -1,5 +1,7 @@
 "use client";
 
+import type { TaallamtData } from "./types";
+
 async function readJson<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as T;
   if (!response.ok) throw Object.assign(new Error("REQUEST_FAILED"), { status: response.status, payload });
@@ -23,6 +25,15 @@ export async function teacherMe() {
 export async function teacherLogout() {
   const response = await fetch("/api/teacher/logout", { method: "POST" });
   return readJson<{ ok: true }>(response);
+}
+
+export async function teacherSync(data: TaallamtData) {
+  const response = await fetch("/api/teacher/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return readJson<{ ok: true; writes: number }>(response);
 }
 
 export async function setGuardianAccessCode(studentId: string, code: string) {
