@@ -9,6 +9,7 @@ import { GuardianSpellingPractice } from "@/components/GuardianSpellingPractice"
 import { GuardianValues } from "@/components/GuardianValues";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { PrintButton } from "@/components/PrintButton";
+import { remedialAction, skillsNeedingTraining } from "@/lib/assessment";
 import { academicWeek, plansForWeek, tomorrowAnnouncement } from "@/lib/schedule";
 import { useTaallamt } from "@/lib/store";
 import type { FollowUpCategory, MasteryLevel } from "@/lib/types";
@@ -28,9 +29,10 @@ export default function GuardianPage() {
   if (!student) return <main className="shell"><div className="notice">لا يوجد طلاب حاليون.</div></main>;
 
   const subjects = store.subjects.filter((subject) => subject.enabled && subject.termId === store.activeTermId).sort((a, b) => a.order - b.order);
+  const activeSkills = store.skills.filter((skill) => skill.active && skill.termId === store.activeTermId);
+  const needsSkills = skillsNeedingTraining(activeSkills, store.assessments, student.id, store.activeTermId);
   const followUp = store.followUps[student.id];
   const messages = store.messages.filter((item) => item.studentId === student.id);
-  const needsTraining = subjects.filter((subject) => student.subjectLevels[subject.id] === "needs_training");
   const week = academicWeek();
   const weekly = plansForWeek(store.weeklyPlans, week);
   const tomorrow = tomorrowAnnouncement(store.weeklyPlans, store.subjects);
@@ -57,7 +59,7 @@ export default function GuardianPage() {
 
       <div className="card no-print section"><div className="toolbar"><span>معاينة أثناء البناء:</span><select className="field grow" value={student.id} onChange={(e) => setPreviewId(e.target.value)}>{active.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><Link className="btn secondary" href="/">لوحة المعلم</Link></div><small>في النسخة النهائية لن يختار ولي الأمر طالبًا؛ الجلسة الآمنة تفتح ابنه فقط.</small></div>
 
-      <section className="hero section"><div><h2>{student.name}</h2><p>هذه الصفحة تعرض فقط ما يحتاجه ولي الأمر الآن: ماذا يدرس ابنه، ماذا لديه غدًا، ما الذي يحتاج تدريبًا، وما الذي أرسله المعلم.</p></div><div className="hero-stats"><div className="stat"><b>{week}</b><span>الأسبوع الحالي</span></div><div className="stat"><b>{sentResources}</b><span>أوراق واختبارات</span></div><div className="stat"><b>{stars}</b><span>نجوم قيم</span></div><div className="stat"><b>{messages.length}</b><span>رسائل</span></div></div></section>
+      <section className="hero section"><div><h2>{student.name}</h2><p>هذه الصفحة تعرض فقط ما يحتاجه ولي الأمر الآن: ماذا يدرس ابنه، ماذا لديه غدًا، ما الذي يحتاج تدريبًا، وما الذي أرسله المعلم.</p></div><div className="hero-stats"><div className="stat"><b>{week}</b><span>الأسبوع الحالي</span></div><div className="stat"><b>{sentResources}</b><span>أوراق واختبارات</span></div><div className="stat"><b>{stars}</b><span>نجوم قيم</span></div><div className="stat"><b>{needsSkills.length}</b><span>مهارات تحتاج تدريبًا</span></div></div></section>
 
       <NotificationPanel role="guardian" studentId={student.id} />
 
@@ -72,7 +74,7 @@ export default function GuardianPage() {
 
       <section className="section"><div className="section-head"><h2>المستوى العام للمواد</h2></div><div className="grid">{subjects.map((subject) => { const level = student.subjectLevels[subject.id]; return <div className="card" key={subject.id}><div className="icon">📚</div><h3>{subject.name}</h3>{level ? <span className={`badge ${level === "needs_training" ? "warn" : ""}`}>{labels[level]}</span> : <span className="badge">لم يقيّم بعد</span>}</div>; })}</div></section>
 
-      <section className="section"><div className="section-head"><h2>الخطة العلاجية</h2><PrintButton label="طباعة الخطة" /></div><div className="card">{needsTraining.length ? <><div className="kv"><span>نركز الآن على</span><b>{needsTraining.map((subject) => subject.name).join("، ")}</b></div><div className="kv"><span>في المنزل</span><span>تدريب قصير 5–7 دقائق على المهارات المحددة أعلاه، ثم التوقف دون إطالة.</span></div><div className="kv"><span>المراجعة</span><span>تُحدّث تلقائيًا بعد التقييم التالي.</span></div></> : <div className="notice">الخطة الأدق تُبنى من المهارات التي يصنفها المعلم «يحتاج تدريب».</div>}</div></section>
+      <section className="section"><div className="section-head"><h2>الخطة العلاجية من آخر تقييم</h2><PrintButton label="طباعة الخطة" /></div><div className="card">{needsSkills.length ? <div className="list">{needsSkills.map((skill) => { const subject = subjects.find((item) => item.id === skill.subjectId); return <div className="row" key={skill.id}><div><h4>{subject?.name ?? "المادة"} — {skill.category}</h4><small><b>{skill.title}</b><br />في المنزل: {remedialAction(skill)}</small></div><span className="badge warn">يحتاج تدريب</span></div>; })}</div> : <div className="notice">لا توجد حاليًا مهارة مصنفة «يحتاج تدريب» في آخر تقييم مسجل. استمروا على خطة الأسبوع فقط.</div>}</div></section>
 
       {followUp?.guardianVisible && <section className="section"><div className="section-head"><h2>المتابعة المشتركة مع المدرسة</h2><span className={`badge ${followUp.status === "needs_review" ? "warn" : ""}`}>{progressLabels[followUp.status]}</span></div><div className="card">{followUp.goal && <div className="kv"><span>الهدف</span><span>{followUp.goal}</span></div>}<div className="kv"><span>المراجعة</span><span>{followUp.nextReviewAt || "حسب متابعة المعلم"}</span></div>{followUp.plan.length > 0 && <><h3 className="section">ما نعمل عليه</h3><ul>{followUp.plan.map((item) => <li key={item} style={{ marginBottom: 8 }}>{item}</li>)}</ul></>}<div className="notice warn">المتابعة الصحية هنا تعليمية ومدرسية وليست تشخيصًا أو علاجًا طبيًا.</div></div></section>}
 
