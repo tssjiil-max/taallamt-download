@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
+import { firestoreCollectionName, getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
 import { normalizeGuardianSearchName } from "@/lib/server/guardian-auth";
 import { readTeacherSession, TEACHER_COOKIE, TeacherAuthError } from "@/lib/server/teacher-auth";
 import type { TaallamtData } from "@/lib/types";
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     function put(collection: string, id: string, value: Record<string, unknown>) {
       if (!id || id.length > 200) return;
       writes += 1;
-      writer.set(db.collection(collection).doc(id), clean(value), { merge: true });
+      writer.set(db.collection(firestoreCollectionName(collection)).doc(id), clean(value), { merge: true });
     }
 
     for (const term of data.terms) put("terms", term.id, term as unknown as Record<string, unknown>);
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     }
 
     await writer.close();
-    return NextResponse.json({ ok: true, writes });
+    return NextResponse.json({ ok: true, writes, collectionPrefix: firestoreCollectionName("").replace(/_$/, "") });
   } catch (error) {
     if (error instanceof TeacherAuthError) {
       return NextResponse.json({ error: error.code }, { status: error.code === "BACKEND_NOT_CONFIGURED" ? 503 : 401 });
