@@ -1,7 +1,9 @@
 import { getAdminDb } from "./firebase-admin";
 
-function withId<T extends FirebaseFirestore.DocumentData>(doc: FirebaseFirestore.QueryDocumentSnapshot<T>) {
-  return { id: doc.id, ...doc.data() };
+type LooseDoc = { id: string } & Record<string, unknown>;
+
+function docsWithIds(docs: FirebaseFirestore.QueryDocumentSnapshot[]): LooseDoc[] {
+  return docs.map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }));
 }
 
 export async function loadGuardianBundle(studentId: string) {
@@ -13,45 +15,56 @@ export async function loadGuardianBundle(studentId: string) {
   ]);
 
   if (!studentSnap.exists) return null;
-  const rawStudent = studentSnap.data() ?? {};
+  const rawStudent = (studentSnap.data() ?? {}) as Record<string, unknown>;
   if (rawStudent.active !== true || rawStudent.guardianAccessEnabled !== true) return null;
 
   const activeTermDoc = activeTermsSnap.docs[0];
-  const activeTerm = activeTermDoc ? { id: activeTermDoc.id, ...activeTermDoc.data() } : null;
+  const activeTerm = activeTermDoc
+    ? ({ id: activeTermDoc.id, ...(activeTermDoc.data() as Record<string, unknown>) } as LooseDoc)
+    : null;
   const termId = activeTerm?.id;
 
-  const empty = Promise.resolve({ docs: [] } as unknown as FirebaseFirestore.QuerySnapshot);
-  const [subjectsSnap, plansSnap, skillsSnap, assessmentsSnap, resourcesSnap, valuesSnap, starsSnap, spellingSnap, messagesSnap, followUpSnap] = await Promise.all([
-    termId ? db.collection("subjects").where("termId", "==", termId).get() : empty,
-    termId ? db.collection("weeklyPlans").where("termId", "==", termId).get() : empty,
-    termId ? db.collection("skills").where("termId", "==", termId).get() : empty,
+  async function byTerm(collectionName: string) {
+    if (!termId) return [] as LooseDoc[];
+    const snap = await db.collection(collectionName).where("termId", "==", termId).get();
+    return docsWithIds(snap.docs);
+  }
+
+  const [subjects, weeklyPlans, skills, assessmentsSnap, resourcesSnap, values, starsSnap, spellingPractices, messagesSnap, followUpSnap] = await Promise.all([
+    byTerm("subjects"),
+    byTerm("weeklyPlans"),
+    byTerm("skills"),
     db.collection("assessments").where("studentId", "==", studentId).get(),
     db.collection("resources").where("audienceStudentIds", "array-contains", studentId).get(),
-    termId ? db.collection("values").where("termId", "==", termId).get() : empty,
+    byTerm("values"),
     db.collection("valueStars").where("studentId", "==", studentId).get(),
-    termId ? db.collection("spellingPractices").where("termId", "==", termId).get() : empty,
+    byTerm("spellingPractices"),
     db.collection("messages").where("studentId", "==", studentId).get(),
     db.collection("followUps").doc(studentId).get(),
   ]);
 
-  const skills = skillsSnap.docs.map(withId).filter((skill) => skill.active !== false);
-  const allowedSkillIds = new Set(skills.map((skill) => skill.id));
-  const subjects = subjectsSnap.docs.map(withId).filter((subject) => subject.enabled !== false).sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
-  const weeklyPlans = plansSnap.docs.map(withId).sort((a, b) => Number(a.week ?? 0) - Number(b.week ?? 0));
-  const assessments = assessmentsSnap.docs.map(withId).filter((assessment) => allowedSkillIds.has(String(assessment.skillId ?? "")));
-  const resources = resourcesSnap.docs
-    .map(withId)
+  const activeSkills = skills.filter((skill) => skill.active !== false);
+  const allowedSkillIds = new Set(activeSkills.map((skill) => skill.id));
+  const guardianSubjects = subjects
+    .filter((subject) => subject.enabled !== false)
+    .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
+  const guardianWeeklyPlans = weeklyPlans.sort((a, b) => Number(a.week ?? 0) - Number(b.week ?? 0));
+  const assessments = docsWithIds(assessmentsSnap.docs).filter((assessment) =>
+    allowedSkillIds.has(String(assessment.skillId ?? "")),
+  );
+  const resources = docsWithIds(resourcesSnap.docs)
     .filter((resource) => resource.publishedToGuardian === true && (!termId || resource.termId === termId))
     .map(({ answerGuide: _answerGuide, ...resource }) => resource)
     .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
-  const values = valuesSnap.docs.map(withId).filter((value) => value.active !== false);
-  const valueStars = starsSnap.docs.map(withId);
-  const spellingPractices = spellingSnap.docs.map(withId).filter((item) => item.active !== false);
-  const messages = messagesSnap.docs
-    .map(withId)
+  const guardianValues = values.filter((value) => value.active !== false);
+  const valueStars = docsWithIds(starsSnap.docs);
+  const guardianSpellingPractices = spellingPractices.filter((item) => item.active !== false);
+  const messages = docsWithIds(messagesSnap.docs)
     .sort((a, b) => String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? "")))
     .slice(-50);
-  const followUpRaw = followUpSnap.exists ? followUpSnap.data() : undefined;
+  const followUpRaw = followUpSnap.exists
+    ? (followUpSnap.data() as Record<string, unknown>)
+    : undefined;
   const followUp = followUpRaw?.guardianVisible === true ? { studentId, ...followUpRaw } : null;
 
   return {
@@ -63,14 +76,14 @@ export async function loadGuardianBundle(studentId: string) {
       specialFollowUp: rawStudent.specialFollowUp === true,
     },
     activeTerm,
-    subjects,
-    weeklyPlans,
-    skills,
+    subjects: guardianSubjects,
+    weeklyPlans: guardianWeeklyPlans,
+    skills: activeSkills,
     assessments,
     resources,
-    values,
+    values: guardianValues,
     valueStars,
-    spellingPractices,
+    spellingPractices: guardianSpellingPractices,
     followUp,
     messages,
   };
