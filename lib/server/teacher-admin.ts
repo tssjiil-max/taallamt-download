@@ -1,16 +1,16 @@
-import { getAdminDb } from "./firebase-admin";
+import { firestoreCollectionName, getAdminDb } from "./firebase-admin";
 import { hashGuardianAccessCode, normalizeGuardianSearchName } from "./guardian-auth";
 
 export async function setGuardianAccessCodeOnServer(studentId: string, code: string) {
   if (!studentId || !/^\d{6}$/.test(code)) return false;
 
   const db = getAdminDb();
-  const studentRef = db.collection("students").doc(studentId);
+  const studentRef = db.collection(firestoreCollectionName("students")).doc(studentId);
   const studentSnap = await studentRef.get();
   if (!studentSnap.exists) return false;
   const student = studentSnap.data() ?? {};
 
-  const oldSessions = await db.collection("guardianSessions").where("studentId", "==", studentId).get();
+  const oldSessions = await db.collection(firestoreCollectionName("guardianSessions")).where("studentId", "==", studentId).get();
   const batch = db.batch();
   for (const doc of oldSessions.docs) {
     batch.set(doc.ref, { revokedAtMs: Date.now() }, { merge: true });
@@ -34,8 +34,8 @@ export async function setGuardianAccessCodeOnServer(studentId: string, code: str
 
 export async function disableGuardianAccessOnServer(studentId: string) {
   const db = getAdminDb();
-  const studentRef = db.collection("students").doc(studentId);
-  const sessions = await db.collection("guardianSessions").where("studentId", "==", studentId).get();
+  const studentRef = db.collection(firestoreCollectionName("students")).doc(studentId);
+  const sessions = await db.collection(firestoreCollectionName("guardianSessions")).where("studentId", "==", studentId).get();
   const batch = db.batch();
   for (const doc of sessions.docs) {
     batch.set(doc.ref, { revokedAtMs: Date.now() }, { merge: true });
