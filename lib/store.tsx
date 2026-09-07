@@ -6,6 +6,12 @@ import type { FollowUpCategory, LearningResource, MasteryLevel, ResourceKind, Sk
 
 const STORAGE_KEY = "taallamt-flex-v1";
 
+async function hashAccessCode(code: string) {
+  const bytes = new TextEncoder().encode(`taallamt:${code}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 type NewResource = {
   subjectId: string;
   kind: ResourceKind;
@@ -33,6 +39,9 @@ type StoreValue = TaallamtData & {
   addValueTarget: (value: Omit<ValueTarget, "id" | "termId" | "active" | "source">) => void;
   toggleValueTarget: (valueId: string) => void;
   setGuardianDevices: (studentId: string, count: number) => void;
+  setGuardianAccessCode: (studentId: string, code: string) => Promise<boolean>;
+  disableGuardianAccess: (studentId: string) => void;
+  verifyGuardianAccess: (studentId: string, code: string) => Promise<boolean>;
   addTerm: (name: string, academicYear: string) => void;
   activateTerm: (id: string) => void;
   addSubject: (name: string) => void;
@@ -80,7 +89,7 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     ...data, ready, activeTermId,
     addStudent(name) {
       const clean = name.trim(); if (!clean) return;
-      setData((d) => ({ ...d, students: [...d.students, { id: uid("student"), name: clean, className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 0, specialFollowUp: false, subjectLevels: {} }] }));
+      setData((d) => ({ ...d, students: [...d.students, { id: uid("student"), name: clean, className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 0, guardianAccessEnabled: false, specialFollowUp: false, subjectLevels: {} }] }));
     },
     archiveStudent(id) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === id ? { ...s, active: false } : s) })); },
     restoreStudent(id) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === id ? { ...s, active: true } : s) })); },
@@ -137,6 +146,21 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     },
     toggleValueTarget(valueId) { setData((d) => ({ ...d, values: d.values.map((item) => item.id === valueId ? { ...item, active: !item.active } : item) })); },
     setGuardianDevices(studentId, count) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, guardianDevices: Math.max(0, Math.min(s.guardianDeviceLimit, count)) } : s) })); },
+    async setGuardianAccessCode(studentId, code) {
+      if (!/^\d{6}$/.test(code)) return false;
+      const hash = await hashAccessCode(code);
+      setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, guardianAccessEnabled: true, guardianAccessCodeHash: hash, guardianCodeUpdatedAt: new Date().toISOString() } : s) }));
+      return true;
+    },
+    disableGuardianAccess(studentId) {
+      setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, guardianAccessEnabled: false, guardianAccessCodeHash: undefined, guardianCodeUpdatedAt: new Date().toISOString(), guardianDevices: 0 } : s) }));
+    },
+    async verifyGuardianAccess(studentId, code) {
+      const student = data.students.find((item) => item.id === studentId);
+      if (!student?.active || !student.guardianAccessEnabled || !student.guardianAccessCodeHash || !/^\d{6}$/.test(code)) return false;
+      const hash = await hashAccessCode(code);
+      return hash === student.guardianAccessCodeHash;
+    },
     addTerm(name, academicYear) {
       if (!name.trim()) return;
       setData((d) => ({ ...d, terms: [...d.terms, { id: uid("term"), name: name.trim(), academicYear: academicYear.trim() || "1448هـ", active: false }] }));
