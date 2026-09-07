@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
+import { firestoreCollectionName, getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
 import { hashGuardianAccessCode } from "@/lib/server/guardian-auth";
 import { readTeacherSession, TEACHER_COOKIE, TeacherAuthError } from "@/lib/server/teacher-auth";
 
@@ -27,7 +27,7 @@ export async function POST(
     }
 
     const db = getAdminDb();
-    const ref = db.collection("students").doc(studentId);
+    const ref = db.collection(firestoreCollectionName("students")).doc(studentId);
     const snap = await ref.get();
     if (!snap.exists) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
@@ -70,7 +70,7 @@ export async function DELETE(
     const { id } = await context.params;
     const studentId = id.trim();
     const db = getAdminDb();
-    const studentRef = db.collection("students").doc(studentId);
+    const studentRef = db.collection(firestoreCollectionName("students")).doc(studentId);
     const snap = await studentRef.get();
     if (!snap.exists) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
@@ -78,7 +78,7 @@ export async function DELETE(
     const batch = db.batch();
     for (const slot of slots) {
       if (slot && typeof slot.id === "string") {
-        batch.set(db.collection("guardianSessions").doc(slot.id), { revokedAtMs: Date.now() }, { merge: true });
+        batch.set(db.collection(firestoreCollectionName("guardianSessions")).doc(slot.id), { revokedAtMs: Date.now() }, { merge: true });
       }
     }
     batch.set(
