@@ -21,6 +21,7 @@ type StoreValue = TaallamtData & {
   renameSubject: (id: string, name: string) => void;
   toggleSubject: (id: string) => void;
   deleteSubject: (id: string) => void;
+  updateWeeklyPlan: (subjectId: string, week: number, title: string) => void;
   saveGuardianStatement: (studentId: string, category: FollowUpCategory, statement: string) => void;
   saveFollowUp: (followUp: SpecialFollowUp) => void;
   sendMessage: (studentId: string, author: "teacher" | "guardian", body: string) => void;
@@ -41,20 +42,14 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, []);
 
-  useEffect(() => {
-    if (ready) localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [data, ready]);
-
+  useEffect(() => { if (ready) localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }, [data, ready]);
   const activeTermId = data.terms.find((term) => term.active)?.id;
   const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
   const value = useMemo<StoreValue>(() => ({
-    ...data,
-    ready,
-    activeTermId,
+    ...data, ready, activeTermId,
     addStudent(name) {
-      const clean = name.trim();
-      if (!clean) return;
+      const clean = name.trim(); if (!clean) return;
       setData((d) => ({ ...d, students: [...d.students, { id: uid("student"), name: clean, className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 0, specialFollowUp: false, subjectLevels: {} }] }));
     },
     archiveStudent(id) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === id ? { ...s, active: false } : s) })); },
@@ -73,7 +68,15 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     },
     renameSubject(id, name) { if (name.trim()) setData((d) => ({ ...d, subjects: d.subjects.map((s) => s.id === id ? { ...s, name: name.trim() } : s) })); },
     toggleSubject(id) { setData((d) => ({ ...d, subjects: d.subjects.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s) })); },
-    deleteSubject(id) { setData((d) => ({ ...d, subjects: d.subjects.filter((s) => s.id !== id), students: d.students.map((s) => { const levels = { ...s.subjectLevels }; delete levels[id]; return { ...s, subjectLevels: levels }; }) })); },
+    deleteSubject(id) { setData((d) => ({ ...d, subjects: d.subjects.filter((s) => s.id !== id), weeklyPlans: d.weeklyPlans.filter((p) => p.subjectId !== id), students: d.students.map((s) => { const levels = { ...s.subjectLevels }; delete levels[id]; return { ...s, subjectLevels: levels }; }) })); },
+    updateWeeklyPlan(subjectId, week, title) {
+      if (!activeTermId) return;
+      setData((d) => {
+        const existing = d.weeklyPlans.find((p) => p.termId === activeTermId && p.subjectId === subjectId && p.week === week);
+        if (existing) return { ...d, weeklyPlans: d.weeklyPlans.map((p) => p.id === existing.id ? { ...p, title } : p) };
+        return { ...d, weeklyPlans: [...d.weeklyPlans, { id: uid("plan"), termId: activeTermId, subjectId, week, title }] };
+      });
+    },
     saveGuardianStatement(studentId, category, statement) {
       const current = data.followUps[studentId];
       const next: SpecialFollowUp = current ?? { studentId, category, guardianStatement: "", schoolImpact: "", goal: "", plan: [], status: "needs_review", guardianVisible: true };

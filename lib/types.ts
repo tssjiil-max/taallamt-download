@@ -15,6 +15,14 @@ export type Student = {
   subjectLevels: Record<string, MasteryLevel>;
 };
 
+export type WeeklyPlan = {
+  id: string;
+  termId: string;
+  subjectId: string;
+  week: number;
+  title: string;
+};
+
 export type SpecialFollowUp = {
   studentId: string;
   category: FollowUpCategory;
@@ -39,6 +47,7 @@ export type TaallamtData = {
   terms: Term[];
   subjects: Subject[];
   students: Student[];
+  weeklyPlans: WeeklyPlan[];
   followUps: Record<string, SpecialFollowUp>;
   messages: Message[];
 };
