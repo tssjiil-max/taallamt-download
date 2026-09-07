@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { initialData } from "./sample-data";
-import type { FollowUpCategory, LearningResource, MasteryLevel, ResourceKind, SkillAssessment, SpecialFollowUp, TaallamtData } from "./types";
+import type { FollowUpCategory, LearningResource, MasteryLevel, ResourceKind, SkillAssessment, SpecialFollowUp, TaallamtData, ValueTarget } from "./types";
 
 const STORAGE_KEY = "taallamt-flex-v1";
 
@@ -28,6 +28,10 @@ type StoreValue = TaallamtData & {
   setMastery: (studentId: string, subjectId: string, level: MasteryLevel) => void;
   setSkillAssessment: (studentId: string, skillId: string, level: MasteryLevel, note?: string) => void;
   addLearningResource: (resource: NewResource) => string;
+  awardValueStar: (studentId: string, valueId: string, reason?: string) => void;
+  removeValueStar: (studentId: string, valueId: string) => void;
+  addValueTarget: (value: Omit<ValueTarget, "id" | "termId" | "active" | "source">) => void;
+  toggleValueTarget: (valueId: string) => void;
   setGuardianDevices: (studentId: string, count: number) => void;
   addTerm: (name: string, academicYear: string) => void;
   activateTerm: (id: string) => void;
@@ -59,6 +63,9 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
           skills: parsed.skills ?? initialData.skills,
           assessments: parsed.assessments ?? initialData.assessments,
           resources: parsed.resources ?? initialData.resources,
+          values: parsed.values ?? initialData.values,
+          valueStars: parsed.valueStars ?? initialData.valueStars,
+          spellingPractices: parsed.spellingPractices ?? initialData.spellingPractices,
         });
       }
     } catch {}
@@ -83,20 +90,14 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
         students: d.students.filter((s) => s.id !== id),
         assessments: d.assessments.filter((a) => a.studentId !== id),
         resources: d.resources.map((resource) => ({ ...resource, audienceStudentIds: resource.audienceStudentIds.filter((studentId) => studentId !== id) })),
+        valueStars: d.valueStars.filter((star) => star.studentId !== id),
         messages: d.messages.filter((m) => m.studentId !== id),
         followUps: Object.fromEntries(Object.entries(d.followUps).filter(([key]) => key !== id)),
       }));
     },
     setMastery(studentId, subjectId, level) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, subjectLevels: { ...s.subjectLevels, [subjectId]: level } } : s) })); },
     setSkillAssessment(studentId, skillId, level, note) {
-      const assessment: SkillAssessment = {
-        id: uid("assessment"),
-        studentId,
-        skillId,
-        level,
-        assessedAt: new Date().toISOString(),
-        note: note?.trim() || undefined,
-      };
+      const assessment: SkillAssessment = { id: uid("assessment"), studentId, skillId, level, assessedAt: new Date().toISOString(), note: note?.trim() || undefined };
       setData((d) => ({ ...d, assessments: [...d.assessments, assessment] }));
     },
     addLearningResource(resource) {
@@ -118,6 +119,23 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
       setData((d) => ({ ...d, resources: [entry, ...d.resources] }));
       return id;
     },
+    awardValueStar(studentId, valueId, reason) {
+      setData((d) => ({ ...d, valueStars: [...d.valueStars, { id: uid("star"), studentId, valueId, awardedAt: new Date().toISOString(), reason: reason?.trim() || undefined }] }));
+    },
+    removeValueStar(studentId, valueId) {
+      setData((d) => {
+        const index = [...d.valueStars].reverse().findIndex((star) => star.studentId === studentId && star.valueId === valueId);
+        if (index < 0) return d;
+        const actual = d.valueStars.length - 1 - index;
+        return { ...d, valueStars: d.valueStars.filter((_, i) => i !== actual) };
+      });
+    },
+    addValueTarget(input) {
+      if (!activeTermId || !input.title.trim()) return;
+      const entry: ValueTarget = { ...input, id: uid("value"), termId: activeTermId, title: input.title.trim(), studentText: input.studentText.trim(), homeSuggestion: input.homeSuggestion.trim(), active: true, source: "teacher" };
+      setData((d) => ({ ...d, values: [...d.values, entry] }));
+    },
+    toggleValueTarget(valueId) { setData((d) => ({ ...d, values: d.values.map((item) => item.id === valueId ? { ...item, active: !item.active } : item) })); },
     setGuardianDevices(studentId, count) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, guardianDevices: Math.max(0, Math.min(s.guardianDeviceLimit, count)) } : s) })); },
     addTerm(name, academicYear) {
       if (!name.trim()) return;
