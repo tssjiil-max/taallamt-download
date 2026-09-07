@@ -12,6 +12,9 @@ export type Student = {
   active: boolean;
   guardianDeviceLimit: number;
   guardianDevices: number;
+  guardianAccessEnabled: boolean;
+  guardianAccessCodeHash?: string;
+  guardianCodeUpdatedAt?: string;
   specialFollowUp: boolean;
   subjectLevels: Record<string, MasteryLevel>;
 };
