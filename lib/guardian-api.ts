@@ -10,8 +10,11 @@ export type GuardianSearchStudent = {
 
 export type GuardianBackendStatus = {
   ready: boolean;
+  firebaseConfigured?: boolean;
   firebase: boolean;
   guardianAuth: boolean;
+  teacherAuth?: boolean;
+  teacherSetupRequired?: boolean;
 };
 
 async function readJson<T>(response: Response): Promise<T> {
