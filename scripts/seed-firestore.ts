@@ -1,3 +1,4 @@
+import type { DocumentData } from "firebase-admin/firestore";
 import { initialData } from "../lib/sample-data";
 import { getAdminDb } from "../lib/server/firebase-admin";
 import { normalizeGuardianSearchName } from "../lib/server/guardian-auth";
@@ -15,8 +16,8 @@ writer.onWriteError((error) => {
   return error.failedAttempts < 3;
 });
 
-function clean<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+function clean(value: unknown): DocumentData {
+  return JSON.parse(JSON.stringify(value)) as DocumentData;
 }
 
 function put(collection: string, id: string, data: unknown) {
