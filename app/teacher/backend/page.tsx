@@ -42,7 +42,7 @@ export default function TeacherBackendPage() {
         setAuthenticated(false);
       }
     } catch {
-      setStatus({ ready: false, firebaseConfigured: false, firebase: false, guardianAuth: false, teacherAuth: false });
+      setStatus({ ready: false, firebaseConfigured: false, firebase: false, authSecret: false, guardianAuth: false, teacherAuth: false });
       setAuthenticated(false);
     }
   }
@@ -71,7 +71,7 @@ export default function TeacherBackendPage() {
       await refresh();
     } catch (error) {
       const payload = (error as { payload?: { error?: string } })?.payload;
-      setNotice(payload?.error === "ALREADY_CONFIGURED" ? "تم إعداد رمز المعلم مسبقًا؛ استخدم شاشة الدخول." : "تعذر إنشاء رمز المعلم. تحقق من اتصال Firestore ثم أعد المحاولة.");
+      setNotice(payload?.error === "ALREADY_CONFIGURED" ? "تم إعداد رمز المعلم مسبقًا؛ استخدم شاشة الدخول." : "تعذر إنشاء رمز المعلم. تحقق من Firestore ومفتاح الحماية ثم أعد المحاولة.");
       await refresh();
     } finally {
       setBusy(false);
@@ -87,8 +87,9 @@ export default function TeacherBackendPage() {
       setPin("");
       setAuthenticated(true);
       setNotice("تم فتح جلسة المعلم الآمنة.");
-    } catch {
-      setNotice("تعذر الدخول. تحقق من رمز المعلم.");
+    } catch (error) {
+      const payload = (error as { payload?: { error?: string } })?.payload;
+      setNotice(payload?.error === "TOO_MANY_ATTEMPTS" ? "محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة." : "تعذر الدخول. تحقق من رمز المعلم.");
     } finally {
       setBusy(false);
     }
@@ -163,22 +164,26 @@ export default function TeacherBackendPage() {
     return <main className="shell"><div className="notice">جاري فحص الربط الخلفي…</div></main>;
   }
 
+  const setupBlockedBySecret = status.firebase && !status.authSecret;
+
   return (
     <main className="shell">
       <header className="topbar"><div className="brand"><div className="logo">🔐</div><div><h1>الربط الخلفي</h1><p>قاعدة البيانات والجلسات الآمنة للمعلم وولي الأمر</p></div></div>{authenticated && <button className="btn secondary no-print" type="button" onClick={logout}>خروج المعلم</button>}</header>
       <DateBar />
 
       <section className="section">
-        <div className="section-head"><h2>حالة الجاهزية</h2><span className={`badge ${status.ready ? "" : "warn"}`}>{status.ready ? "جاهز للاستخدام" : status.teacherSetupRequired ? "بقي إنشاء رمز المعلم" : "يحتاج إعداد"}</span></div>
+        <div className="section-head"><h2>حالة الجاهزية</h2><span className={`badge ${status.ready ? "" : "warn"}`}>{status.ready ? "جاهز للاستخدام" : status.teacherSetupRequired ? "بقي إنشاء رمز المعلم" : setupBlockedBySecret ? "بقي مفتاح الحماية" : "يحتاج إعداد"}</span></div>
         <div className="grid">
           <div className="card"><h3>Firestore</h3><p>{status.firebase ? "✅ اتصال فعلي ناجح" : status.firebaseConfigured ? "⚠️ بيانات الربط موجودة لكن الاتصال فشل" : "⏳ غير مهيأ"}</p></div>
-          <div className="card"><h3>ولي الأمر</h3><p>{status.guardianAuth ? "✅ التشفير والجلسات جاهزة" : "⏳ ينتظر اتصال Firestore"}</p></div>
-          <div className="card"><h3>المعلم</h3><p>{status.teacherAuth ? "✅ الحماية مهيأة" : status.teacherSetupRequired ? "🔐 أنشئ رمز المعلم مرة واحدة" : "⏳ ينتظر اتصال Firestore"}</p></div>
+          <div className="card"><h3>مفتاح الحماية</h3><p>{status.authSecret ? "✅ TAALLAMT_AUTH_PEPPER موجود" : "⏳ أضفه في Vercel"}</p></div>
+          <div className="card"><h3>ولي الأمر</h3><p>{status.guardianAuth ? "✅ الأكواد والجلسات محمية" : "⏳ ينتظر Firestore ومفتاح الحماية"}</p></div>
+          <div className="card"><h3>المعلم</h3><p>{status.teacherAuth ? "✅ الحماية مهيأة" : status.teacherSetupRequired ? "🔐 أنشئ رمز المعلم مرة واحدة" : "⏳ ينتظر اكتمال الحماية"}</p></div>
         </div>
         {!status.firebase && <div className="notice warn">لن يكتب الموقع أي بيانات حتى ينجح اختبار اتصال Firestore الفعلي.</div>}
+        {setupBlockedBySecret && <div className="notice warn">أضف متغير Vercel السري <b>TAALLAMT_AUTH_PEPPER</b> بقيمة عشوائية طويلة لا تقل عن 32 حرفًا، ثم أعد النشر. لا تضع هذه القيمة داخل الكود أو الصفحة.</div>}
       </section>
 
-      {status.teacherSetupRequired && !authenticated && <section className="section"><form className="card stack" onSubmit={setup}><h2>إعداد رمز المعلم لأول مرة</h2><p>اختر رمزًا خاصًا بك من 6 أرقام. يُحفظ Hash فقط داخل مساحة تعلّمت الجديدة في Firestore، ولا يُحفظ الرمز الصريح.</p><label className="stack">رمز المعلم<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={setupPin} onChange={(event) => setSetupPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><label className="stack">تأكيد الرمز<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={setupPinConfirm} onChange={(event) => setSetupPinConfirm(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><button className="btn" disabled={busy || setupPin.length !== 6 || setupPinConfirm.length !== 6}>إنشاء الرمز وفتح الجلسة</button></form></section>}
+      {status.teacherSetupRequired && !authenticated && <section className="section"><form className="card stack" onSubmit={setup}><h2>إعداد رمز المعلم لأول مرة</h2><p>اختر رمزًا خاصًا بك من 6 أرقام. يُحفظ Hash مملّح ومحمي بمفتاح الخادم فقط، ولا يُحفظ الرمز الصريح.</p><label className="stack">رمز المعلم<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={setupPin} onChange={(event) => setSetupPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><label className="stack">تأكيد الرمز<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={setupPinConfirm} onChange={(event) => setSetupPinConfirm(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><button className="btn" disabled={busy || setupPin.length !== 6 || setupPinConfirm.length !== 6}>إنشاء الرمز وفتح الجلسة</button></form></section>}
 
       {status.ready && !authenticated && <section className="section"><form className="card stack" onSubmit={login}><h2>دخول المعلم الآمن</h2><label className="stack">رمز المعلم من 6 أرقام<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><button className="btn" disabled={busy || pin.length !== 6}>دخول</button></form></section>}
 
