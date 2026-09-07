@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "seed:firestore": "tsx scripts/seed-firestore.ts"
+    "seed:firestore": "tsx scripts/seed-firestore.ts",
+    "hash:teacher-pin": "node scripts/hash-teacher-pin.mjs"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",
