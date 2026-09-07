@@ -29,6 +29,7 @@ export default function TeacherHome() {
         <Link className="card shak-card" href="/teacher/shakabumbo"><img className="shak-thumb" src="/shakabumbo.jpg" alt="شكابمبو" /><div><h3>شكابمبو</h3><p>مساعد صفي لاختيار طالب، القراءة والتسميع والتصحيح باستخدام محادثة ChatGPT Plus حاليًا.</p></div></Link>
       </section>
       <section className="section"><div className="section-head"><h2>تنبيهات تحتاج انتباهك</h2></div><div className="list"><div className="row"><div className="row-main"><div className="avatar">📖</div><div><h4>التقييم والخطط</h4><small>أي طالب يحتاج تدريبًا يمكن تحويل تقييمه إلى متابعة وخطة علاجية قابلة للطباعة.</small></div></div><span className="badge warn">متابعة</span></div><div className="row"><div className="row-main"><div className="avatar">🔒</div><div><h4>خصوصية ولي الأمر</h4><small>النموذج النهائي سيربط كل جلسة بولي الأمر بابنه فقط؛ وضع المعاينة الحالي مخصص للبناء والاختبار.</small></div></div><span className="badge">مخطط</span></div></div></section>
+      <footer className="site-credit">برمجة سلطان الصاعدي</footer>
     </main>
   );
 }
