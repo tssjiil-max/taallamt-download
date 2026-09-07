@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { initialData } from "./sample-data";
-import type { FollowUpCategory, MasteryLevel, SpecialFollowUp, TaallamtData } from "./types";
+import type { FollowUpCategory, MasteryLevel, SkillAssessment, SpecialFollowUp, TaallamtData } from "./types";
 
 const STORAGE_KEY = "taallamt-flex-v1";
 
@@ -14,6 +14,7 @@ type StoreValue = TaallamtData & {
   restoreStudent: (id: string) => void;
   deleteStudent: (id: string) => void;
   setMastery: (studentId: string, subjectId: string, level: MasteryLevel) => void;
+  setSkillAssessment: (studentId: string, skillId: string, level: MasteryLevel, note?: string) => void;
   setGuardianDevices: (studentId: string, count: number) => void;
   addTerm: (name: string, academicYear: string) => void;
   activateTerm: (id: string) => void;
@@ -37,7 +38,15 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setData({ ...initialData, ...JSON.parse(saved) });
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<TaallamtData>;
+        setData({
+          ...initialData,
+          ...parsed,
+          skills: parsed.skills ?? initialData.skills,
+          assessments: parsed.assessments ?? initialData.assessments,
+        });
+      }
     } catch {}
     setReady(true);
   }, []);
@@ -54,8 +63,27 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     },
     archiveStudent(id) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === id ? { ...s, active: false } : s) })); },
     restoreStudent(id) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === id ? { ...s, active: true } : s) })); },
-    deleteStudent(id) { setData((d) => ({ ...d, students: d.students.filter((s) => s.id !== id), messages: d.messages.filter((m) => m.studentId !== id), followUps: Object.fromEntries(Object.entries(d.followUps).filter(([key]) => key !== id)) })); },
+    deleteStudent(id) {
+      setData((d) => ({
+        ...d,
+        students: d.students.filter((s) => s.id !== id),
+        assessments: d.assessments.filter((a) => a.studentId !== id),
+        messages: d.messages.filter((m) => m.studentId !== id),
+        followUps: Object.fromEntries(Object.entries(d.followUps).filter(([key]) => key !== id)),
+      }));
+    },
     setMastery(studentId, subjectId, level) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, subjectLevels: { ...s.subjectLevels, [subjectId]: level } } : s) })); },
+    setSkillAssessment(studentId, skillId, level, note) {
+      const assessment: SkillAssessment = {
+        id: uid("assessment"),
+        studentId,
+        skillId,
+        level,
+        assessedAt: new Date().toISOString(),
+        note: note?.trim() || undefined,
+      };
+      setData((d) => ({ ...d, assessments: [...d.assessments, assessment] }));
+    },
     setGuardianDevices(studentId, count) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, guardianDevices: Math.max(0, Math.min(s.guardianDeviceLimit, count)) } : s) })); },
     addTerm(name, academicYear) {
       if (!name.trim()) return;
@@ -68,7 +96,19 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     },
     renameSubject(id, name) { if (name.trim()) setData((d) => ({ ...d, subjects: d.subjects.map((s) => s.id === id ? { ...s, name: name.trim() } : s) })); },
     toggleSubject(id) { setData((d) => ({ ...d, subjects: d.subjects.map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s) })); },
-    deleteSubject(id) { setData((d) => ({ ...d, subjects: d.subjects.filter((s) => s.id !== id), weeklyPlans: d.weeklyPlans.filter((p) => p.subjectId !== id), students: d.students.map((s) => { const levels = { ...s.subjectLevels }; delete levels[id]; return { ...s, subjectLevels: levels }; }) })); },
+    deleteSubject(id) {
+      setData((d) => {
+        const removedSkillIds = new Set(d.skills.filter((skill) => skill.subjectId === id).map((skill) => skill.id));
+        return {
+          ...d,
+          subjects: d.subjects.filter((s) => s.id !== id),
+          weeklyPlans: d.weeklyPlans.filter((p) => p.subjectId !== id),
+          skills: d.skills.filter((skill) => skill.subjectId !== id),
+          assessments: d.assessments.filter((assessment) => !removedSkillIds.has(assessment.skillId)),
+          students: d.students.map((s) => { const levels = { ...s.subjectLevels }; delete levels[id]; return { ...s, subjectLevels: levels }; }),
+        };
+      });
+    },
     updateWeeklyPlan(subjectId, week, title) {
       if (!activeTermId) return;
       setData((d) => {
