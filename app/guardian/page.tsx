@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { DateBar } from "@/components/DateBar";
+import { NotificationPanel } from "@/components/NotificationPanel";
 import { PrintButton } from "@/components/PrintButton";
 import { useTaallamt } from "@/lib/store";
 import { academicWeek, plansForWeek, tomorrowAnnouncement } from "@/lib/schedule";
@@ -33,7 +35,9 @@ export default function GuardianPage() {
   return (
     <main className="shell">
       <header className="topbar"><div className="brand"><div className="logo">🏠</div><div><h1>متابعة الطالب</h1><p>بوابة ولي الأمر — متابعة وتواصل</p></div></div><span className="pill no-print">الأجهزة {student.guardianDevices}/{student.guardianDeviceLimit}</span></header>
-      <div className="card no-print"><div className="toolbar"><span>معاينة أثناء البناء:</span><select className="field grow" value={student.id} onChange={(e) => setPreviewId(e.target.value)}>{active.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><Link className="btn secondary" href="/">لوحة المعلم</Link></div><small>في النسخة النهائية لن يختار ولي الأمر طالبًا؛ الجلسة الآمنة ستفتح ابنه فقط.</small></div>
+      <DateBar />
+      <NotificationPanel role="guardian" studentId={student.id} />
+      <div className="card no-print section"><div className="toolbar"><span>معاينة أثناء البناء:</span><select className="field grow" value={student.id} onChange={(e) => setPreviewId(e.target.value)}>{active.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><Link className="btn secondary" href="/">لوحة المعلم</Link></div><small>في النسخة النهائية لن يختار ولي الأمر طالبًا؛ الجلسة الآمنة ستفتح ابنه فقط.</small></div>
       <section className="hero section"><div><h2>{student.name}</h2><p>المستوى والمهام والخطة العلاجية والتواصل مع المعلم في شاشة واحدة.</p></div><div className="hero-stats"><div className="stat"><b>{subjects.length}</b><span>مواد حالية</span></div><div className="stat"><b>{needsTraining.length}</b><span>تحتاج تدريبًا</span></div><div className="stat"><b>{messages.length}</b><span>رسائل</span></div><div className="stat"><b>{student.specialFollowUp ? "✓" : "—"}</b><span>متابعة خاصة</span></div></div></section>
 
       <section className="section"><div className="section-head"><h2>خطة هذا الأسبوع — الأسبوع {week}</h2></div><div className="grid">{weekly.map((plan) => { const subject = subjects.find((s) => s.id === plan.subjectId); return <div className="card" key={plan.id}><h3>{subject?.name ?? plan.subjectId}</h3><p>{plan.title}</p></div>; })}</div></section>
