@@ -2,9 +2,21 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { initialData } from "./sample-data";
-import type { FollowUpCategory, MasteryLevel, SkillAssessment, SpecialFollowUp, TaallamtData } from "./types";
+import type { FollowUpCategory, LearningResource, MasteryLevel, ResourceKind, SkillAssessment, SpecialFollowUp, TaallamtData } from "./types";
 
 const STORAGE_KEY = "taallamt-flex-v1";
+
+type NewResource = {
+  subjectId: string;
+  kind: ResourceKind;
+  title: string;
+  week?: number;
+  instructions: string;
+  items: string[];
+  answerGuide: string[];
+  audienceStudentIds: string[];
+  publishedToGuardian: boolean;
+};
 
 type StoreValue = TaallamtData & {
   ready: boolean;
@@ -15,6 +27,7 @@ type StoreValue = TaallamtData & {
   deleteStudent: (id: string) => void;
   setMastery: (studentId: string, subjectId: string, level: MasteryLevel) => void;
   setSkillAssessment: (studentId: string, skillId: string, level: MasteryLevel, note?: string) => void;
+  addLearningResource: (resource: NewResource) => string;
   setGuardianDevices: (studentId: string, count: number) => void;
   addTerm: (name: string, academicYear: string) => void;
   activateTerm: (id: string) => void;
@@ -45,6 +58,7 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
           ...parsed,
           skills: parsed.skills ?? initialData.skills,
           assessments: parsed.assessments ?? initialData.assessments,
+          resources: parsed.resources ?? initialData.resources,
         });
       }
     } catch {}
@@ -68,6 +82,7 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
         ...d,
         students: d.students.filter((s) => s.id !== id),
         assessments: d.assessments.filter((a) => a.studentId !== id),
+        resources: d.resources.map((resource) => ({ ...resource, audienceStudentIds: resource.audienceStudentIds.filter((studentId) => studentId !== id) })),
         messages: d.messages.filter((m) => m.studentId !== id),
         followUps: Object.fromEntries(Object.entries(d.followUps).filter(([key]) => key !== id)),
       }));
@@ -83,6 +98,25 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
         note: note?.trim() || undefined,
       };
       setData((d) => ({ ...d, assessments: [...d.assessments, assessment] }));
+    },
+    addLearningResource(resource) {
+      const id = uid("resource");
+      const entry: LearningResource = {
+        id,
+        termId: activeTermId ?? "term-1",
+        subjectId: resource.subjectId,
+        kind: resource.kind,
+        title: resource.title,
+        week: resource.week,
+        createdAt: new Date().toISOString(),
+        instructions: resource.instructions,
+        items: resource.items,
+        answerGuide: resource.answerGuide,
+        audienceStudentIds: resource.audienceStudentIds,
+        publishedToGuardian: resource.publishedToGuardian,
+      };
+      setData((d) => ({ ...d, resources: [entry, ...d.resources] }));
+      return id;
     },
     setGuardianDevices(studentId, count) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, guardianDevices: Math.max(0, Math.min(s.guardianDeviceLimit, count)) } : s) })); },
     addTerm(name, academicYear) {
@@ -105,6 +139,7 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
           weeklyPlans: d.weeklyPlans.filter((p) => p.subjectId !== id),
           skills: d.skills.filter((skill) => skill.subjectId !== id),
           assessments: d.assessments.filter((assessment) => !removedSkillIds.has(assessment.skillId)),
+          resources: d.resources.filter((resource) => resource.subjectId !== id),
           students: d.students.map((s) => { const levels = { ...s.subjectLevels }; delete levels[id]; return { ...s, subjectLevels: levels }; }),
         };
       });
