@@ -3,8 +3,9 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DateBar } from "@/components/DateBar";
 import { guardianBackendStatus, type GuardianBackendStatus } from "@/lib/guardian-api";
-import { disableGuardianAccess, setGuardianAccessCode, teacherLogin, teacherLogout, teacherMe } from "@/lib/teacher-api";
+import { disableGuardianAccess, setGuardianAccessCode, teacherLogin, teacherLogout, teacherMe, teacherSync } from "@/lib/teacher-api";
 import { useTaallamt } from "@/lib/store";
+import type { TaallamtData } from "@/lib/types";
 
 export default function TeacherBackendPage() {
   const store = useTaallamt();
@@ -49,6 +50,33 @@ export default function TeacherBackendPage() {
       setNotice("تم فتح جلسة المعلم الآمنة.");
     } catch {
       setNotice("تعذر الدخول. تحقق من رمز المعلم أو إعدادات الخادم.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function syncCurrentData() {
+    setBusy(true);
+    setNotice("");
+    const snapshot: TaallamtData = {
+      terms: store.terms,
+      subjects: store.subjects,
+      students: store.students,
+      weeklyPlans: store.weeklyPlans,
+      skills: store.skills,
+      assessments: store.assessments,
+      resources: store.resources,
+      values: store.values,
+      valueStars: store.valueStars,
+      spellingPractices: store.spellingPractices,
+      followUps: store.followUps,
+      messages: store.messages,
+    };
+    try {
+      const result = await teacherSync(snapshot);
+      setNotice(`تمت مزامنة النسخة الحالية إلى Firestore: ${result.writes} سجلًا. لم يتم المساس برموز أو جلسات أولياء الأمور.`);
+    } catch {
+      setNotice("تعذرت مزامنة البيانات. لم تُحذف البيانات المحلية؛ تحقق من الربط ثم أعد المحاولة.");
     } finally {
       setBusy(false);
     }
@@ -113,7 +141,9 @@ export default function TeacherBackendPage() {
 
       {status.ready && !authenticated && <section className="section"><form className="card stack" onSubmit={login}><h2>دخول المعلم الآمن</h2><label className="stack">رمز المعلم من 6 أرقام<input className="field guardian-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label><button className="btn" disabled={busy || pin.length !== 6}>دخول</button></form></section>}
 
-      {authenticated && <section className="section"><div className="section-head"><h2>اختبار دخول ولي الأمر</h2><span className="pill">طالب واحد أولًا</span></div><div className="notice">اختر طالبًا واحدًا فقط للاختبار، ضع له رمزًا من 6 أرقام، ثم افتح بوابة ولي الأمر من جهاز آخر.</div><div className="list">{students.map((student) => <div className="row" key={student.id}><div className="row-main"><div className="avatar">🧒</div><div><h4>{student.name}</h4><small>{student.className}</small></div></div><div className="mini-actions"><input aria-label={`رمز ${student.name}`} className="field guardian-code" style={{ maxWidth: 130 }} inputMode="numeric" maxLength={6} placeholder="6 أرقام" value={codeByStudent[student.id] ?? ""} onChange={(event) => setCodeByStudent((current) => ({ ...current, [student.id]: event.target.value.replace(/\D/g, "").slice(0, 6) }))} /><button className="btn" disabled={busy} type="button" onClick={() => void saveCode(student.id)}>تفعيل</button><button className="btn secondary" disabled={busy} type="button" onClick={() => void disable(student.id)}>تعطيل</button></div></div>)}</div></section>}
+      {authenticated && <section className="section"><div className="section-head"><h2>مزامنة البيانات الحالية</h2><span className="pill">آمنة ومحمية بجلسة المعلم</span></div><div className="card"><p>ترفع الطلاب والمواد والتوزيع والمهارات والتقييمات والنجوم والأوراق والرسائل من النسخة الحالية إلى Firestore، مع استبعاد حقول الدخول الحساسة لولي الأمر.</p><button className="btn" disabled={busy} type="button" onClick={() => void syncCurrentData()}>مزامنة إلى Firestore</button></div></section>}
+
+      {authenticated && <section className="section"><div className="section-head"><h2>اختبار دخول ولي الأمر</h2><span className="pill">طالب واحد أولًا</span></div><div className="notice">بعد المزامنة اختر طالبًا واحدًا للاختبار، ضع له رمزًا من 6 أرقام، ثم افتح بوابة ولي الأمر الآمنة من جهاز آخر.</div><div className="list">{students.map((student) => <div className="row" key={student.id}><div className="row-main"><div className="avatar">🧒</div><div><h4>{student.name}</h4><small>{student.className}</small></div></div><div className="mini-actions"><input aria-label={`رمز ${student.name}`} className="field guardian-code" style={{ maxWidth: 130 }} inputMode="numeric" maxLength={6} placeholder="6 أرقام" value={codeByStudent[student.id] ?? ""} onChange={(event) => setCodeByStudent((current) => ({ ...current, [student.id]: event.target.value.replace(/\D/g, "").slice(0, 6) }))} /><button className="btn" disabled={busy} type="button" onClick={() => void saveCode(student.id)}>تفعيل</button><button className="btn secondary" disabled={busy} type="button" onClick={() => void disable(student.id)}>تعطيل</button></div></div>)}</div></section>}
 
       {notice && <div className="notice">{notice}</div>}
       <footer className="site-credit">برمجة سلطان الصاعدي</footer>
