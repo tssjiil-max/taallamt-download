@@ -58,3 +58,20 @@ export function remedialAction(skill: Skill) {
 
   return "تدريب قصير على المهارة بخطوة واحدة واضحة، ثم إعادة التقييم بعد عدة محاولات ناجحة.";
 }
+
+export function studentGoal(skill: Skill) {
+  if (skill.subjectId === "quran") {
+    if (skill.category.includes("حفظ")) return `أسمّع المقطع بهدوء: ${skill.title.replace(/^يحفظ المقطع المقرر:\s*/, "")}`;
+    return "أقرأ المقطع بوضوح وأعيد الآية التي أتردد فيها.";
+  }
+
+  if (skill.subjectId === "lughati") {
+    if (skill.category.includes("القراءة")) return "أقرأ سطرين بصوت واضح، وأعيد الكلمة التي أتوقف عندها.";
+    if (skill.category.includes("الفهم")) return "أقرأ ثم أجيب عن: من؟ أين؟ كيف؟ لماذا؟";
+    if (skill.category.includes("إملاء") || skill.category.includes("الكتابة")) return "أكتب ثلاث كلمات وجملة قصيرة كتابة صحيحة وجميلة.";
+    return "أطبق مهارة لغتي في ثلاثة أمثلة قصيرة من عندي.";
+  }
+
+  if (skill.subjectId === "islamic") return "أشرح الفكرة بكلماتي وأذكر مثالًا جميلًا من حياتي.";
+  return "أتدرب على هذه المهارة خطوة واحدة ثم أحاول مرة أخرى.";
+}
