@@ -1,4 +1,4 @@
-import type { Skill, Student, Subject, TaallamtData, Term, WeeklyPlan } from "./types";
+import type { Skill, SpellingPractice, Student, Subject, TaallamtData, Term, ValueTarget, WeeklyPlan } from "./types";
 
 export const terms: Term[] = [
   { id: "term-1", name: "الفصل الدراسي الأول", academicYear: "1448هـ", active: true },
@@ -53,54 +53,80 @@ function plans(subjectId: string, titles: string[]): WeeklyPlan[] {
 export const weeklyPlans: WeeklyPlan[] = [...plans("quran", quran), ...plans("islamic", islamic), ...plans("lughati", lughati)];
 
 function skill(subjectId: string, week: number, category: string, title: string, suffix: string): Skill {
-  return {
-    id: `${subjectId}-w${week}-${suffix}`,
-    termId: "term-1",
-    subjectId,
-    week,
-    category,
-    title,
-    active: true,
-    source: "register",
-  };
+  return { id: `${subjectId}-w${week}-${suffix}`, termId: "term-1", subjectId, week, category, title, active: true, source: "register" };
 }
 
 const quranSkills: Skill[] = quran.flatMap((title, index) => {
   const week = index + 1;
   const target = title.replace(/^حفظ:\s*/, "");
-  if (title.includes("مراجعة")) {
-    return [
-      skill("quran", week, "الحفظ", "يثبت الحفظ السابق ويستظهره دون تردد قدر الإمكان", "memorization"),
-      skill("quran", week, "التلاوة والمراجعة", "يراجع السور السابقة بتلاوة صحيحة وواضحة", "recitation"),
-    ];
-  }
+  if (title.includes("مراجعة")) return [
+    skill("quran", week, "الحفظ", "يثبت الحفظ السابق ويستظهره دون تردد قدر الإمكان", "memorization"),
+    skill("quran", week, "التلاوة والمراجعة", "يراجع السور السابقة بتلاوة صحيحة وواضحة", "recitation"),
+  ];
   return [
     skill("quran", week, "الحفظ", `يحفظ المقطع المقرر: ${target}`, "memorization"),
     skill("quran", week, "التلاوة", `يتلو المقطع المقرر تلاوة صحيحة: ${target}`, "recitation"),
   ];
 });
 
-function islamicCategory(title: string) {
-  return /(الله|العبادة|الشرك|خلقنا)/.test(title) ? "التوحيد" : "الفقه والسلوك";
-}
-
-const islamicSkills: Skill[] = islamic.map((title, index) => {
-  const week = index + 1;
-  const category = islamicCategory(title);
-  return skill("islamic", week, category, `يفهم ويطبق ما تعلمه في: ${title}`, "main");
-});
+function islamicCategory(title: string) { return /(الله|العبادة|الشرك|خلقنا)/.test(title) ? "التوحيد" : "الفقه والسلوك"; }
+const islamicSkills: Skill[] = islamic.map((title, index) => skill("islamic", index + 1, islamicCategory(title), `يفهم ويطبق ما تعلمه في: ${title}`, "main"));
 
 const lughatiSkills: Skill[] = lughati.flatMap((title, index) => {
   const week = index + 1;
   return [
+    skill("lughati", week, "الاستماع والتحدث", `يستمع ويتحدث حول محتوى الأسبوع: ${title}`, "listening-speaking"),
     skill("lughati", week, "القراءة", `يقرأ محتوى الأسبوع قراءة مناسبة لمستواه: ${title}`, "reading"),
     skill("lughati", week, "الفهم القرائي", `يفهم المفردات والأفكار الرئيسة في: ${title}`, "comprehension"),
     skill("lughati", week, "الكتابة والإملاء", `يكتب ويملي الكلمات والتراكيب المستهدفة في: ${title}`, "writing"),
-    skill("lughati", week, "المهارات اللغوية", `يطبق المهارات اللغوية المرتبطة بـ: ${title}`, "language"),
+    skill("lughati", week, "التراكيب اللغوية", `يطبق التراكيب والظواهر اللغوية المرتبطة بـ: ${title}`, "language"),
   ];
 });
 
 export const skills: Skill[] = [...quranSkills, ...islamicSkills, ...lughatiSkills];
+
+export const values: ValueTarget[] = [
+  { id: "value-family-ties", termId: "term-1", unitName: "أقاربي", title: "صلة الرحم", studentText: "أحترم أقاربي وأسأل عنهم وأعامل كبار الأسرة بلطف.", homeSuggestion: "شجّعه على السلام على قريب أو مساعدته أو السؤال عنه.", weekFrom: 1, weekTo: 4, active: true, source: "teacher" },
+  { id: "value-communication", termId: "term-1", unitName: "أصدقائي وجيراني", title: "التواصل مع الآخرين", studentText: "أستمع لمن يحدثني وأتحدث بلطف ووضوح.", homeSuggestion: "اطلب منه أن يحكي موقفًا قصيرًا ويستمع للآخر دون مقاطعة.", weekFrom: 5, weekTo: 8, active: true, source: "unit_guide" },
+  { id: "value-smile", termId: "term-1", unitName: "أصدقائي وجيراني", title: "الابتسامة وحب الآخرين", studentText: "أبتسم وأسلم وأعامل زملائي بلطف.", homeSuggestion: "عزز السلام والابتسامة والكلمة الطيبة في البيت.", weekFrom: 5, weekTo: 8, active: true, source: "unit_guide" },
+  { id: "value-responsibility", termId: "term-1", unitName: "أصدقائي وجيراني", title: "المسؤولية", studentText: "أنجز مهمتي وأحافظ على أدواتي ومكاني.", homeSuggestion: "أعطه مسؤولية منزلية صغيرة وثابتة ثم امدح التزامه بها.", weekFrom: 5, weekTo: 8, active: true, source: "unit_guide" },
+  { id: "value-cooperation", termId: "term-1", unitName: "أصدقائي وجيراني", title: "التعاون", studentText: "أساعد زملائي وأعمل معهم بروح جميلة.", homeSuggestion: "اجعله يشارك أحد أفراد الأسرة في مهمة قصيرة.", weekFrom: 5, weekTo: 8, active: true, source: "unit_guide" },
+  { id: "value-social", termId: "term-1", unitName: "أصدقائي وجيراني", title: "المشاركة الاجتماعية", studentText: "أشارك في أعمال الصف والأنشطة المفيدة.", homeSuggestion: "شجعه على المشاركة في عمل أسري أو اجتماعي مناسب لعمره.", weekFrom: 5, weekTo: 8, active: true, source: "unit_guide" },
+  { id: "value-patriotism", termId: "term-1", unitName: "وطني السعودية", title: "الانتماء والمحافظة", studentText: "أحب وطني وأحافظ على المدرسة والمرافق العامة.", homeSuggestion: "اربط حب الوطن بالمحافظة على النظافة والممتلكات العامة.", weekFrom: 9, weekTo: 12, active: true, source: "teacher" },
+  { id: "value-gratitude", termId: "term-1", unitName: "محاصيل من بلادي", title: "شكر النعمة والعمل", studentText: "أشكر الله على النعم وأقدر عمل من ينتج لنا الغذاء.", homeSuggestion: "تحدث معه عن عدم الإسراف وشكر النعمة وتقدير العاملين.", weekFrom: 13, weekTo: 17, active: true, source: "teacher" },
+];
+
+const handwritingChecklist = ["جلسة صحيحة ومسك القلم برفق", "استقرار الحروف على السطور الأربعة", "حجم حروف متقارب", "مسافات مناسبة بين الكلمات", "اتجاه كتابة صحيح من اليمين إلى اليسار"];
+const spellingRows = [
+  [1, "أقاربي", "مراجعة الحركات القصيرة والسكون"],
+  [2, "أقاربي", "اللام القمرية"],
+  [3, "أقاربي", "اللام الشمسية"],
+  [4, "أقاربي", "مراجعة اللام الشمسية والقمرية"],
+  [5, "أقاربي", "تنوين الضم"],
+  [6, "أقاربي", "تنوين الفتح"],
+  [7, "أصدقائي وجيراني", "تنوين الكسر"],
+  [8, "أصدقائي وجيراني", "التضعيف (الشدة)"],
+  [9, "أصدقائي وجيراني", "الشدة مع اللام الشمسية"],
+  [10, "أصدقائي وجيراني", "مراجعة التنوين والشدة"],
+  [11, "وطني السعودية", "التاء المربوطة"],
+  [12, "وطني السعودية", "التنوين مع التاء المربوطة"],
+  [13, "وطني السعودية", "المد بالألف"],
+  [14, "وطني السعودية", "المد بالواو"],
+  [15, "محاصيل من بلادي", "المد بالياء"],
+  [16, "محاصيل من بلادي", "مراجعة المدود الثلاثة"],
+  [17, "محاصيل من بلادي", "مراجعة شاملة على مهارات الفصل"],
+] as const;
+
+export const spellingPractices: SpellingPractice[] = spellingRows.map(([week, unitName, skillName]) => ({
+  id: `spelling-w${week}`,
+  termId: "term-1",
+  week,
+  unitName,
+  skill: skillName,
+  scoreTotal: 10,
+  handwritingChecklist,
+  active: true,
+}));
 
 export const initialData: TaallamtData = {
   terms,
@@ -110,6 +136,9 @@ export const initialData: TaallamtData = {
   skills,
   assessments: [],
   resources: [],
+  values,
+  valueStars: [],
+  spellingPractices,
   followUps: {},
   messages: [],
 };
