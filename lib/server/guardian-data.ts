@@ -1,5 +1,5 @@
 import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
-import { getAdminDb } from "./firebase-admin";
+import { firestoreCollectionName, getAdminDb } from "./firebase-admin";
 
 type LooseDoc = { id: string } & Record<string, unknown>;
 
@@ -9,10 +9,10 @@ function docsWithIds(docs: QueryDocumentSnapshot[]): LooseDoc[] {
 
 export async function loadGuardianBundle(studentId: string) {
   const db = getAdminDb();
-  const studentRef = db.collection("students").doc(studentId);
+  const studentRef = db.collection(firestoreCollectionName("students")).doc(studentId);
   const [studentSnap, activeTermsSnap] = await Promise.all([
     studentRef.get(),
-    db.collection("terms").where("active", "==", true).limit(1).get(),
+    db.collection(firestoreCollectionName("terms")).where("active", "==", true).limit(1).get(),
   ]);
 
   if (!studentSnap.exists) return null;
@@ -27,7 +27,7 @@ export async function loadGuardianBundle(studentId: string) {
 
   async function byTerm(collectionName: string) {
     if (!termId) return [] as LooseDoc[];
-    const snap = await db.collection(collectionName).where("termId", "==", termId).get();
+    const snap = await db.collection(firestoreCollectionName(collectionName)).where("termId", "==", termId).get();
     return docsWithIds(snap.docs);
   }
 
@@ -35,13 +35,13 @@ export async function loadGuardianBundle(studentId: string) {
     byTerm("subjects"),
     byTerm("weeklyPlans"),
     byTerm("skills"),
-    db.collection("assessments").where("studentId", "==", studentId).get(),
-    db.collection("resources").where("audienceStudentIds", "array-contains", studentId).get(),
+    db.collection(firestoreCollectionName("assessments")).where("studentId", "==", studentId).get(),
+    db.collection(firestoreCollectionName("resources")).where("audienceStudentIds", "array-contains", studentId).get(),
     byTerm("values"),
-    db.collection("valueStars").where("studentId", "==", studentId).get(),
+    db.collection(firestoreCollectionName("valueStars")).where("studentId", "==", studentId).get(),
     byTerm("spellingPractices"),
-    db.collection("messages").where("studentId", "==", studentId).get(),
-    db.collection("followUps").doc(studentId).get(),
+    db.collection(firestoreCollectionName("messages")).where("studentId", "==", studentId).get(),
+    db.collection(firestoreCollectionName("followUps")).doc(studentId).get(),
   ]);
 
   const activeSkills = skills.filter((skill) => skill.active !== false);
@@ -76,7 +76,7 @@ export async function loadGuardianBundle(studentId: string) {
       subjectLevels: rawStudent.subjectLevels ?? {},
       specialFollowUp: rawStudent.specialFollowUp === true,
       guardianDevices: Number(rawStudent.guardianDevices ?? 0),
-      guardianDeviceLimit: Math.max(1, Math.min(2, Number(rawStudent.guardianDeviceLimit ?? 2))),
+      guardianDeviceLimit: Number(rawStudent.guardianDeviceLimit ?? 2),
     },
     activeTerm,
     subjects: guardianSubjects,
