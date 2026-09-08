@@ -1,176 +1,27 @@
 "use client";
-
 import Link from "next/link";
-import { DateBar } from "@/components/DateBar";
-import { NotificationPanel } from "@/components/NotificationPanel";
-import { academicWeek } from "@/lib/schedule";
-import { useTaallamt } from "@/lib/store";
-
-type Activity = { id: string; title: string; detail: string; at: string; icon: string };
-
-const subjectOrder = ["لغتي", "القرآن الكريم", "الدراسات الإسلامية"];
-const subjectIcon = (name: string) => name.includes("لغتي") ? "✏️" : name.includes("قرآن") ? "📖" : "🕌";
-
-function shortDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("ar-SA", { day: "numeric", month: "short" }).format(date);
-}
-
-export default function TeacherHome() {
-  const store = useTaallamt();
-  const activeTerm = store.terms.find((term) => term.active) ?? store.terms[0];
-  const activeStudents = store.students.filter((student) => student.active);
-  const week = academicWeek();
-  const activeSubjects = store.subjects
-    .filter((subject) => subject.enabled && subject.termId === activeTerm?.id && subjectOrder.includes(subject.name))
-    .sort((a, b) => subjectOrder.indexOf(a.name) - subjectOrder.indexOf(b.name));
-
-  const guardianMessages = store.messages.filter((message) => message.author === "guardian").length;
-  const needsReview = Object.values(store.followUps).filter((followUp) => followUp.status === "needs_review").length;
-  const alertsCount = guardianMessages + needsReview;
-
-  const starGroups = new Map<string, number>();
-  for (const star of store.valueStars) {
-    const key = `${star.studentId}:${star.valueId}`;
-    starGroups.set(key, (starGroups.get(key) ?? 0) + 1);
-  }
-  const awardsCount = [...starGroups.values()].filter((count) => count >= 8).length;
-
-  const activities: Activity[] = [
-    ...store.assessments.map((assessment) => {
-      const student = store.students.find((item) => item.id === assessment.studentId);
-      const skill = store.skills.find((item) => item.id === assessment.skillId);
-      const subject = skill ? store.subjects.find((item) => item.id === skill.subjectId) : undefined;
-      return {
-        id: assessment.id,
-        title: student ? `تم تقييم ${student.name}` : "تم تسجيل تقييم",
-        detail: [subject?.name, skill?.category].filter(Boolean).join(" · ") || "تقييم مهارة",
-        at: assessment.assessedAt,
-        icon: "✅",
-      };
-    }),
-    ...store.valueStars.map((star) => {
-      const student = store.students.find((item) => item.id === star.studentId);
-      const value = store.values.find((item) => item.id === star.valueId);
-      return {
-        id: star.id,
-        title: student ? `تم تحديث سلوك ${student.name}` : "تم تحديث السلوك",
-        detail: value?.title ?? "نجمة سلوك إيجابي",
-        at: star.awardedAt,
-        icon: "⭐",
-      };
-    }),
-    ...store.messages.filter((message) => message.author === "guardian").map((message) => {
-      const student = store.students.find((item) => item.id === message.studentId);
-      return {
-        id: message.id,
-        title: student ? `رسالة من ولي أمر ${student.name}` : "رسالة من ولي أمر",
-        detail: message.body,
-        at: message.createdAt,
-        icon: "💬",
-      };
-    }),
-    ...store.resources.map((resource) => ({
-      id: resource.id,
-      title: resource.publishedToGuardian ? `تم نشر ${resource.title}` : `تم إنشاء ${resource.title}`,
-      detail: store.subjects.find((item) => item.id === resource.subjectId)?.name ?? "مورد تعليمي",
-      at: resource.createdAt,
-      icon: "📝",
-    })),
-  ].filter((item) => item.at).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
-
-  return (
-    <main className="shell teacher-home-shell">
-      <header className="teacher-header">
-        <div className="teacher-brand-block">
-          <div className="brand-mark">ت</div>
-          <div>
-            <h1>تعلّمت</h1>
-            <p>لوحة المعلم · أ. سلطان الصاعدي</p>
-            <span>الصف الثاني / 4</span>
-          </div>
-        </div>
-        <Link className="shak-header-link" href="/teacher/shakabumbo" aria-label="اسأل شكابمبو">
-          <img src="/shakabumbo.jpg" alt="شكابمبو" />
-          <span>اسأل شكابمبو</span>
-        </Link>
-      </header>
-
-      <DateBar />
-
-      <section className="ui-section first-ui-section">
-        <div className="section-title-row"><div><h2>المؤشرات</h2><p>بيانات فعلية من النظام</p></div></div>
-        <div className="square-grid indicator-grid">
-          <Link className="square-card indicator-card" href="/teacher/students"><div className="square-icon green">👥</div><b>{activeStudents.length}</b><span>طلاب الفصل</span></Link>
-          <Link className="square-card indicator-card" href="/teacher/values"><div className="square-icon orange">⭐</div><b>{store.valueStars.length}</b><span>السلوك</span></Link>
-          <article className="square-card indicator-card"><div className="square-icon green">🔔</div><b>{alertsCount}</b><span>التنبيهات</span></article>
-          <Link className="square-card indicator-card" href="/teacher/values"><div className="square-icon orange">🏆</div><b>{awardsCount}</b><span>الجوائز</span></Link>
-        </div>
-      </section>
-
-      <section className="ui-section">
-        <div className="section-title-row"><div><h2>المواد</h2><p>كل مادة في مكانها</p></div><span className="soft-chip">الأسبوع {week}</span></div>
-        <div className="square-grid subject-card-grid">
-          {activeSubjects.map((subject, index) => {
-            const plan = store.weeklyPlans.find((item) => item.termId === activeTerm?.id && item.subjectId === subject.id && item.week === week);
-            return <Link className="square-card subject-square-card" key={subject.id} href={`/teacher/subject/${subject.id}`}>
-              <div className={`square-icon ${index % 2 === 0 ? "green" : "orange"}`}>{subjectIcon(subject.name)}</div>
-              <h3>{subject.name}</h3>
-              <p>{plan?.title ?? "لا توجد خطة لهذا الأسبوع"}</p>
-            </Link>;
-          })}
-        </div>
-      </section>
-
-      <section className="ui-section">
-        <div className="section-title-row"><div><h2>إجراءات سريعة</h2><p>أهم ما تستخدمه أثناء اليوم الدراسي</p></div></div>
-        <div className="square-grid quick-grid">
-          <Link className="square-card quick-card" href="/teacher/values"><div className="square-icon green">🌟</div><h3>السلوك</h3><p>القيم والنجوم الحالية</p></Link>
-          <Link className="square-card quick-card" href="/teacher/assessment"><div className="square-icon orange">✅</div><h3>التقييم</h3><p>تقييم المهارات للطلاب</p></Link>
-          <Link className="square-card quick-card" href="/teacher/students"><div className="square-icon orange">💬</div><h3>رسائل أولياء الأمور</h3><p>{guardianMessages ? `${guardianMessages} رسالة محفوظة` : "لا توجد رسائل"}</p></Link>
-          <Link className="square-card quick-card" href="/teacher/resources"><div className="square-icon green">📝</div><h3>مهام صفية</h3><p>أوراق وتدريبات داخل الفصل</p></Link>
-        </div>
-      </section>
-
-      <section className="ui-section">
-        <div className="section-title-row"><div><h2>آخر النشاطات</h2><p>تظهر فقط من السجلات الموجودة</p></div></div>
-        {activities.length ? <div className="activity-grid">{activities.map((activity) => <article className="activity-card" key={`${activity.id}-${activity.at}`}><div className="activity-icon">{activity.icon}</div><div><h3>{activity.title}</h3><p>{activity.detail}</p><small>{shortDate(activity.at)}</small></div></article>)}</div> : <div className="empty-state"><span>🌱</span><b>لا توجد نشاطات حديثة</b><p>ستظهر هنا التقييمات والرسائل والسلوك والمواد عند تسجيلها.</p></div>}
-      </section>
-
-      <section className="ui-section">
-        <div className="section-title-row"><div><h2>أدوات المعلم</h2><p>الوظائف الموجودة في تعلّمت</p></div></div>
-        <div className="square-grid tools-grid">
-          <Link className="square-card tool-card" href="/teacher/library"><div className="square-icon green">📚</div><h3>المكتبة</h3><p>إدارة المحتوى المنشور</p></Link>
-          <Link className="square-card tool-card" href="/teacher/portfolio"><div className="square-icon orange">📁</div><h3>ملف الإنجاز</h3><p>أعمالك وأدلتك المهنية</p></Link>
-          <Link className="square-card tool-card" href="/teacher/announcements"><div className="square-icon orange">📢</div><h3>الإعلانات</h3><p>حدث أو تنبيه عام</p></Link>
-          <Link className="square-card tool-card" href="/teacher/reports"><div className="square-icon green">📊</div><h3>التقارير</h3><p>السجلات والطباعة</p></Link>
-        </div>
-      </section>
-
-      <details className="utility-panel">
-        <summary>الإشعارات على الجهاز</summary>
-        <NotificationPanel role="teacher" />
-      </details>
-
-      <details className="utility-panel">
-        <summary>الإدارة والإعدادات</summary>
-        <div className="square-grid tools-grid panel-grid">
-          <Link className="square-card tool-card" href="/teacher/distribution"><div className="square-icon green">🗓️</div><h3>التوزيع الأسبوعي</h3></Link>
-          <Link className="square-card tool-card" href="/teacher/settings"><div className="square-icon orange">⚙️</div><h3>إدارة الفصل</h3></Link>
-          <Link className="square-card tool-card" href="/teacher/data-exchange"><div className="square-icon green">🔄</div><h3>البيانات</h3></Link>
-          <Link className="square-card tool-card" href="/teacher/backend"><div className="square-icon orange">🔐</div><h3>الربط الخلفي</h3></Link>
-        </div>
-      </details>
-
-      <footer className="site-credit">برمجة سلطان الصاعدي</footer>
-
-      <nav className="bottom-nav teacher-bottom-nav" aria-label="التنقل الرئيسي">
-        <Link className="bottom-nav-item active" href="/"><span>⌂</span><b>الرئيسية</b></Link>
-        <Link className="bottom-nav-item" href="/teacher/students"><span>👥</span><b>الطلاب</b></Link>
-        <Link className="bottom-nav-item" href="/teacher/library"><span>📚</span><b>المكتبة</b></Link>
-        <Link className="bottom-nav-item" href="/teacher/shakabumbo"><span>🤖</span><b>شكابمبو</b></Link>
-      </nav>
-    </main>
-  );
+import {DateBar} from "@/components/DateBar";
+import {NotificationPanel} from "@/components/NotificationPanel";
+import {academicWeek} from "@/lib/schedule";
+import {useTaallamt} from "@/lib/store";
+const order=["لغتي","القرآن الكريم","الدراسات الإسلامية"];
+const icons="/guardian-icons/";
+const subjectIcon=(n:string)=>n.includes("لغتي")?icons+"lughati.svg":n.includes("قرآن")?icons+"quran.svg":icons+"islamic.svg";
+export default function TeacherHome(){
+ const store=useTaallamt(),term=store.terms.find(x=>x.active)??store.terms[0],students=store.students.filter(x=>x.active),week=academicWeek();
+ const subjects=store.subjects.filter(x=>x.enabled&&x.termId===term?.id&&order.includes(x.name)).sort((a,b)=>order.indexOf(a.name)-order.indexOf(b.name));
+ const guardianMessages=store.messages.filter(x=>x.author==="guardian").length,needsReview=Object.values(store.followUps).filter(x=>x.status==="needs_review").length;
+ const awards=Math.floor(store.valueStars.length/30);
+ const recent=[...store.assessments.map(x=>({id:x.id,at:x.assessedAt,title:"تقييم طالب",detail:store.skills.find(s=>s.id===x.skillId)?.category||"تقييم مهارة"})),...store.messages.filter(x=>x.author==="guardian").map(x=>({id:x.id,at:x.createdAt,title:"رسالة ولي أمر",detail:x.body})),...store.valueStars.map(x=>({id:x.id,at:x.awardedAt,title:"نجمة سلوك",detail:store.values.find(v=>v.id===x.valueId)?.title||"قيمة إيجابية"}))].filter(x=>x.at).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,4);
+ return <main className="shell teacher-home-shell teacher-dashboard">
+  <header className="teacher-hero"><div className="teacher-hero-copy"><div className="teacher-brand-block"><div className="brand-mark">ت</div><div><h1>تعلّمت</h1><p>معًا نصنع مستقبلهم</p></div></div><div className="teacher-greeting"><small>صباح الخير</small><h2>أ. سلطان الصاعدي</h2><p>الصف الثاني / 4 · الأسبوع {week}</p></div></div><Link className="shak-hero" href="/teacher/shakabumbo"><img src="/shakabumbo.jpg" alt="شكابمبو"/><span>شكابمبو</span><small>مساعد المعلم</small></Link></header>
+  <div className="teacher-date"><DateBar/></div>
+  <section className="ui-section teacher-metrics"><div className="teacher-metric"><b>{students.length}</b><span>طلاب الفصل</span></div><div className="teacher-metric"><b>{store.valueStars.length}</b><span>نجوم السلوك</span></div><div className="teacher-metric"><b>{guardianMessages+needsReview}</b><span>التنبيهات</span></div><div className="teacher-metric"><b>{awards}</b><span>الجوائز</span></div></section>
+  <section className="ui-section"><div className="section-title-row"><div><h2>المواد الدراسية</h2><p>الوصول المباشر للمادة وخطتها</p></div></div><div className="teacher-subject-grid">{subjects.map((s,i)=>{const plan=store.weeklyPlans.find(x=>x.termId===term?.id&&x.subjectId===s.id&&x.week===week);return <Link className={`teacher-subject subject-${i+1}`} href={`/teacher/subject/${s.id}`} key={s.id}><img src={subjectIcon(s.name)} alt=""/><div><h3>{s.name}</h3><p>{plan?.title||"لا توجد خطة منشورة"}</p><span>عرض التفاصيل</span></div></Link>})}</div></section>
+  <section className="ui-section"><div className="section-title-row"><div><h2>الخدمات السريعة</h2><p>أهم أدوات الحصة اليومية</p></div></div><div className="teacher-quick-grid"><Link href="/teacher/values" className="teacher-quick"><img src={icons+"trophy.svg"} alt=""/><b>السلوك</b><small>القيم والنجوم</small></Link><Link href="/teacher/assessment" className="teacher-quick"><img src={icons+"followup.svg"} alt=""/><b>التقييم</b><small>تقييم المهارات</small></Link><Link href="/teacher/students" className="teacher-quick"><img src={icons+"message.svg"} alt=""/><b>أولياء الأمور</b><small>{guardianMessages?`${guardianMessages} رسالة`:"لا توجد رسائل"}</small></Link><Link href="/teacher/library" className="teacher-quick"><img src={icons+"library.svg"} alt=""/><b>المكتبة</b><small>المحتوى التعليمي</small></Link></div></section>
+  <section className="ui-section"><div className="section-title-row"><div><h2>آخر النشاطات</h2><p>من سجلات النظام الحقيقية</p></div></div>{recent.length?<div className="activity-grid">{recent.map(x=><article className="activity-card" key={`${x.id}-${x.at}`}><h3>{x.title}</h3><p>{x.detail}</p></article>)}</div>:<div className="empty-state compact-empty">لا توجد نشاطات حديثة.</div>}</section>
+  <section className="ui-section"><div className="section-title-row"><div><h2>أدوات المعلم</h2></div></div><div className="teacher-tools"><Link href="/teacher/portfolio">ملف الإنجاز</Link><Link href="/teacher/announcements">الإعلانات</Link><Link href="/teacher/reports">التقارير</Link><Link href="/teacher/distribution">التوزيع الأسبوعي</Link></div></section>
+  <details className="utility-panel"><summary>الإشعارات والإعدادات</summary><NotificationPanel role="teacher"/><div className="teacher-settings-links"><Link href="/teacher/settings">إدارة الفصل</Link><Link href="/teacher/data-exchange">البيانات</Link><Link href="/teacher/backend">الربط الخلفي</Link></div></details>
+  <footer className="site-credit">برمجة سلطان الصاعدي</footer><nav className="bottom-nav teacher-bottom-nav"><Link className="bottom-nav-item active" href="/"><b>الرئيسية</b></Link><Link className="bottom-nav-item" href="/teacher/students"><b>الطلاب</b></Link><Link className="bottom-nav-item" href="/teacher/library"><b>المكتبة</b></Link><Link className="bottom-nav-item" href="/teacher/shakabumbo"><b>شكابمبو</b></Link></nav>
+ </main>
 }
