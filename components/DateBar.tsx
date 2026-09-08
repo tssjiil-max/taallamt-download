@@ -1,11 +1,15 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const TZ = "Asia/Riyadh";
 
 export function DateBar() {
   const [now, setNow] = useState<Date | null>(null);
+  const pathname = usePathname();
+  const isGuardian = pathname.startsWith("/guardian");
 
   useEffect(() => {
     setNow(new Date());
@@ -39,7 +43,10 @@ export function DateBar() {
   return (
     <div className="date-bar" aria-label="اليوم والتاريخ">
       <div><b>📅 {gregorian}</b><span>هجري: {hijri}</span></div>
-      <span className="date-time">🕒 {time}</span>
+      <div className="mini-actions">
+        {isGuardian && <Link className="btn secondary" href="/guardian/announcements" aria-label="الإعلانات">📢 الإعلانات</Link>}
+        <span className="date-time">🕒 {time}</span>
+      </div>
     </div>
   );
 }
