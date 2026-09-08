@@ -28,6 +28,7 @@ export default function TeacherHome() {
 
       <section className="section"><div className="section-head"><h2>عمل المعلم</h2></div><div className="grid">
         <Link className="card" href="/teacher/students"><div className="icon">👥</div><h3>الطلاب</h3><p>السجل والمتابعة العامة لكل طالب.</p></Link>
+        <Link className="card" href="/teacher/announcements"><div className="icon amber">📢</div><h3>الإعلانات</h3><p>حدث أو تنبيه عام يصل لجميع أولياء الأمور المفعّل لهم الدخول.</p></Link>
         <Link className="card shak-card" href="/teacher/shakabumbo"><img className="shak-thumb" src="/shakabumbo.jpg" alt="شكابمبو" /><div><h3>شكابمبو</h3><p>مساعد صفي للقراءة والتسميع والتصحيح والإملاء.</p></div></Link>
         <Link className="card" href="/teacher/library"><div className="icon green">📚</div><h3>المكتبة</h3><p>أنت تدير الكتيبات وأوراق العمل والملفات، وولي الأمر يحمّل المنشور فقط.</p></Link>
         <Link className="card" href="/teacher/portfolio"><div className="icon amber">📁</div><h3>ملف إنجاز المعلم</h3><p>ملف مهني يتكوّن من بياناتك وأعمالك وأدلتك داخل النظام.</p></Link>
