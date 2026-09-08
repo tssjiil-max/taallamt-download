@@ -3,358 +3,40 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { DateBar } from "@/components/DateBar";
-import { PrintButton } from "@/components/PrintButton";
-import { remedialAction, skillsNeedingTraining } from "@/lib/assessment";
-import {
-  guardianLogin,
-  guardianLogout,
-  guardianMe,
-  guardianSearch,
-  guardianSendFollowUp,
-  guardianSendMessage,
-  type GuardianSearchStudent,
-} from "@/lib/guardian-api";
-import { academicWeek, plansForWeek, tomorrowAnnouncement } from "@/lib/schedule";
-import type {
-  FollowUpCategory,
-  LearningResource,
-  MasteryLevel,
-  Message,
-  Skill,
-  SkillAssessment,
-  SpecialFollowUp,
-  SpellingPractice,
-  Subject,
-  Term,
-  ValueStar,
-  ValueTarget,
-  WeeklyPlan,
-} from "@/lib/types";
+import { guardianLogin, guardianLogout, guardianMe, guardianSearch, guardianSendFollowUp, guardianSendMessage, type GuardianSearchStudent } from "@/lib/guardian-api";
+import { academicWeek, plansForWeek } from "@/lib/schedule";
+import type { FollowUpCategory, LearningResource, MasteryLevel, Message, Skill, SkillAssessment, SpecialFollowUp, Subject, Term, ValueStar, ValueTarget, WeeklyPlan } from "@/lib/types";
 
-const labels: Record<MasteryLevel, string> = {
-  mastered: "متقن",
-  partial: "أتقن البعض",
-  needs_training: "يحتاج تدريب",
-};
+const labels:Record<MasteryLevel,string>={mastered:"متقن",partial:"أتقن البعض",needs_training:"يحتاج تدريب"};
+const order=["لغتي","القرآن الكريم","الدراسات الإسلامية"];
+const icon=(n:string)=>n.includes("لغتي")?"✏️":n.includes("قرآن")?"📖":"🕌";
+type Profile={preferredName?:string;photoDataUrl?:string;learningDifficulties?:string};
+type Bundle={student:{id:string;name:string;className:string;subjectLevels:Record<string,MasteryLevel>};profile:Profile|null;activeTerm:Term|null;subjects:Subject[];weeklyPlans:WeeklyPlan[];skills:Skill[];assessments:SkillAssessment[];resources:Array<Omit<LearningResource,"answerGuide">>;values:ValueTarget[];valueStars:ValueStar[];followUp:SpecialFollowUp|null;messages:Message[]};
+function errText(e:unknown){const p=(e as {payload?:{error?:string}})?.payload;if(p?.error==="INVALID_CODE")return"رمز الوصول غير صحيح.";if(p?.error==="DEVICE_LIMIT")return"تم الوصول للحد المسموح من الأجهزة.";return"تعذر تسجيل الدخول الآن."}
 
-const progressLabels = {
-  improving: "يتحسن",
-  stable: "مستقر",
-  needs_review: "يحتاج مراجعة",
-} as const;
-
-const subjectOrder = ["لغتي", "القرآن الكريم", "الدراسات الإسلامية"];
-const subjectIcon = (name: string) => name.includes("لغتي") ? "✏️" : name.includes("قرآن") ? "📖" : "🕌";
-
-type GuardianStudent = {
-  id: string;
-  name: string;
-  className: string;
-  subjectLevels: Record<string, MasteryLevel>;
-  specialFollowUp: boolean;
-  guardianDevices: number;
-  guardianDeviceLimit: number;
-};
-
-type GuardianBundle = {
-  student: GuardianStudent;
-  activeTerm: Term | null;
-  subjects: Subject[];
-  weeklyPlans: WeeklyPlan[];
-  skills: Skill[];
-  assessments: SkillAssessment[];
-  resources: Array<Omit<LearningResource, "answerGuide">>;
-  values: ValueTarget[];
-  valueStars: ValueStar[];
-  spellingPractices: SpellingPractice[];
-  followUp: SpecialFollowUp | null;
-  messages: Message[];
-  session: { expiresAtMs: number };
-};
-
-type UpdateItem = { id: string; title: string; detail: string; at: string; icon: string };
-
-function loginMessage(error: unknown) {
-  const payload = (error as { payload?: { error?: string } })?.payload;
-  if (payload?.error === "INVALID_CODE") return "رمز الوصول غير صحيح.";
-  if (payload?.error === "ACCESS_DISABLED") return "وصول ولي الأمر لهذا الطالب غير مفعّل بعد. تواصل مع المعلم.";
-  if (payload?.error === "DEVICE_LIMIT") return "تم الوصول للحد المسموح من الأجهزة. اطلب من المعلم إلغاء أحد الأجهزة.";
-  if (payload?.error === "TOO_MANY_ATTEMPTS") return "محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.";
-  return "تعذر تسجيل الدخول الآن. أعد المحاولة بعد قليل.";
-}
-
-function shortDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("ar-SA", { day: "numeric", month: "short" }).format(date);
-}
-
-export default function GuardianPage() {
-  const [bundle, setBundle] = useState<GuardianBundle | null>(null);
-  const [sessionReady, setSessionReady] = useState(false);
-  const [search, setSearch] = useState("");
-  const [matches, setMatches] = useState<GuardianSearchStudent[]>([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [code, setCode] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [category, setCategory] = useState<FollowUpCategory>("learning");
-  const [statement, setStatement] = useState("");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("");
-
-  async function refreshBundle() {
-    const next = await guardianMe<GuardianBundle>();
-    setBundle(next);
-    return next;
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-    guardianMe<GuardianBundle>()
-      .then((next) => { if (!cancelled) setBundle(next); })
-      .catch(() => undefined)
-      .finally(() => { if (!cancelled) setSessionReady(true); });
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    const q = search.trim();
-    if (bundle || q.length < 2) {
-      setMatches([]);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      guardianSearch(q).then((result) => setMatches(result.students)).catch(() => setMatches([]));
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [search, bundle]);
-
-  async function login(event: FormEvent) {
-    event.preventDefault();
-    setLoginError("");
-    if (!selectedId) { setLoginError("اختر اسم الطالب أولًا."); return; }
-    if (!/^\d{6}$/.test(code)) { setLoginError("أدخل رمز الوصول المكوّن من 6 أرقام."); return; }
-    setBusy(true);
-    try {
-      await guardianLogin(selectedId, code);
-      await refreshBundle();
-      setCode(""); setSearch(""); setSelectedId(""); setMatches([]);
-    } catch (error) {
-      setLoginError(loginMessage(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function logout() {
-    setBusy(true);
-    try { await guardianLogout(); } catch {}
-    setBundle(null); setSelectedId(""); setSearch(""); setMatches([]); setNotice(""); setBusy(false);
-  }
-
-  async function send(event: FormEvent) {
-    event.preventDefault();
-    if (!message.trim()) return;
-    setBusy(true); setNotice("");
-    try {
-      await guardianSendMessage(message.trim());
-      setMessage("");
-      await refreshBundle();
-      setNotice("تم إرسال الرسالة للمعلم.");
-    } catch {
-      setNotice("تعذر إرسال الرسالة الآن.");
-    } finally { setBusy(false); }
-  }
-
-  async function submitStatement(event: FormEvent) {
-    event.preventDefault();
-    if (!statement.trim()) return;
-    setBusy(true); setNotice("");
-    try {
-      await guardianSendFollowUp(category, statement.trim());
-      setStatement("");
-      await refreshBundle();
-      setNotice("تم إرسال الملاحظة للمعلم وإضافتها إلى المتابعة.");
-    } catch {
-      setNotice("تعذر إرسال الملاحظة الآن.");
-    } finally { setBusy(false); }
-  }
-
-  if (!sessionReady) return <main className="shell"><div className="empty-state"><span>🌱</span><b>جاري فتح بوابة ولي الأمر…</b></div></main>;
-
-  if (!bundle) {
-    return (
-      <main className="shell guardian-shell">
-        <header className="guardian-login-header">
-          <div className="teacher-brand-block"><div className="brand-mark">ت</div><div><h1>تعلّمت</h1><p>متابعة ولي الأمر</p></div></div>
-          <div className="guardian-characters"><span className="child-character" aria-hidden="true">🧒</span><img src="/shakabumbo.jpg" alt="شكابمبو" /></div>
-        </header>
-        <DateBar />
-        <section className="ui-section first-ui-section">
-          <div className="section-title-row"><div><h2>دخول ولي الأمر</h2><p>ابحث عن الطالب ثم استخدم رمز الوصول الذي استلمته من المعلم.</p></div></div>
-          <form className="card stack guardian-login-card" onSubmit={login}>
-            <label className="stack">اسم الطالب<input className="field" value={search} onChange={(event) => { setSearch(event.target.value); setSelectedId(""); setLoginError(""); }} placeholder="اكتب أول حرفين أو أكثر" /></label>
-            {search.trim().length >= 2 && matches.length === 0 && <div className="notice">لا يظهر إلا الطلاب الذين فعّل المعلم وصول ولي الأمر لهم.</div>}
-            {matches.length > 0 && <div className="list">{matches.map((item) => <button className={`row guardian-pick ${selectedId === item.id ? "selected" : ""}`} type="button" key={item.id} onClick={() => { setSelectedId(item.id); setLoginError(""); }}><div className="row-main"><div className="avatar">🧒</div><div><h4>{item.name}</h4><small>{item.className}</small></div></div><span className="badge">{selectedId === item.id ? "محدد" : "اختيار"}</span></button>)}</div>}
-            {selectedId && <label className="stack">رمز الوصول<input className="field guardian-code" required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></label>}
-            {loginError && <div className="notice warn">{loginError}</div>}
-            <button className="btn" type="submit" disabled={busy || !selectedId || code.length !== 6}>{busy ? "جاري التحقق…" : "دخول"}</button>
-          </form>
-        </section>
-        <footer className="site-credit">برمجة سلطان الصاعدي</footer>
-      </main>
-    );
-  }
-
-  const student = bundle.student;
-  const studentId = student.id;
-  const subjects = bundle.subjects
-    .filter((subject) => subject.enabled !== false && subjectOrder.includes(subject.name))
-    .sort((a, b) => subjectOrder.indexOf(a.name) - subjectOrder.indexOf(b.name));
-  const activeTermId = bundle.activeTerm?.id ?? "";
-  const activeSkills = bundle.skills.filter((skill) => skill.active !== false);
-  const needsSkills = activeTermId ? skillsNeedingTraining(activeSkills, bundle.assessments, studentId, activeTermId) : [];
-  const followUp = bundle.followUp;
-  const messages = bundle.messages;
-  const teacherMessages = messages.filter((item) => item.author === "teacher");
-  const week = academicWeek();
-  const weekly = plansForWeek(bundle.weeklyPlans, week);
-  const tomorrow = tomorrowAnnouncement(bundle.weeklyPlans, subjects);
-  const stars = bundle.valueStars.length;
-  const currentValues = bundle.values.filter((value) => value.active && week >= value.weekFrom && week <= value.weekTo);
-  const spelling = bundle.spellingPractices.find((item) => item.active && item.week === week);
-  const currentSkills = activeSkills.filter((skill) => skill.week === week);
-  const latestAssessment = new Map<string, SkillAssessment>();
-  for (const assessment of bundle.assessments) {
-    const current = latestAssessment.get(assessment.skillId);
-    if (!current || assessment.assessedAt > current.assessedAt) latestAssessment.set(assessment.skillId, assessment);
-  }
-
-  const currentLevels = currentSkills.map((skill) => latestAssessment.get(skill.id)?.level).filter((level): level is MasteryLevel => Boolean(level));
-  const storedLevels = Object.values(student.subjectLevels);
-  const levelPool = currentLevels.length ? currentLevels : storedLevels;
-  const overallLevel: MasteryLevel | undefined = levelPool.includes("needs_training") ? "needs_training" : levelPool.includes("partial") ? "partial" : levelPool.includes("mastered") ? "mastered" : undefined;
-
-  const starByValue = new Map<string, number>();
-  for (const star of bundle.valueStars) starByValue.set(star.valueId, (starByValue.get(star.valueId) ?? 0) + 1);
-  const awardsCount = [...starByValue.values()].filter((count) => count >= 8).length;
-  const alertsCount = teacherMessages.length + bundle.resources.length + (followUp?.status === "needs_review" ? 1 : 0);
-
-  const recentUpdates: UpdateItem[] = [
-    ...bundle.assessments.map((assessment) => {
-      const skill = activeSkills.find((item) => item.id === assessment.skillId);
-      const subject = skill ? subjects.find((item) => item.id === skill.subjectId) : undefined;
-      return { id: assessment.id, title: "تقييم جديد", detail: [subject?.name, skill?.category, labels[assessment.level]].filter(Boolean).join(" · "), at: assessment.assessedAt, icon: "✅" };
-    }),
-    ...teacherMessages.map((item) => ({ id: item.id, title: "رسالة من المعلم", detail: item.body, at: item.createdAt, icon: "💬" })),
-    ...bundle.resources.map((resource) => ({ id: resource.id, title: "مادة جديدة في المكتبة", detail: resource.title, at: resource.createdAt, icon: "📚" })),
-    ...bundle.valueStars.map((star) => ({ id: star.id, title: "تحديث السلوك", detail: bundle.values.find((value) => value.id === star.valueId)?.title ?? "نجمة سلوك إيجابي", at: star.awardedAt, icon: "⭐" })),
-  ].filter((item) => item.at).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
-
-  return (
-    <main className="shell guardian-shell">
-      <header className="guardian-header">
-        <div className="guardian-student-copy">
-          <div className="teacher-brand-block"><div className="brand-mark">ت</div><div><h1>تعلّمت</h1><p>متابعة ولي الأمر</p></div></div>
-          <div className="student-name-block"><h2>{student.name}</h2><span>{student.className}</span></div>
-        </div>
-        <div className="guardian-characters">
-          <span className="child-character" aria-label="الطالب">🧒</span>
-          <a className="guardian-shak-link" href="https://chatgpt.com/" target="_blank" rel="noreferrer" aria-label="اسأل شكابمبو"><img src="/shakabumbo.jpg" alt="شكابمبو" /><small>اسأل شكابمبو</small></a>
-        </div>
-        <button className="logout-mini no-print" disabled={busy} type="button" onClick={() => void logout()}>خروج</button>
-      </header>
-      <DateBar />
-
-      {notice && <div className="notice section">{notice}</div>}
-
-      <section className="ui-section first-ui-section">
-        <div className="section-title-row"><div><h2>ملخص الطالب</h2><p>مؤشرات فعلية من سجله</p></div></div>
-        <div className="square-grid indicator-grid">
-          <article className="square-card indicator-card"><div className="square-icon green">🌟</div><b>{stars}</b><span>السلوك</span></article>
-          <article className="square-card indicator-card"><div className="square-icon orange">🎯</div><b className="text-value">{overallLevel ? labels[overallLevel] : "—"}</b><span>المستوى الحالي</span></article>
-          <article className="square-card indicator-card"><div className="square-icon green">🏆</div><b>{awardsCount}</b><span>الجوائز</span></article>
-          <Link className="square-card indicator-card" href="/guardian/announcements"><div className="square-icon orange">🔔</div><b>{alertsCount}</b><span>التنبيهات</span></Link>
-        </div>
-      </section>
-
-      <section className="ui-section">
-        <div className="section-title-row"><div><h2>مواد الطالب</h2><p>المواد الرئيسية فقط</p></div></div>
-        <div className="square-grid subject-card-grid">
-          {subjects.map((subject, index) => {
-            const level = student.subjectLevels[subject.id];
-            return <article className="square-card subject-square-card" key={subject.id}><div className={`square-icon ${index % 2 === 0 ? "green" : "orange"}`}>{subjectIcon(subject.name)}</div><h3>{subject.name}</h3><p>{level ? labels[level] : "لم يقيّم بعد"}</p></article>;
-          })}
-        </div>
-      </section>
-
-      <section className="ui-section">
-        <div className="section-title-row"><div><h2>الخدمات</h2><p>ما يحتاجه ولي الأمر لمتابعة ابنه</p></div></div>
-        <div className="square-grid guardian-services-grid">
-          <a className="square-card quick-card" href="#class-tasks"><div className="square-icon green">📝</div><h3>المهام الصفية</h3><p>ما يعمل عليه الطالب داخل الفصل</p></a>
-          <a className="square-card quick-card" href="#remedial-plan"><div className="square-icon orange">🧩</div><h3>الخطة العلاجية</h3><p>{needsSkills.length ? `${needsSkills.length} مهارة تحتاج تدريبًا` : "لا توجد مهارات معلقة"}</p></a>
-          <a className="square-card quick-card" href="#student-report"><div className="square-icon orange">📊</div><h3>التقارير</h3><p>مستوى المواد والمهارات</p></a>
-          <a className="square-card quick-card" href="#guardian-message"><div className="square-icon green">💬</div><h3>رسالة المعلم</h3><p>{teacherMessages.length ? `${teacherMessages.length} رسالة` : "لا توجد رسائل"}</p></a>
-          <a className="square-card quick-card" href="#library"><div className="square-icon green">📚</div><h3>المكتبة</h3><p>{bundle.resources.length ? `${bundle.resources.length} مادة منشورة` : "لا توجد ملفات منشورة"}</p></a>
-        </div>
-      </section>
-
-      <section className="ui-section">
-        <div className="section-title-row"><div><h2>آخر التحديثات</h2><p>تحديثات ابنك فقط</p></div></div>
-        {recentUpdates.length ? <div className="activity-grid">{recentUpdates.map((item) => <article className="activity-card" key={`${item.id}-${item.at}`}><div className="activity-icon">{item.icon}</div><div><h3>{item.title}</h3><p>{item.detail}</p><small>{shortDate(item.at)}</small></div></article>)}</div> : <div className="empty-state"><span>🌱</span><b>لا توجد تحديثات حديثة</b><p>ستظهر هنا التقييمات والرسائل والسلوك والمواد عند تحديثها.</p></div>}
-      </section>
-
-      <section className="ui-section detail-section" id="class-tasks">
-        <div className="section-title-row"><div><h2>المهام الصفية والأسبوع الحالي</h2><p>متابعة ما يعمل عليه الطالب داخل الفصل، بدون رفع واجبات من المنزل.</p></div><span className="soft-chip">الأسبوع {week}</span></div>
-        <div className="card compact-detail-card"><h3>ماذا لدينا غدًا؟ — {tomorrow.tomorrow}</h3>{tomorrow.items.length ? <ul>{tomorrow.items.map((item) => <li key={item}>{item}</li>)}</ul> : <div className="empty-inline">لا يوجد تفصيل يومي محفوظ للغد.</div>}</div>
-        <div className="square-grid subject-card-grid section">{weekly.map((plan) => { const subject = subjects.find((item) => item.id === plan.subjectId); return <article className="square-card subject-square-card" key={plan.id}><div className="square-icon green">{subject ? subjectIcon(subject.name) : "📘"}</div><h3>{subject?.name ?? plan.subjectId}</h3><p>{plan.title}</p></article>; })}{weekly.length === 0 && <div className="empty-state"><span>📝</span><b>لا توجد مهام أو خطة أسبوعية منشورة</b></div>}</div>
-      </section>
-
-      <section className="ui-section detail-section" id="library">
-        <div className="section-title-row"><div><h2>المكتبة</h2><p>المواد التي نشرها المعلم لولي الأمر</p></div></div>
-        {bundle.resources.length ? <div className="square-grid library-grid">{bundle.resources.map((resource) => <Link className="square-card library-card" href={`/guardian/resources/${resource.id}`} key={resource.id}><div className="square-icon orange">📄</div><h3>{resource.title}</h3><p>{subjects.find((subject) => subject.id === resource.subjectId)?.name ?? "مادة تعليمية"}</p><span className="open-label">فتح</span></Link>)}</div> : <div className="empty-state"><span>📚</span><b>لا توجد ملفات منشورة حاليًا</b></div>}
-      </section>
-
-      <section className="ui-section detail-section" id="student-report">
-        <div className="section-title-row"><div><h2>التقرير الدراسي</h2><p>المستوى والمهارات من التقييمات المسجلة</p></div></div>
-        <div className="square-grid subject-card-grid">{subjects.map((subject) => { const level = student.subjectLevels[subject.id]; return <article className="square-card subject-square-card" key={subject.id}><div className="square-icon orange">{subjectIcon(subject.name)}</div><h3>{subject.name}</h3><p>{level ? labels[level] : "لم يقيّم بعد"}</p></article>; })}</div>
-        <div className="list section">{currentSkills.map((skill) => { const assessment = latestAssessment.get(skill.id); const subject = subjects.find((item) => item.id === skill.subjectId); return <div className="row" key={skill.id}><div><h4>{subject?.name ?? "المادة"} — {skill.category}</h4><small>{skill.title}</small></div><span className={`badge ${assessment?.level === "needs_training" ? "warn" : ""}`}>{assessment ? labels[assessment.level] : "لم يقيّم"}</span></div>; })}{currentSkills.length === 0 && <div className="empty-inline">لا توجد مهارات محددة لهذا الأسبوع.</div>}</div>
-      </section>
-
-      <section className="ui-section detail-section" id="remedial-plan">
-        <div className="section-title-row"><div><h2>الخطة العلاجية</h2><p>مبنية على آخر تقييم مسجل</p></div><PrintButton label="طباعة الخطة" /></div>
-        {needsSkills.length ? <div className="list">{needsSkills.map((skill) => { const subject = subjects.find((item) => item.id === skill.subjectId); return <div className="row" key={skill.id}><div><h4>{subject?.name ?? "المادة"} — {skill.category}</h4><small><b>{skill.title}</b><br />في المنزل: {remedialAction(skill)}</small></div><span className="badge warn">يحتاج تدريب</span></div>; })}</div> : <div className="empty-state"><span>🌱</span><b>لا توجد مهارة مصنفة «يحتاج تدريب» حاليًا</b></div>}
-      </section>
-
-      <section className="ui-section detail-section no-print" id="guardian-message">
-        <div className="section-title-row"><div><h2>رسالة المعلم</h2><p>التواصل الحالي المرتبط بالطالب</p></div></div>
-        <div className="card"><div className="list">{messages.slice(-8).map((item) => <div className="row" key={item.id}><div><h4>{item.author === "guardian" ? "ولي الأمر" : "المعلم"}</h4><small>{item.body}</small></div></div>)}{messages.length === 0 && <div className="empty-inline">لا توجد رسائل بعد.</div>}</div><form className="toolbar section" onSubmit={send}><input className="field grow" required value={message} onChange={(event) => setMessage(event.target.value)} placeholder="اكتب رسالة قصيرة للمعلم" /><button className="btn" disabled={busy} type="submit">إرسال</button></form></div>
-      </section>
-
-      <details className="utility-panel">
-        <summary>تفاصيل إضافية لهذا الأسبوع</summary>
-        <div className="section">
-          {spelling && <div className="card"><h3>✍️ الإملاء والخط</h3><p>{spelling.unitName} — {spelling.skill}</p></div>}
-          <div className="square-grid library-grid section">{currentValues.map((value) => { const valueStars = bundle.valueStars.filter((star) => star.valueId === value.id).length; return <article className="square-card library-card" key={value.id}><div className="square-icon green">⭐</div><h3>{value.title}</h3><p>{value.studentText}</p><span className="soft-chip">{valueStars} نجمة</span></article>; })}{currentValues.length === 0 && !spelling && <div className="empty-inline">لا توجد تفاصيل إضافية لهذا الأسبوع.</div>}</div>
-        </div>
-      </details>
-
-      <details className="utility-panel no-print">
-        <summary>المتابعة المشتركة والملاحظات</summary>
-        <div className="section">
-          {followUp?.guardianVisible && <div className="card"><div className="section-title-row"><h3>المتابعة المشتركة مع المدرسة</h3><span className={`badge ${followUp.status === "needs_review" ? "warn" : ""}`}>{progressLabels[followUp.status]}</span></div>{followUp.goal && <div className="kv"><span>الهدف</span><span>{followUp.goal}</span></div>}<div className="kv"><span>المراجعة</span><span>{followUp.nextReviewAt || "حسب متابعة المعلم"}</span></div>{followUp.plan.length > 0 && <ul>{followUp.plan.map((item) => <li key={item}>{item}</li>)}</ul>}</div>}
-          <form className="card stack section" onSubmit={submitStatement}><h3>حالة أو ملاحظة مهمة</h3><select className="field" value={category} onChange={(event) => setCategory(event.target.value as FollowUpCategory)}><option value="health">حالة صحية مؤثرة</option><option value="learning">صعوبة أو ضعف تعليمي</option><option value="behavior">متابعة سلوكية</option><option value="family">ظرف أسري مؤثر</option><option value="other">أخرى</option></select><textarea className="field textarea" required value={statement} onChange={(event) => setStatement(event.target.value)} placeholder="اكتب ما يحتاج المعلم معرفته..." /><button className="btn" disabled={busy} type="submit">إرسال للمعلم</button></form>
-        </div>
-      </details>
-
-      <footer className="site-credit">برمجة سلطان الصاعدي</footer>
-
-      <nav className="bottom-nav guardian-bottom-nav" aria-label="التنقل الرئيسي">
-        <Link className="bottom-nav-item active" href="/guardian"><span>⌂</span><b>الرئيسية</b></Link>
-        <a className="bottom-nav-item" href="#library"><span>📚</span><b>المكتبة</b></a>
-        <Link className="bottom-nav-item" href="/guardian/announcements"><span>📢</span><b>الإعلانات</b></Link>
-      </nav>
-    </main>
-  );
+export default function GuardianPage(){
+ const [bundle,setBundle]=useState<Bundle|null>(null),[ready,setReady]=useState(false),[search,setSearch]=useState(""),[matches,setMatches]=useState<GuardianSearchStudent[]>([]),[selected,setSelected]=useState(""),[code,setCode]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[statement,setStatement]=useState(""),[category,setCategory]=useState<FollowUpCategory>("learning"),[notice,setNotice]=useState("");
+ const refresh=async()=>{const b=await guardianMe<Bundle>();setBundle(b);return b};
+ useEffect(()=>{guardianMe<Bundle>().then(setBundle).catch(()=>{}).finally(()=>setReady(true))},[]);
+ useEffect(()=>{if(bundle||search.trim().length<2){setMatches([]);return}const t=setTimeout(()=>guardianSearch(search.trim()).then(r=>setMatches(r.students)).catch(()=>setMatches([])),250);return()=>clearTimeout(t)},[search,bundle]);
+ async function login(e:FormEvent){e.preventDefault();if(!selected||!/^[0-9]{6}$/.test(code))return;setBusy(true);setError("");try{await guardianLogin(selected,code);await refresh()}catch(x){setError(errText(x))}finally{setBusy(false)}}
+ async function logout(){setBusy(true);try{await guardianLogout()}catch{}setBundle(null);setBusy(false)}
+ async function send(e:FormEvent){e.preventDefault();if(!message.trim())return;setBusy(true);try{await guardianSendMessage(message.trim());setMessage("");await refresh();setNotice("تم إرسال الرسالة للمعلم.")}finally{setBusy(false)}}
+ async function follow(e:FormEvent){e.preventDefault();if(!statement.trim())return;setBusy(true);try{await guardianSendFollowUp(category,statement.trim());setStatement("");await refresh();setNotice("تم إرسال الملاحظة للمعلم.")}finally{setBusy(false)}}
+ if(!ready)return <main className="shell"><div className="empty-state">جاري فتح بوابة ولي الأمر…</div></main>;
+ if(!bundle)return <main className="shell guardian-shell"><header className="guardian-login-header"><div className="teacher-brand-block"><div className="brand-mark">ت</div><div><h1>تعلّمت</h1><p>متابعة ولي الأمر</p></div></div><span className="child-character">🧒</span></header><DateBar/><section className="ui-section first-ui-section"><div className="section-title-row"><div><h2>دخول ولي الأمر</h2><p>ابحث عن الطالب ثم أدخل رمز الوصول.</p></div></div><form className="card stack" onSubmit={login}><input className="field" value={search} onChange={e=>{setSearch(e.target.value);setSelected("")}} placeholder="اسم الطالب"/>{matches.map(m=><button type="button" className={`row guardian-pick ${selected===m.id?"selected":""}`} key={m.id} onClick={()=>setSelected(m.id)}><span>{m.name}</span><small>{m.className}</small></button>)}{selected&&<input className="field guardian-code" inputMode="numeric" maxLength={6} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="000000"/>}{error&&<div className="notice warn">{error}</div>}<button className="btn" disabled={busy||!selected||code.length!==6}>{busy?"جاري التحقق…":"دخول"}</button></form></section><footer className="site-credit">برمجة سلطان الصاعدي</footer></main>;
+ const s=bundle.student,p=bundle.profile,subjects=bundle.subjects.filter(x=>x.enabled!==false&&order.includes(x.name)).sort((a,b)=>order.indexOf(a.name)-order.indexOf(b.name)),week=academicWeek(),weekly=plansForWeek(bundle.weeklyPlans,week),teacherMessages=bundle.messages.filter(x=>x.author==="teacher"),needs=bundle.assessments.filter(x=>x.level==="needs_training"),stars=bundle.valueStars.length;
+ const byValue=new Map<string,number>();bundle.valueStars.forEach(x=>byValue.set(x.valueId,(byValue.get(x.valueId)??0)+1));const awards=[...byValue.values()].filter(x=>x>=8).length;
+ const updates=[...bundle.assessments.map(a=>({id:a.id,at:a.assessedAt,title:"تقييم جديد",detail:labels[a.level],emoji:"✅"})),...teacherMessages.map(m=>({id:m.id,at:m.createdAt,title:"رسالة من المعلم",detail:m.body,emoji:"💬"})),...bundle.valueStars.map(v=>({id:v.id,at:v.awardedAt,title:"نجمة جديدة",detail:"سلوك وقيمة إيجابية",emoji:"⭐"}))].sort((a,b)=>b.at.localeCompare(a.at)).slice(0,3);
+ return <main className="shell guardian-shell"><header className="guardian-header"><div className="profile-mini">{p?.photoDataUrl?<img src={p.photoDataUrl} alt="صورة الطالب"/>:<span>🧒</span>}<div><h1>{p?.preferredName||s.name}</h1><p>{s.className}</p></div></div><button className="logout-mini" onClick={()=>void logout()} disabled={busy}>خروج</button></header><DateBar/>{notice&&<div className="notice section">{notice}</div>}
+ <section className="ui-section first-ui-section"><Link href="/guardian/profile" className="student-profile-entry card"><div><b>ملف ابني</b><p>الصورة · بياناته · نقاط القوة · الصعوبات</p></div><span>تعديل ←</span></Link></section>
+ <section className="ui-section"><div className="section-title-row"><div><h2>مستواه الآن</h2><p>آخر تقييمات المعلم</p></div></div><div className="square-grid subject-card-grid">{subjects.map((x,i)=><article className="square-card subject-square-card" key={x.id}><div className={`square-icon ${i%2?"orange":"green"}`}>{icon(x.name)}</div><h3>{x.name}</h3><p>{s.subjectLevels[x.id]?labels[s.subjectLevels[x.id]]:"لم يقيّم"}</p></article>)}</div><div className="mini-metrics"><span>⭐ {stars} نجمة</span><span>🏆 {awards} جائزة</span></div></section>
+ <section className="ui-section"><div className="section-title-row"><div><h2>هذا الأسبوع</h2><p>ما يتعلمه ابنك الآن</p></div><span className="soft-chip">الأسبوع {week}</span></div><div className="week-compact-list">{weekly.map(w=>{const sub=subjects.find(x=>x.id===w.subjectId);return <div className="week-compact-row" key={w.id}><span>{sub?icon(sub.name):"📘"}</span><div><b>{sub?.name||"المادة"}</b><p>{w.title}</p></div></div>})}{weekly.length===0&&<div className="empty-state compact-empty">لا توجد خطة منشورة لهذا الأسبوع.</div>}</div></section>
+ <section className="ui-section"><div className="section-title-row"><div><h2>يحتاج متابعتك</h2><p>يظهر فقط ما يحتاج اهتمامًا</p></div></div>{needs.length||p?.learningDifficulties||bundle.followUp?<div className="attention-card card">{needs.length>0&&<p>🎯 توجد {needs.length} تقييمات تحتاج تدريبًا.</p>}{p?.learningDifficulties&&<p>🧩 توجد صعوبات مسجلة في ملف الطالب.</p>}{bundle.followUp?.goal&&<p><b>الهدف الحالي:</b> {bundle.followUp.goal}</p>}{bundle.followUp?.plan?.length?<ul>{bundle.followUp.plan.map(x=><li key={x}>{x}</li>)}</ul>:null}</div>:<div className="empty-state compact-empty">🌱 لا توجد متابعة مطلوبة حاليًا.</div>}</section>
+ <section className="ui-section"><div className="section-title-row"><div><h2>الخدمات</h2></div></div><div className="square-grid guardian-services-grid"><Link className="square-card quick-card" href="/guardian/profile"><div className="square-icon green">🧒</div><h3>ملف ابني</h3></Link><a className="square-card quick-card" href="#follow"><div className="square-icon orange">🧩</div><h3>الخطة والمتابعة</h3></a><a className="square-card quick-card" href="#library"><div className="square-icon green">📚</div><h3>المكتبة</h3><p>{bundle.resources.length?`${bundle.resources.length} مادة`:"لا توجد ملفات"}</p></a><a className="square-card quick-card" href="#message"><div className="square-icon orange">💬</div><h3>رسالة المعلم</h3></a></div></section>
+ <section className="ui-section"><div className="section-title-row"><div><h2>آخر التحديثات</h2></div></div>{updates.length?<div className="activity-grid">{updates.map(u=><div className="activity-card" key={`${u.id}-${u.at}`}><div className="activity-icon">{u.emoji}</div><div><h3>{u.title}</h3><p>{u.detail}</p></div></div>)}</div>:<div className="empty-state compact-empty">لا توجد تحديثات حديثة.</div>}</section>
+ <section className="ui-section" id="library"><div className="section-title-row"><div><h2>المكتبة</h2></div></div>{bundle.resources.length?<div className="square-grid">{bundle.resources.map(r=><Link className="square-card" href={`/guardian/resources/${r.id}`} key={r.id}><div className="square-icon green">📄</div><h3>{r.title}</h3><p>{r.instructions}</p></Link>)}</div>:<div className="empty-state compact-empty">لا توجد ملفات منشورة حاليًا.</div>}</section>
+ <section className="ui-section" id="message"><div className="section-title-row"><div><h2>رسالة المعلم</h2></div></div><div className="card stack">{bundle.messages.slice(-5).map(m=><div className="message-mini" key={m.id}><b>{m.author==="teacher"?"المعلم":"ولي الأمر"}</b><p>{m.body}</p></div>)}<form className="stack" onSubmit={send}><input className="field" value={message} onChange={e=>setMessage(e.target.value)} placeholder="اكتب رسالة قصيرة للمعلم"/><button className="btn" disabled={busy}>إرسال</button></form></div></section>
+ <section className="ui-section" id="follow"><div className="section-title-row"><div><h2>الخطة والمتابعة</h2><p>أرسل صعوبة أو ملاحظة ليضع المعلم الهدف والخطة المناسبة.</p></div></div>{bundle.followUp?.goal&&<div className="card"><h3>{bundle.followUp.goal}</h3>{bundle.followUp.plan?.length?<ul>{bundle.followUp.plan.map(x=><li key={x}>{x}</li>)}</ul>:null}</div>}<form className="card stack section" onSubmit={follow}><select className="field" value={category} onChange={e=>setCategory(e.target.value as FollowUpCategory)}><option value="learning">صعوبة تعليمية</option><option value="behavior">متابعة سلوكية</option><option value="health">حالة صحية مؤثرة</option><option value="family">ظرف أسري مؤثر</option><option value="other">أخرى</option></select><textarea className="field textarea" value={statement} onChange={e=>setStatement(e.target.value)} placeholder="اكتب ما يحتاج المعلم معرفته…"/><button className="btn" disabled={busy}>إرسال للمعلم</button></form></section>
+ <footer className="site-credit">برمجة سلطان الصاعدي</footer><nav className="bottom-nav guardian-bottom-nav"><Link className="bottom-nav-item active" href="/guardian"><span>⌂</span><b>الرئيسية</b></Link><Link className="bottom-nav-item" href="/guardian/profile"><span>🧒</span><b>ملف ابني</b></Link><a className="bottom-nav-item" href="#library"><span>📚</span><b>المكتبة</b></a></nav></main>
 }
