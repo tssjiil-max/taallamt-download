@@ -19,6 +19,8 @@ export default function ValuesPage() {
   const [homeSuggestion, setHomeSuggestion] = useState("");
   const [from, setFrom] = useState(week);
   const [to, setTo] = useState(week);
+  const [busyKey, setBusyKey] = useState("");
+  const [notice, setNotice] = useState("");
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -26,11 +28,52 @@ export default function ValuesPage() {
     setUnitName(""); setTitle(""); setStudentText(""); setHomeSuggestion(""); setShowAdd(false);
   }
 
+  async function addStar(studentId: string) {
+    if (!selected) return;
+    const key = `add:${studentId}`;
+    setBusyKey(key);
+    setNotice("");
+    try {
+      const response = await fetch("/api/teacher/value-stars", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, valueId: selected.id }),
+      });
+      if (!response.ok) throw new Error("SAVE_FAILED");
+      store.awardValueStar(studentId, selected.id);
+      setNotice("تمت إضافة النجمة في Firestore وستظهر في صفحة الطالب خلال ثوانٍ.");
+    } catch {
+      setNotice("تعذر حفظ النجمة في Firestore. أعد المحاولة.");
+    } finally {
+      setBusyKey("");
+    }
+  }
+
+  async function removeStar(studentId: string) {
+    if (!selected) return;
+    const key = `remove:${studentId}`;
+    setBusyKey(key);
+    setNotice("");
+    try {
+      const params = new URLSearchParams({ studentId, valueId: selected.id });
+      const response = await fetch(`/api/teacher/value-stars?${params.toString()}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("DELETE_FAILED");
+      store.removeValueStar(studentId, selected.id);
+      setNotice("تمت إزالة آخر نجمة من Firestore.");
+    } catch {
+      setNotice("تعذر إزالة النجمة الآن.");
+    } finally {
+      setBusyKey("");
+    }
+  }
+
   return (
     <main className="shell">
       <header className="topbar"><div className="brand"><div className="logo">🌟</div><div><h1>مسابقة نجوم القيم</h1><p>كل قيمة جميلة تستحق نجمة</p></div></div><Link className="btn secondary" href="/">لوحة المعلم</Link></header>
       <DateBar />
-      <section className="hero section"><div><h2>قيمة الأسبوع</h2><p>اختر قيمة من دليل الوحدة ثم امنح النجمة عند ظهور السلوك فعليًا. لا يوجد ترتيب علني بين الطلاب؛ كل طالب يتقدم نحو هدفه.</p></div><div className="hero-stats"><div className="stat"><b>3 ⭐</b><span>بطل القيمة</span></div><div className="stat"><b>5 ⭐</b><span>نجم الأسبوع</span></div><div className="stat"><b>8 ⭐</b><span>جائزة مميزة</span></div><div className="stat"><b>{week}</b><span>الأسبوع الحالي</span></div></div></section>
+      <section className="hero section"><div><h2>قيمة الأسبوع</h2><p>اختر قيمة من دليل الوحدة ثم امنح النجمة عند ظهور السلوك فعليًا. النجمة الآن تُحفظ مباشرة في Firestore.</p></div><div className="hero-stats"><div className="stat"><b>3 ⭐</b><span>بطل القيمة</span></div><div className="stat"><b>5 ⭐</b><span>نجم الأسبوع</span></div><div className="stat"><b>8 ⭐</b><span>جائزة مميزة</span></div><div className="stat"><b>{week}</b><span>الأسبوع الحالي</span></div></div></section>
+
+      {notice && <div className="notice section">{notice}</div>}
 
       <section className="section no-print"><div className="card stack"><div className="toolbar"><label>القيمة</label><select className="field grow" value={selected?.id ?? ""} onChange={(e) => setSelectedId(e.target.value)}>{store.values.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.unitName} — {item.title}</option>)}</select><button className="btn secondary" type="button" onClick={() => setShowAdd((value) => !value)}>إضافة قيمة</button></div>{selected && <div className="notice"><b>{selected.studentText}</b><br /><small>للمنزل: {selected.homeSuggestion}</small></div>}</div></section>
 
@@ -39,7 +82,9 @@ export default function ValuesPage() {
       <section className="section"><div className="section-head"><h2>طلاب الفصل</h2><span className="pill">اضغط + عند تحقق السلوك</span></div><div className="list">{store.students.filter((student) => student.active).map((student) => {
         const count = selected ? store.valueStars.filter((star) => star.studentId === student.id && star.valueId === selected.id).length : 0;
         const badge = count >= 8 ? "🏆 جائزة" : count >= 5 ? "🌟 نجم الأسبوع" : count >= 3 ? "⭐ بطل القيمة" : `${count} نجمة`;
-        return <div className="row" key={student.id}><div className="row-main"><div className="avatar">{student.name.slice(0, 1)}</div><div><h4>{student.name}</h4><small>{"⭐".repeat(Math.min(count, 8)) || "لا توجد نجوم بعد"}</small></div></div><div className="mini-actions"><span className="badge">{badge}</span><button className="btn green" type="button" disabled={!selected} onClick={() => selected && store.awardValueStar(student.id, selected.id)}>+ ⭐</button><button className="btn secondary" type="button" disabled={!selected || count === 0} onClick={() => selected && store.removeValueStar(student.id, selected.id)}>−</button></div></div>;
+        const adding = busyKey === `add:${student.id}`;
+        const removing = busyKey === `remove:${student.id}`;
+        return <div className="row" key={student.id}><div className="row-main"><div className="avatar">{student.name.slice(0, 1)}</div><div><h4>{student.name}</h4><small>{"⭐".repeat(Math.min(count, 8)) || "لا توجد نجوم بعد"}</small></div></div><div className="mini-actions"><span className="badge">{badge}</span><button className="btn green" type="button" disabled={!selected || adding || removing} onClick={() => void addStar(student.id)}>{adding ? "…" : "+ ⭐"}</button><button className="btn secondary" type="button" disabled={!selected || count === 0 || adding || removing} onClick={() => void removeStar(student.id)}>{removing ? "…" : "−"}</button></div></div>;
       })}</div></section>
       <footer className="site-credit">برمجة سلطان الصاعدي</footer>
     </main>
