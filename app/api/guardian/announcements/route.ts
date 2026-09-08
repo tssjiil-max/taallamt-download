@@ -6,6 +6,8 @@ import { GUARDIAN_COOKIE, GuardianAuthError, readGuardianSession } from "@/lib/s
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type AnnouncementDoc = { id: string } & Record<string, unknown>;
+
 export async function GET() {
   if (!isFirebaseAdminConfigured()) return NextResponse.json({ error: "BACKEND_NOT_CONFIGURED" }, { status: 503 });
   try {
@@ -13,7 +15,7 @@ export async function GET() {
     await readGuardianSession(cookieStore.get(GUARDIAN_COOKIE)?.value);
     const snap = await getAdminDb().collection(firestoreCollectionName("announcements")).where("active", "==", true).get();
     const announcements = snap.docs
-      .map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }))
+      .map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) } as AnnouncementDoc))
       .filter((item) => item.audience === "guardians" || item.audience === "all")
       .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")))
       .slice(0, 30);
