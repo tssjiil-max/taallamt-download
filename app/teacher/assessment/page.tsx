@@ -29,6 +29,8 @@ export default function AssessmentPage() {
   const [selectedSkillId, setSelectedSkillId] = useState("");
   const selectedSkill = skills.find((skill) => skill.id === selectedSkillId) ?? skills[0];
   const students = store.students.filter((student) => student.active);
+  const [savingKey, setSavingKey] = useState("");
+  const [saveNotice, setSaveNotice] = useState("");
 
   const stats = useMemo(() => {
     if (!selectedSkill) return { mastered: 0, partial: 0, needs_training: 0, pending: students.length };
@@ -51,6 +53,27 @@ export default function AssessmentPage() {
     setSelectedSkillId("");
   }
 
+  async function saveAssessment(studentId: string, level: MasteryLevel) {
+    if (!selectedSkill) return;
+    const key = `${studentId}:${selectedSkill.id}`;
+    setSavingKey(key);
+    setSaveNotice("");
+    try {
+      const response = await fetch("/api/teacher/assessments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, skillId: selectedSkill.id, level }),
+      });
+      if (!response.ok) throw new Error("SAVE_FAILED");
+      store.setSkillAssessment(studentId, selectedSkill.id, level);
+      setSaveNotice("تم الحفظ في Firestore وسيظهر التحديث في صفحة الطالب خلال ثوانٍ.");
+    } catch {
+      setSaveNotice("تعذر حفظ التقييم في Firestore. أعد المحاولة.");
+    } finally {
+      setSavingKey("");
+    }
+  }
+
   return (
     <main className="shell">
       <header className="topbar">
@@ -60,7 +83,7 @@ export default function AssessmentPage() {
       <DateBar />
 
       <section className="hero section">
-        <div><h2>تقييم المهارة في أقل عدد من الضغطات</h2><p>اختر المادة والأسبوع والمهارة، ثم قيّم كل طالب: متقن، أتقن البعض، أو يحتاج تدريب. كل تقييم يُحفظ بتاريخ ووقت مستقلين حتى يبقى سجل التقدم محفوظًا.</p></div>
+        <div><h2>تقييم المهارة في أقل عدد من الضغطات</h2><p>اختر المادة والأسبوع والمهارة، ثم قيّم كل طالب. التقييم الآن يُحفظ مباشرة في Firestore ليصل إلى صفحة الطالب وولي الأمر.</p></div>
         <div className="hero-stats">
           <div className="stat"><b>{stats.mastered}</b><span>متقن</span></div>
           <div className="stat"><b>{stats.partial}</b><span>أتقن البعض</span></div>
@@ -68,6 +91,8 @@ export default function AssessmentPage() {
           <div className="stat"><b>{stats.pending}</b><span>لم يُقيّم بعد</span></div>
         </div>
       </section>
+
+      {saveNotice && <div className="notice section">{saveNotice}</div>}
 
       <section className="section no-print">
         <div className="card stack">
@@ -93,12 +118,13 @@ export default function AssessmentPage() {
           <div className="list">
             {students.map((student, index) => {
               const value = latestLevel(store.assessments, student.id, selectedSkill.id);
+              const rowSaving = savingKey === `${student.id}:${selectedSkill.id}`;
               return (
                 <div className="row" key={student.id}>
-                  <div className="row-main"><div className="avatar">{index + 1}</div><div><h4>{student.name}</h4><small>{value ? `آخر تقييم: ${labels[value]}` : "لم يُقيّم بعد"}</small></div></div>
+                  <div className="row-main"><div className="avatar">{index + 1}</div><div><h4>{student.name}</h4><small>{rowSaving ? "جاري الحفظ…" : value ? `آخر تقييم: ${labels[value]}` : "لم يُقيّم بعد"}</small></div></div>
                   <div className="mini-actions no-print">
                     {(["mastered", "partial", "needs_training"] as MasteryLevel[]).map((level) => (
-                      <button key={level} className={`btn ${value === level ? "" : "secondary"}`} type="button" onClick={() => store.setSkillAssessment(student.id, selectedSkill.id, level)}>{labels[level]}</button>
+                      <button key={level} className={`btn ${value === level ? "" : "secondary"}`} type="button" disabled={rowSaving} onClick={() => void saveAssessment(student.id, level)}>{labels[level]}</button>
                     ))}
                   </div>
                   <span className={`badge ${value === "needs_training" ? "warn" : ""}`} style={{ display: value ? "inline-flex" : "none" }}>{value ? labels[value] : ""}</span>
