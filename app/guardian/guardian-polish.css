@@ -1,0 +1,29 @@
+/* Guardian-only visual layer: compact, calm and child friendly. */
+.guardian-shell{background:#f8f7f2!important;display:flex;flex-direction:column;gap:0}
+.guardian-shell>.guardian-header{order:1}
+.guardian-shell>.first-ui-section{order:2}
+.guardian-shell>.date-bar{order:3}
+.guardian-shell>.rating-section{order:4}
+.guardian-shell>.ui-section:not(.first-ui-section):not(.rating-section){order:5}
+.guardian-shell>.site-credit,.guardian-shell>.bottom-nav,.guardian-shell>.notice{order:6}
+.guardian-header{border:0!important;border-bottom:1px solid #dfe7e1!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:10px 4px!important;min-height:62px!important}
+.guardian-header .brand-mark{width:46px;height:46px;border-radius:15px;box-shadow:0 4px 12px rgba(36,147,95,.13)}
+.guardian-header .teacher-brand-block h1{font-size:24px}
+.guardian-header .teacher-brand-block p{font-size:13px}
+.guardian-header .logout-mini{display:none!important}
+.guardian-shell>.date-bar{background:transparent!important;color:#66756d!important;border-radius:0!important;border:0!important;border-bottom:1px solid #b9d8c7!important;padding:7px 2px 9px!important;margin:2px 0 4px!important;font-size:12px!important;box-shadow:none!important;min-height:auto!important}
+.guardian-shell>.date-bar>*{font-size:12px!important;color:#66756d!important}
+.guardian-shell>.first-ui-section{border-top:0!important;margin-top:8px!important;padding-top:0!important}
+.student-main-card{border-right:0!important;border-top:5px solid #37a66f!important;background:#fff!important;border-radius:26px!important;padding:16px!important;box-shadow:0 7px 20px rgba(39,72,55,.07)!important}
+.student-main-photo{border-radius:26px!important;border:3px solid #d8eee2!important;background:#f0f8f3!important}
+.student-main-copy h1{font-size:23px!important;line-height:1.55!important}
+.student-card-stats span{background:#fff8ec!important;border-color:#f0d9b8!important}
+.ui-section{border-top:1px solid #b9d8c7!important}
+.section-title-row h2{font-weight:800;letter-spacing:0}
+.guardian-four-grid{gap:12px!important}
+.guardian-big-choice,.guardian-service{border:1px solid #e2e6e2!important;border-top:4px solid #55ae7d!important;background:#fff!important;box-shadow:0 5px 16px rgba(43,64,53,.055)!important}
+.guardian-big-choice:nth-child(even),.guardian-service:nth-child(even){border-top-color:#eea74b!important}
+.guardian-big-choice img,.guardian-service img,.week-compact-row img,.award-summary img,.student-card-stats img{border-radius:0!important;background:transparent!important}
+.attention-card:empty{display:none!important}
+.compact-empty{padding:14px!important;min-height:auto!important;background:#fff!important}
+@media(max-width:520px){.guardian-shell{padding-top:6px!important}.guardian-header{min-height:58px!important}.guardian-header .teacher-brand-block h1{font-size:22px!important}.student-main-card{grid-template-columns:112px 1fr!important}.student-main-photo{width:112px!important;height:112px!important}.student-main-copy h1{font-size:20px!important}.guardian-big-choice{min-height:158px!important}.guardian-service{min-height:128px!important}.guardian-shell>.date-bar{font-size:11px!important}.guardian-shell>.date-bar>*{font-size:11px!important}}
