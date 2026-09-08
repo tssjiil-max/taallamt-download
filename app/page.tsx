@@ -4,6 +4,7 @@ import {DateBar} from "@/components/DateBar";
 import {NotificationPanel} from "@/components/NotificationPanel";
 import {academicWeek} from "@/lib/schedule";
 import {useTaallamt} from "@/lib/store";
+import "./teacher-dashboard.css";
 const order=["لغتي","القرآن الكريم","الدراسات الإسلامية"];
 const icons="/guardian-icons/";
 const subjectIcon=(n:string)=>n.includes("لغتي")?icons+"lughati.svg":n.includes("قرآن")?icons+"quran.svg":icons+"islamic.svg";
