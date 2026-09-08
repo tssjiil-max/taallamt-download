@@ -7,6 +7,8 @@ import { readTeacherSession, TEACHER_COOKIE, TeacherAuthError } from "@/lib/serv
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type AnnouncementDoc = { id: string } & Record<string, unknown>;
+
 async function requireTeacher() {
   if (!isFirebaseAdminConfigured()) throw new TeacherAuthError("BACKEND_NOT_CONFIGURED");
   const cookieStore = await cookies();
@@ -18,7 +20,7 @@ export async function GET() {
     await requireTeacher();
     const snap = await getAdminDb().collection(firestoreCollectionName("announcements")).get();
     const announcements = snap.docs
-      .map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }))
+      .map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) } as AnnouncementDoc))
       .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
     return NextResponse.json({ announcements });
   } catch (error) {
