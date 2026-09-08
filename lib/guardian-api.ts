@@ -2,20 +2,15 @@
 
 import type { FollowUpCategory } from "./types";
 
-export type GuardianSearchStudent = {
-  id: string;
-  name: string;
-  className: string;
-};
-
-export type GuardianBackendStatus = {
-  ready: boolean;
-  firebaseConfigured?: boolean;
-  firebase: boolean;
-  authSecret?: boolean;
-  guardianAuth: boolean;
-  teacherAuth?: boolean;
-  teacherSetupRequired?: boolean;
+export type GuardianSearchStudent = { id: string; name: string; className: string };
+export type GuardianBackendStatus = { ready: boolean; firebaseConfigured?: boolean; firebase: boolean; authSecret?: boolean; guardianAuth: boolean; teacherAuth?: boolean; teacherSetupRequired?: boolean };
+export type GuardianStudentProfileInput = {
+  preferredName: string;
+  interests: string;
+  strengths: string;
+  learningDifficulties: string;
+  helpfulNotes: string;
+  photoDataUrl: string;
 };
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -24,53 +19,11 @@ async function readJson<T>(response: Response): Promise<T> {
   return payload;
 }
 
-export async function guardianBackendStatus() {
-  const response = await fetch("/api/backend/status", { cache: "no-store" });
-  return readJson<GuardianBackendStatus>(response);
-}
-
-export async function guardianSearch(query: string) {
-  const response = await fetch("/api/guardian/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
-  });
-  return readJson<{ students: GuardianSearchStudent[] }>(response);
-}
-
-export async function guardianLogin(studentId: string, code: string) {
-  const response = await fetch("/api/guardian/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentId, code }),
-  });
-  return readJson<{ ok: true; expiresAtMs: number }>(response);
-}
-
-export async function guardianMe<T = Record<string, unknown>>() {
-  const response = await fetch("/api/guardian/me", { cache: "no-store" });
-  return readJson<T>(response);
-}
-
-export async function guardianLogout() {
-  const response = await fetch("/api/guardian/logout", { method: "POST" });
-  return readJson<{ ok: true }>(response);
-}
-
-export async function guardianSendMessage(body: string) {
-  const response = await fetch("/api/guardian/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ body }),
-  });
-  return readJson<{ ok: true }>(response);
-}
-
-export async function guardianSendFollowUp(category: FollowUpCategory, statement: string) {
-  const response = await fetch("/api/guardian/follow-up", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ category, statement }),
-  });
-  return readJson<{ ok: true }>(response);
-}
+export async function guardianBackendStatus() { return readJson<GuardianBackendStatus>(await fetch("/api/backend/status", { cache: "no-store" })); }
+export async function guardianSearch(query: string) { return readJson<{ students: GuardianSearchStudent[] }>(await fetch("/api/guardian/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query }) })); }
+export async function guardianLogin(studentId: string, code: string) { return readJson<{ ok: true; expiresAtMs: number }>(await fetch("/api/guardian/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studentId, code }) })); }
+export async function guardianMe<T = Record<string, unknown>>() { return readJson<T>(await fetch("/api/guardian/me", { cache: "no-store" })); }
+export async function guardianLogout() { return readJson<{ ok: true }>(await fetch("/api/guardian/logout", { method: "POST" })); }
+export async function guardianSendMessage(body: string) { return readJson<{ ok: true }>(await fetch("/api/guardian/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) })); }
+export async function guardianSendFollowUp(category: FollowUpCategory, statement: string) { return readJson<{ ok: true }>(await fetch("/api/guardian/follow-up", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category, statement }) })); }
+export async function guardianSaveProfile(profile: GuardianStudentProfileInput) { return readJson<{ ok: true }>(await fetch("/api/guardian/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) })); }
