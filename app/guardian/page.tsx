@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { DateBar } from "@/components/DateBar";
 import { PrintButton } from "@/components/PrintButton";
 import { remedialAction, skillsNeedingTraining } from "@/lib/assessment";
@@ -239,15 +239,11 @@ export default function GuardianPage() {
   const currentValues = bundle.values.filter((value) => value.active && week >= value.weekFrom && week <= value.weekTo);
   const spelling = bundle.spellingPractices.find((item) => item.active && item.week === week);
   const currentSkills = activeSkills.filter((skill) => skill.week === week);
-
-  const latestAssessment = useMemo(() => {
-    const map = new Map<string, SkillAssessment>();
-    for (const assessment of bundle.assessments) {
-      const current = map.get(assessment.skillId);
-      if (!current || assessment.assessedAt > current.assessedAt) map.set(assessment.skillId, assessment);
-    }
-    return map;
-  }, [bundle.assessments]);
+  const latestAssessment = new Map<string, SkillAssessment>();
+  for (const assessment of bundle.assessments) {
+    const current = latestAssessment.get(assessment.skillId);
+    if (!current || assessment.assessedAt > current.assessedAt) latestAssessment.set(assessment.skillId, assessment);
+  }
 
   return (
     <main className="shell">
