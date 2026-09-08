@@ -1,5 +1,5 @@
 /* Guardian-only visual layer: compact, calm and child friendly. */
-.guardian-shell{background:#f8f7f2!important;display:flex;flex-direction:column;gap:0}
+.guardian-shell{background:#f7f7f3!important;display:flex;flex-direction:column;gap:0}
 .guardian-shell>.guardian-header{order:1}
 .guardian-shell>.first-ui-section{order:2}
 .guardian-shell>.date-bar{order:3}
@@ -17,13 +17,23 @@
 .student-main-card{border-right:0!important;border-top:5px solid #37a66f!important;background:#fff!important;border-radius:26px!important;padding:16px!important;box-shadow:0 7px 20px rgba(39,72,55,.07)!important}
 .student-main-photo{border-radius:26px!important;border:3px solid #d8eee2!important;background:#f0f8f3!important}
 .student-main-copy h1{font-size:23px!important;line-height:1.55!important}
-.student-card-stats span{background:#fff8ec!important;border-color:#f0d9b8!important}
+.student-card-stats span{background:#fff!important;border-color:#e5e2d9!important}
 .ui-section{border-top:1px solid #b9d8c7!important}
 .section-title-row h2{font-weight:800;letter-spacing:0}
 .guardian-four-grid{gap:12px!important}
 .guardian-big-choice,.guardian-service{border:1px solid #e2e6e2!important;border-top:4px solid #55ae7d!important;background:#fff!important;box-shadow:0 5px 16px rgba(43,64,53,.055)!important}
 .guardian-big-choice:nth-child(even),.guardian-service:nth-child(even){border-top-color:#eea74b!important}
-.guardian-big-choice img,.guardian-service img,.week-compact-row img,.award-summary img,.student-card-stats img{border-radius:0!important;background:transparent!important}
+.guardian-big-choice img,.guardian-service img,.award-summary img,.student-card-stats img{border-radius:0!important;background:transparent!important;object-fit:contain!important}
+.guardian-four-grid .guardian-big-choice:nth-child(1) img{content:url('/guardian-icons/lughati.svg')!important}
+.guardian-four-grid .guardian-big-choice:nth-child(2) img{content:url('/guardian-icons/quran.svg')!important}
+.guardian-four-grid .guardian-big-choice:nth-child(3) img{content:url('/guardian-icons/islamic.svg')!important}
+.guardian-four-grid .guardian-big-choice:nth-child(4) img{content:url('/guardian-icons/library.svg')!important}
+.guardian-services-grid .guardian-service:nth-child(1) img{content:url('/guardian-icons/followup.svg')!important}
+.guardian-services-grid .guardian-service:nth-child(2) img{content:url('/guardian-icons/message.svg')!important}
+.award-summary img,.student-card-stats img{content:url('/guardian-icons/trophy.svg')!important}
+.week-compact-row img{display:none!important}.week-compact-row{border-right:4px solid #65b789!important;padding:13px 15px!important}
 .attention-card:empty{display:none!important}
-.compact-empty{padding:14px!important;min-height:auto!important;background:#fff!important}
+.compact-empty{padding:14px!important;min-height:auto!important;background:#fff!important;border:1px dashed #d7ddd8!important}
+.rating-section{background:transparent!important}
+.thirty-stars{background:#fff!important;box-shadow:none!important;border-color:#e2e6e2!important}
 @media(max-width:520px){.guardian-shell{padding-top:6px!important}.guardian-header{min-height:58px!important}.guardian-header .teacher-brand-block h1{font-size:22px!important}.student-main-card{grid-template-columns:112px 1fr!important}.student-main-photo{width:112px!important;height:112px!important}.student-main-copy h1{font-size:20px!important}.guardian-big-choice{min-height:158px!important}.guardian-service{min-height:128px!important}.guardian-shell>.date-bar{font-size:11px!important}.guardian-shell>.date-bar>*{font-size:11px!important}}
