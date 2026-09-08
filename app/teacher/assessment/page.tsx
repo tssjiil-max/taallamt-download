@@ -83,7 +83,7 @@ export default function AssessmentPage() {
       <DateBar />
 
       <section className="hero section">
-        <div><h2>تقييم المهارة في أقل عدد من الضغطات</h2><p>اختر المادة والأسبوع والمهارة، ثم قيّم كل طالب. التقييم الآن يُحفظ مباشرة في Firestore ليصل إلى صفحة الطالب وولي الأمر.</p></div>
+        <div><h2>تقييم المهارة في أقل عدد من الضغطات</h2><p>اختر المادة والأسبوع والمهارة، ثم قيّم كل طالب. الخيارات ظاهرة مباشرة حتى لا تحتاج فتح قوائم مخفية.</p></div>
         <div className="hero-stats">
           <div className="stat"><b>{stats.mastered}</b><span>متقن</span></div>
           <div className="stat"><b>{stats.partial}</b><span>أتقن البعض</span></div>
@@ -96,25 +96,39 @@ export default function AssessmentPage() {
 
       <section className="section no-print">
         <div className="card stack">
-          <div className="toolbar">
-            <label>المادة</label>
-            <select className="field" value={subjectId} onChange={(e) => chooseSubject(e.target.value)}>{subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}</select>
-            <label>الأسبوع</label>
-            <select className="field" value={week} onChange={(e) => chooseWeek(Number(e.target.value))}>{Array.from({ length: 17 }, (_, index) => index + 1).map((item) => <option key={item} value={item}>الأسبوع {item}</option>)}</select>
+          <h3>1) اختر المادة</h3>
+          <div className="toolbar" style={{ flexWrap: "wrap" }}>
+            {subjects.map((subject) => (
+              <button key={subject.id} className={`btn ${subjectId === subject.id ? "" : "secondary"}`} type="button" onClick={() => chooseSubject(subject.id)}>{subject.name}</button>
+            ))}
           </div>
-          <div className="toolbar">
-            <label>المهارة</label>
-            <select className="field grow" value={selectedSkill?.id ?? ""} onChange={(e) => setSelectedSkillId(e.target.value)}>
-              {skills.map((skill) => <option key={skill.id} value={skill.id}>{skill.category} — {skill.title}</option>)}
-            </select>
+
+          <h3 className="section">2) اختر الأسبوع</h3>
+          <div className="toolbar" style={{ flexWrap: "wrap" }}>
+            {Array.from({ length: 17 }, (_, index) => index + 1).map((item) => (
+              <button key={item} className={`btn ${week === item ? "" : "secondary"}`} type="button" onClick={() => chooseWeek(item)}>{item}</button>
+            ))}
           </div>
-          {selectedSkill && <div className="notice"><b>{selectedSkill.category}</b> — {selectedSkill.title}</div>}
+
+          <h3 className="section">3) اختر المهارة</h3>
+          {skills.length ? (
+            <div className="list">
+              {skills.map((skill) => (
+                <button key={skill.id} type="button" className={`row ${selectedSkill?.id === skill.id ? "selected" : ""}`} onClick={() => setSelectedSkillId(skill.id)}>
+                  <div className="grow"><h4>{skill.category}</h4><small>{skill.title}</small></div>
+                  <span className="badge">{selectedSkill?.id === skill.id ? "محددة" : "اختيار"}</span>
+                </button>
+              ))}
+            </div>
+          ) : <div className="notice warn">لا توجد مهارة لهذه المادة في الأسبوع {week}.</div>}
+
+          {selectedSkill && <div className="notice"><b>المحدد الآن:</b> {subjects.find((subject) => subject.id === subjectId)?.name} · الأسبوع {week} · {selectedSkill.category} — {selectedSkill.title}</div>}
         </div>
       </section>
 
       <section className="section">
         <div className="section-head"><h2>{selectedSkill ? `تقييم: ${selectedSkill.category}` : "لا توجد مهارة لهذا الأسبوع"}</h2><span className="pill">{students.length} طالبًا</span></div>
-        {!selectedSkill ? <div className="notice warn">لا توجد مهارة مضافة لهذه المادة في الأسبوع المحدد بعد.</div> : (
+        {!selectedSkill ? <div className="notice warn">اختر مادة وأسبوعًا توجد لهما مهارة أولًا.</div> : (
           <div className="list">
             {students.map((student, index) => {
               const value = latestLevel(store.assessments, student.id, selectedSkill.id);
