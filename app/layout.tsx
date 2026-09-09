@@ -4,6 +4,7 @@ import "./resources.css";
 import "./taallamt-ui.css";
 import "./guardian-profile.css";
 import "./teacher-final-polish.css";
+import "./guardian/guardian-layout-fix.css";
 import { TaallamtProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
