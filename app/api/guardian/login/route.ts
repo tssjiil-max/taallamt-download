@@ -6,7 +6,7 @@ import {
   guardianCookieOptions,
 } from "@/lib/server/guardian-auth";
 import { isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
-import { clearLoginFailures, rateLimitBlocked, rateLimitKey, recordLoginFailure } from "@/lib/server/login-rate-limit";
+import { rateLimitBlocked, rateLimitKey } from "@/lib/server/login-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -30,14 +30,11 @@ export async function POST(request: Request) {
   }
   if (!sameOrigin(request)) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
 
-  const body = (await request.json().catch(() => null)) as
-    | { studentId?: unknown; code?: unknown }
-    | null;
+  const body = (await request.json().catch(() => null)) as { studentId?: unknown } | null;
   const studentId = typeof body?.studentId === "string" ? body.studentId.trim() : "";
-  const code = typeof body?.code === "string" ? body.code.trim() : "";
 
-  if (!studentId || !/^\d{6}$/.test(code)) {
-    return NextResponse.json({ error: "INVALID_CODE" }, { status: 400 });
+  if (!studentId) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 400 });
   }
 
   const limitKey = rateLimitKey(request, "guardian", studentId);
@@ -50,14 +47,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = await createGuardianSession(studentId, code);
-    await clearLoginFailures(limitKey);
+    const session = await createGuardianSession(studentId);
     const response = NextResponse.json({ ok: true, expiresAtMs: session.expiresAtMs });
     response.cookies.set(GUARDIAN_COOKIE, session.cookieValue, guardianCookieOptions);
     return response;
   } catch (error) {
     if (error instanceof GuardianAuthError) {
-      if (error.code === "INVALID_CODE") await recordLoginFailure(limitKey, 6);
       return NextResponse.json({ error: error.code }, { status: errorStatus(error.code) });
     }
     console.error("guardian login failed", error);

@@ -56,7 +56,6 @@ export default function SecureGuardianPilotPage() {
   const [search, setSearch] = useState("");
   const [matches, setMatches] = useState<GuardianSearchStudent[]>([]);
   const [selectedId, setSelectedId] = useState("");
-  const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState<FollowUpCategory>("learning");
   const [statement, setStatement] = useState("");
@@ -101,20 +100,18 @@ export default function SecureGuardianPilotPage() {
 
   async function login(event: FormEvent) {
     event.preventDefault();
-    if (!selectedId || code.length !== 6) return;
+    if (!selectedId) return;
     setBusy(true);
     setNotice("");
     try {
-      await guardianLogin(selectedId, code);
+      await guardianLogin(selectedId);
       await loadMe();
-      setCode("");
       setSearch("");
       setMatches([]);
     } catch (error) {
       const codeValue = errorCode(error);
-      if (codeValue === "DEVICE_LIMIT") setNotice("تم الوصول للحد المسموح: جهازان. اطلب من المعلم إلغاء جهاز قديم.");
-      else if (codeValue === "ACCESS_DISABLED") setNotice("وصول ولي الأمر غير مفعّل لهذا الطالب.");
-      else setNotice("اسم الطالب أو رمز الوصول غير صحيح.");
+      if (codeValue === "ACCESS_DISABLED") setNotice("هذا الطالب غير نشط حاليًا.");
+      else setNotice("تعذر فتح صفحة الطالب الآن.");
     } finally {
       setBusy(false);
     }
@@ -193,8 +190,8 @@ export default function SecureGuardianPilotPage() {
       <main className="shell">
         <header className="topbar"><div className="brand"><div className="logo">🏠</div><div><h1>متابعة الطالب</h1><p>بوابة ولي الأمر الآمنة — تعلّمت</p></div></div></header>
         <DateBar />
-        <section className="hero section"><div><h2>دخول ولي الأمر</h2><p>ابحث عن اسم الطالب ثم أدخل رمز الوصول المكوّن من 6 أرقام.</p></div><div className="hero-stats"><div className="stat"><b>6</b><span>أرقام</span></div><div className="stat"><b>2</b><span>جهازان كحد أقصى</span></div><div className="stat"><b>🔒</b><span>جلسة خاصة</span></div></div></section>
-        <section className="section"><form className="card stack" onSubmit={login}><label className="stack">اسم الطالب<input className="field" value={search} onChange={(event) => { setSearch(event.target.value); setSelectedId(""); }} placeholder="اكتب حرفين أو أكثر" /></label>{matches.length > 0 && <div className="list">{matches.map((item) => <button className={`row guardian-pick ${selectedId === item.id ? "selected" : ""}`} type="button" key={item.id} onClick={() => setSelectedId(item.id)}><div className="row-main"><div className="avatar">🧒</div><div><h4>{item.name}</h4><small>{item.className}</small></div></div><span className="badge">{selectedId === item.id ? "محدد" : "اختيار"}</span></button>)}</div>}{selectedId && <label className="stack">رمز الوصول<input className="field guardian-code" required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></label>}{notice && <div className="notice warn">{notice}</div>}<button className="btn" disabled={busy || !selectedId || code.length !== 6}>دخول</button><small>التحقق والجلسة وعدد الأجهزة تتم كلها على الخادم.</small></form></section>
+        <section className="hero section"><div><h2>دخول ولي الأمر</h2><p>ابحث عن اسم الطالب واختره لفتح صفحته مباشرة.</p></div></section>
+        <section className="section"><form className="card stack" onSubmit={login}><label className="stack">اسم الطالب<input className="field" value={search} onChange={(event) => { setSearch(event.target.value); setSelectedId(""); }} placeholder="اكتب حرفين أو أكثر" /></label>{matches.length > 0 && <div className="list">{matches.map((item) => <button className={`row guardian-pick ${selectedId === item.id ? "selected" : ""}`} type="button" key={item.id} onClick={() => setSelectedId(item.id)}><div className="row-main"><div className="avatar">🧒</div><div><h4>{item.name}</h4><small>{item.className}</small></div></div><span className="badge">{selectedId === item.id ? "محدد" : "اختيار"}</span></button>)}</div>}{notice && <div className="notice warn">{notice}</div>}<button className="btn" disabled={busy || !selectedId}>فتح صفحة الطالب</button></form></section>
         <footer className="site-credit">برمجة سلطان الصاعدي</footer>
       </main>
     );

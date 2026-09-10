@@ -66,9 +66,8 @@ type Bundle = {
 };
 function errText(e: unknown) {
   const p = (e as { payload?: { error?: string } })?.payload;
-  if (p?.error === "INVALID_CODE") return "رمز الوصول غير صحيح.";
-  if (p?.error === "DEVICE_LIMIT") return "تم الوصول للحد المسموح من الأجهزة.";
-  return "تعذر تسجيل الدخول الآن.";
+  if (p?.error === "ACCESS_DISABLED") return "هذا الطالب غير نشط حاليًا.";
+  return "تعذر فتح صفحة الطالب الآن.";
 }
 function GuardianHeader() {
   return (
@@ -120,7 +119,6 @@ export default function GuardianPage() {
     [search, setSearch] = useState(""),
     [matches, setMatches] = useState<GuardianSearchStudent[]>([]),
     [selected, setSelected] = useState(""),
-    [code, setCode] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
@@ -158,11 +156,11 @@ export default function GuardianPage() {
   }, [notice]);
   async function login(e: FormEvent) {
     e.preventDefault();
-    if (!selected || !/^[0-9]{6}$/.test(code)) return;
+    if (!selected) return;
     setBusy(true);
     setError("");
     try {
-      await guardianLogin(selected, code);
+      await guardianLogin(selected);
       await refresh();
     } catch (x) {
       setError(errText(x));
@@ -218,25 +216,8 @@ export default function GuardianPage() {
                 <small>{m.className}</small>
               </button>
             ))}
-            {selected && (
-              <input
-                className="field guardian-code"
-                inputMode="numeric"
-                maxLength={6}
-                value={code}
-                onChange={(e) =>
-                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="000000"
-              />
-            )}
             {error && <div className="notice warn">{error}</div>}
-            <button
-              className="btn"
-              disabled={busy || !selected || code.length !== 6}
-            >
-              دخول
-            </button>
+            <button className="btn" disabled={busy || !selected}>فتح صفحة الطالب</button>
           </form>
         </section>
       </main>

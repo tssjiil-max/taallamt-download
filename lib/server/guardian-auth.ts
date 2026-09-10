@@ -99,8 +99,8 @@ function parseCookie(value?: string) {
   return { sessionId, token };
 }
 
-export async function createGuardianSession(studentId: string, code: string) {
-  if (!studentId || !/^\d{6}$/.test(code)) throw new GuardianAuthError("INVALID_CODE");
+export async function createGuardianSession(studentId: string) {
+  if (!studentId) throw new GuardianAuthError("NOT_FOUND");
   guardianSecret();
 
   const db = getAdminDb();
@@ -116,19 +116,12 @@ export async function createGuardianSession(studentId: string, code: string) {
     if (!studentSnap.exists) throw new GuardianAuthError("NOT_FOUND");
 
     const student = studentSnap.data() as StudentAuthData;
-    if (!student.active || !student.guardianAccessEnabled || !student.guardianAccessCodeHash) {
+    if (!student.active) {
       throw new GuardianAuthError("ACCESS_DISABLED");
     }
-
-    if (!verifyGuardianAccessCode(studentId, code, student.guardianAccessCodeHash)) {
-      throw new GuardianAuthError("INVALID_CODE");
-    }
-
-    const limit = Math.max(1, Math.min(2, student.guardianDeviceLimit ?? 2));
     const slots = (student.guardianSessionSlots ?? []).filter(
       (slot) => slot && typeof slot.id === "string" && Number(slot.expiresAtMs) > now,
     );
-    if (slots.length >= limit) throw new GuardianAuthError("DEVICE_LIMIT");
 
     transaction.set(sessionRef, {
       studentId,
@@ -169,7 +162,7 @@ export async function readGuardianSession(cookieValue?: string) {
 
   const studentSnap = await db.collection(firestoreCollectionName("students")).doc(session.studentId).get();
   const student = studentSnap.data() as StudentAuthData | undefined;
-  if (!studentSnap.exists || !student?.active || !student.guardianAccessEnabled) {
+  if (!studentSnap.exists || !student?.active) {
     throw new GuardianAuthError("INVALID_SESSION");
   }
 

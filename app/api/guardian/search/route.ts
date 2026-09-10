@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   const students = snap.docs
     .map((doc): SearchStudent => ({ id: doc.id, ...(doc.data() as Omit<SearchStudent, "id">) }))
-    .filter((student) => student.active === true && student.guardianAccessEnabled === true)
+    .filter((student) => student.active === true)
     .slice(0, 8)
     .map((student) => ({
       id: student.id,
