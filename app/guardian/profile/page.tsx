@@ -109,7 +109,7 @@ export default function GuardianProfilePage() {
             {form.photoDataUrl ? (
               <img src={form.photoDataUrl} alt="صورة الطالب" />
             ) : (
-              <img src="/shakabumbo.jpg" alt="إضافة صورة الطالب" />
+              <img src="/shakabumbo-guardian.webp" alt="إضافة صورة الطالب" />
             )}
             <span className="photo-camera">
               {form.photoDataUrl ? "تغيير الصورة" : "إضافة صورة"}

@@ -56,28 +56,16 @@
 }
 .guardian-shak-visual {
   position: absolute;
-  inset: -17px auto -18px -2px;
-  width: 124px;
+  inset: 2px auto 0 6px;
+  width: 112px;
   overflow: hidden;
-  border-radius: 52% 45% 0 0;
-  background: #dff4e8;
-}
-.guardian-shak-visual:before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  inset: 8px;
-  border: 2px solid #eb9b48;
-  border-radius: 50%;
-  opacity: 0.45;
+  background: transparent;
 }
 .guardian-shak-visual img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
-  mix-blend-mode: multiply;
-  transform: scale(1.08);
+  object-fit: contain;
+  object-position: bottom center;
 }
 .guardian-hero {
   margin: 0 !important;
