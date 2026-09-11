@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { LiveSchoolTime } from "@/components/LiveSchoolTime";
 
 type PageMeta = { title: string; subtitle: string; icon: string };
@@ -19,10 +19,10 @@ const pages: Record<string, PageMeta> = {
   "/teacher/assessment": { title: "التقييم السريع", subtitle: "تقييم واضح وسريع أثناء الحصة", icon: "✓" },
   "/teacher/students": { title: "طلاب الفصل", subtitle: "الملفات والتقييم والمتابعة", icon: "◉" },
   "/teacher/library": { title: "المكتبة", subtitle: "المصادر والملفات التعليمية", icon: "▤" },
-  "/teacher/announcements": { title: "التواصل", subtitle: "الإعلانات وطلبات أولياء الأمور", icon: "◌" },
+  "/teacher/announcements": { title: "التواصل", subtitle: "الرسائل والإعلانات وطلبات أولياء الأمور", icon: "◌" },
   "/teacher/reports": { title: "التقارير", subtitle: "ملخصات التقدم والنتائج", icon: "▥" },
   "/teacher/settings": { title: "الإعدادات والمزيد", subtitle: "الفصل والجدول وأدوات النظام", icon: "•••" },
-  "/teacher/values": { title: "السلوك والتحفيز", subtitle: "تعزيز القيم والسلوك الإيجابي", icon: "★" },
+  "/teacher/values": { title: "السلوك والتحفيز", subtitle: "السلوك والقيم والنجوم والمكافآت", icon: "★" },
   "/teacher/portfolio": { title: "ملف إنجازي", subtitle: "أعمال المعلم وإنجازاته", icon: "◇" },
   "/teacher/resources": { title: "الموارد", subtitle: "المحتوى والمواد المساندة", icon: "▦" },
   "/teacher/schedule": { title: "الجدول الدراسي", subtitle: "الحصص والأسبوع الدراسي", icon: "≡" },
@@ -36,6 +36,7 @@ const pages: Record<string, PageMeta> = {
 };
 
 function resolvePage(pathname: string): PageMeta {
+  if (pathname.startsWith("/teacher/students/") && pathname.endsWith("/portfolio")) return { title: "ملف إنجاز الطالب", subtitle: "الشواهد والتقدم والمهارات", icon: "★" };
   if (pathname.startsWith("/teacher/students/")) return { title: "ملف الطالب", subtitle: "التقييم والمتابعة والتواصل", icon: "◉" };
   if (pathname.startsWith("/teacher/subject/")) return { title: "المادة والمهارات", subtitle: "خطة الأسبوع والتقييم", icon: "▤" };
   return pages[pathname] ?? { title: "تعلّمت", subtitle: "صفحة المعلم", icon: "✦" };
@@ -70,6 +71,14 @@ export function TeacherNav() {
 export function TeacherFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const meta = resolvePage(pathname);
+  const [alertMessage, setAlertMessage] = useState("");
+
+  useEffect(() => {
+    const originalAlert = window.alert;
+    window.alert = (message?: unknown) => setAlertMessage(String(message ?? "تم تنفيذ الإجراء."));
+    return () => { window.alert = originalAlert; };
+  }, []);
+
   return (
     <div className="teacher-unified">
       <div className="teacher-unified-shell">
@@ -79,6 +88,7 @@ export function TeacherFrame({ children }: { children: ReactNode }) {
           <div><small>تعلّمت · الصف الثاني / 4</small><h2>{meta.title}</h2><p>{meta.subtitle}</p></div>
           <Link href="/" className="teacher-page-home">الرئيسية</Link>
         </section>
+        {alertMessage && <div className="teacher-inline-alert no-print" role="status"><span>{alertMessage}</span><button type="button" onClick={() => setAlertMessage("")} aria-label="إغلاق التنبيه">×</button></div>}
         <div className="teacher-unified-content">{children}</div>
         <TeacherNav />
       </div>
