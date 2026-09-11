@@ -148,6 +148,21 @@
 .teacher-unified .picker-block+.picker-block{border-top-color:#d3e9f6!important}
 .teacher-unified :is(.value-students article,.values-overview article,.clean-eval-list article){border-color:#d5eaf7!important;background:#fff!important}
 
+/* Student roster + WhatsApp follow-up controls. */
+.teacher-unified .student-name-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.teacher-unified .student-name-line h3{margin:0}
+.teacher-unified .student-whatsapp-shortcut{
+  display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:4px 10px;
+  border:1px solid #bfe2f4;border-radius:999px;background:#edf9ff;color:#0877b8!important;
+  font-size:11px;font-weight:800;text-decoration:none;box-shadow:none!important;
+}
+.teacher-unified .student-whatsapp-shortcut::before{content:"↗";margin-left:4px;font-size:11px}
+.teacher-unified .whatsapp-composer{gap:12px!important}
+.teacher-unified .whatsapp-composer>.two{gap:10px!important}
+.teacher-unified .whatsapp-composer textarea{min-height:190px;line-height:1.85;resize:vertical}
+.teacher-unified .whatsapp-composer .mini-actions{display:flex;gap:8px;flex-wrap:wrap}
+.teacher-unified .whatsapp-composer .mini-actions .btn{min-width:140px}
+
 /* Student/guardian: same design family but softer and more playful. */
 .student-unified .student-brand-header{
   background:radial-gradient(circle at 48% 10%,rgba(255,255,255,.99),rgba(234,248,255,.95) 45%,rgba(214,240,254,.96))!important;
@@ -191,4 +206,6 @@
   :where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.card,.ui-section,.hero,.ta-card){border-radius:18px!important}
   :where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.two,.grid){column-gap:9px!important;row-gap:9px!important}
   .teacher-unified .teacher-page-banner{min-height:62px!important;padding:9px 10px!important}
+  .teacher-unified .whatsapp-composer>.two{grid-template-columns:1fr!important}
+  .teacher-unified .whatsapp-composer .mini-actions .btn{flex:1 1 140px}
 }
