@@ -82,6 +82,9 @@ export type ValueStar = {
   awardedAt: string;
   reason?: string;
 };
+export type BehaviorLevel = "excellent" | "good" | "needs_follow_up";
+export type BehaviorContext = "classroom" | "school" | "home";
+export type BehaviorEvaluation = { id:string; studentId:string; behaviorId:string; context:BehaviorContext; level:BehaviorLevel; evaluatedBy:"teacher"|"guardian"; evaluatedAt:string };
 
 export type SpellingPractice = {
   id: string;
@@ -124,6 +127,7 @@ export type TaallamtData = {
   resources: LearningResource[];
   values: ValueTarget[];
   valueStars: ValueStar[];
+  behaviorEvaluations: BehaviorEvaluation[];
   spellingPractices: SpellingPractice[];
   followUps: Record<string, SpecialFollowUp>;
   messages: Message[];

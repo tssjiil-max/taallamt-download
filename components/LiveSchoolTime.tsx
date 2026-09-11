@@ -1,0 +1,5 @@
+"use client";
+import {useEffect,useState} from "react";
+import {getSchoolStatus} from "@/lib/schedule";
+function format(now:Date){return{hijri:new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura",{timeZone:"Asia/Riyadh",weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(now),gregorian:new Intl.DateTimeFormat("ar-SA",{timeZone:"Asia/Riyadh",day:"numeric",month:"long",year:"numeric"}).format(now),time:new Intl.DateTimeFormat("ar-SA",{timeZone:"Asia/Riyadh",hour:"numeric",minute:"2-digit",second:"2-digit"}).format(now)}}
+export function LiveSchoolTime(){const[now,setNow]=useState<Date|null>(null);useEffect(()=>{setNow(new Date());const timer=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(timer)},[]);if(!now)return <div className="ta-date-strip"><span>التاريخ الهجري</span><b>الساعة</b></div>;const value=format(now),status=getSchoolStatus(now);return <div className="ta-date-strip"><div><strong>{value.hijri}</strong><small>{value.gregorian}</small></div><div className="ta-live-clock"><b>{value.time}</b><span>{status.label}</span></div></div>}

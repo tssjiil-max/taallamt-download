@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./resources.css";
 import "./taallamt-ui.css";
@@ -11,7 +11,11 @@ export const metadata: Metadata = {
   title: "تعلّمت",
   description: "متابعة الطالب والتواصل والتحفيز",
   manifest: "/manifest.webmanifest",
+  applicationName: "تعلّمت",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "تعلّمت" },
 };
+
+export const viewport: Viewport = { themeColor: "#1769aa", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

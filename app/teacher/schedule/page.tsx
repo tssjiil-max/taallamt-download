@@ -4,12 +4,18 @@ import Link from "next/link";
 import { DateBar } from "@/components/DateBar";
 import { useTaallamt } from "@/lib/store";
 import { academicWeek, dailyBreakdown, plansForWeek, tomorrowAnnouncement } from "@/lib/schedule";
+import { useEffect, useState } from "react";
+
+const defaultTimes = ["٧:٠٠–٧:١٥ الطابور","٧:١٥–٨:٠٠ الأولى","٨:٠٠–٨:٤٥ الثانية","٨:٤٥–٩:٣٠ الثالثة","٩:٣٠–٩:٥٠ الفسحة","٩:٥٠–١٠:٣٠ الرابعة","١٠:٣٠–١١:١٠ الخامسة","١١:١٠–١١:٥٠ السادسة","١١:٥٠–١٢:٣٠ السابعة","١٢:٣٠–١٢:٥٠ الصلاة"];
 
 export default function SchedulePage() {
   const store = useTaallamt();
   const week = academicWeek();
   const plans = plansForWeek(store.weeklyPlans, week);
   const tomorrow = tomorrowAnnouncement(store.weeklyPlans, store.subjects);
+  const [times,setTimes]=useState(defaultTimes);
+  useEffect(()=>{const saved=localStorage.getItem("taallamt-school-times");if(saved)setTimes(JSON.parse(saved));},[]);
+  function saveTimes(){localStorage.setItem("taallamt-school-times",JSON.stringify(times));alert("تم حفظ أوقات الدوام");}
 
   return (
     <main className="shell">
@@ -22,6 +28,11 @@ export default function SchedulePage() {
       <section className="hero section">
         <div><h2>الأسبوع {week}</h2><p>تظهر خطة الأسبوع تلقائيًا لولي الأمر من بداية يوم السبت، ويتغير إعلان «ماذا لدينا غدًا؟» يوميًا حسب تاريخ المدينة المنورة/الرياض.</p></div>
         <div className="hero-stats"><div className="stat"><b>السبت</b><span>فتح الخطة الأسبوعية</span></div><div className="stat"><b>{tomorrow.tomorrow}</b><span>إعلان الغد</span></div><div className="stat"><b>{plans.length}</b><span>مواد هذا الأسبوع</span></div><div className="stat"><b>تلقائي</b><span>التحديث حسب التاريخ</span></div></div>
+      </section>
+
+      <section className="section">
+        <div className="section-head"><h2>أوقات الدوام القابلة للتعديل</h2><button className="btn no-print" onClick={saveTimes}>حفظ</button></div>
+        <div className="grid">{times.map((value,index)=><label className="card stack" key={index}><b>الفترة {index+1}</b><input className="field" value={value} onChange={e=>setTimes(times.map((item,i)=>i===index?e.target.value:item))}/></label>)}</div>
       </section>
 
       <section className="section">

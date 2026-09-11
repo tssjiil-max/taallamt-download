@@ -7,7 +7,7 @@ import type { TaallamtData } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const collectionLimits: Record<keyof Omit<TaallamtData, "followUps">, number> = {
+const collectionLimits: Record<keyof Omit<TaallamtData, "followUps" | "behaviorEvaluations">, number> = {
   terms: 20,
   subjects: 100,
   students: 200,

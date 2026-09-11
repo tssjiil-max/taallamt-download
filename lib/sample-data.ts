@@ -9,15 +9,16 @@ export const subjects: Subject[] = [
   { id: "quran", termId: "term-1", name: "القرآن الكريم", enabled: true, order: 1 },
   { id: "islamic", termId: "term-1", name: "الدراسات الإسلامية", enabled: true, order: 2 },
   { id: "lughati", termId: "term-1", name: "لغتي", enabled: true, order: 3 },
+  { id: "spelling", termId: "term-1", name: "الإملاء والخط", enabled: true, order: 4 },
 ];
 
 const names = [
   "أحمد بسام صالح الأحمد", "أسامه سلطان بن بخيت الصاعدي", "أمير نايف عبدالهادي الحجيلي", "أنس أحمد عبدالله الجهني", "أوس نايف بن حمد الشريف",
   "أويس عادل فيصل المالكي", "تميم ماجد جابر الحجيلي", "ثامر عبدالله رجاء العوفي", "راكان حاتم مهل الجهني", "ريان محمود باري",
-  "سلطان فهد زعل الجهني", "شليخ بدر لافي الجهني", "عادل غالب عبدالله العنزي", "عبدالجليل سالم محمد عبدالجليل", "عبدالرحمن نواف هندي الحازمي",
+  "سلطان فهد زعل الجهني", "شامخ بدر لافي الجهني", "عادل غالب عبدالله العنزي", "عبدالجليل سالم محمد عبدالجليل", "عبدالرحمن نواف هندي الحازمي",
   "عمر حميد بن سليم العروي", "فيصل محمد عويض المطيري", "قصي عبدالله ظاهر الحجيلي", "كنان محمد عبدالعزيز اليوسفي", "محمد سماح سعد اللوفي",
-  "محمد صلاح حمد عواد", "موسى ريض صالح الأحمد", "نايف أحمد صوير الجهني", "نواف مطلق صلاح العمري", "وائل محمد حسين روزي",
-  "وسام سلطان عبيد السندي", "وليد عطاف علي العمري", "يمان أحمد بن عايد الجهني", "يوسف فلاح خلف الحربي", "يوسف محمد لافي الجهني",
+  "محمد صالح حمد عواد", "معن أيمن صلاح الأحمدي", "موسى رياض صالح الأحمد", "نايف أحمد صوير الجهني", "نواف مطلق صالح العمري",
+  "وائل محمد حسين روزي", "وسام سلطان عبيد السناني", "يمان أحمد بن عايد الجهني", "يوسف فلاح خلف الحربي", "يوسف محمد لافي الجهني",
 ];
 
 export const students: Student[] = names.map((name, index) => ({
@@ -50,7 +51,15 @@ function plans(subjectId: string, titles: string[]): WeeklyPlan[] {
   return titles.map((title, index) => ({ id: `${subjectId}-w${index + 1}`, termId: "term-1", subjectId, week: index + 1, title }));
 }
 
-export const weeklyPlans: WeeklyPlan[] = [...plans("quran", quran), ...plans("islamic", islamic), ...plans("lughati", lughati)];
+const spelling = [
+  "أقاربي: مراجعة الحركات القصيرة والسكون", "أقاربي: اللام القمرية", "أقاربي: اللام الشمسية", "أقاربي: مراجعة اللام الشمسية والقمرية",
+  "أقاربي: تنوين الضم", "أقاربي: تنوين الفتح", "أصدقائي وجيراني: تنوين الكسر", "أصدقائي وجيراني: التضعيف (الشدة)",
+  "أصدقائي وجيراني: الشدة مع اللام الشمسية", "أصدقائي وجيراني: مراجعة التنوين والشدة", "وطني السعودية: التاء المربوطة",
+  "وطني السعودية: التنوين مع التاء المربوطة", "وطني السعودية: المد بالألف", "وطني السعودية: المد بالواو",
+  "محاصيل من بلادي: المد بالياء", "محاصيل من بلادي: مراجعة المدود الثلاثة", "محاصيل من بلادي: مراجعة شاملة",
+];
+
+export const weeklyPlans: WeeklyPlan[] = [...plans("quran", quran), ...plans("islamic", islamic), ...plans("lughati", lughati), ...plans("spelling", spelling)];
 
 function skill(subjectId: string, week: number, category: string, title: string, suffix: string): Skill {
   return { id: `${subjectId}-w${week}-${suffix}`, termId: "term-1", subjectId, week, category, title, active: true, source: "register" };
@@ -83,7 +92,16 @@ const lughatiSkills: Skill[] = lughati.flatMap((title, index) => {
   ];
 });
 
-export const skills: Skill[] = [...quranSkills, ...islamicSkills, ...lughatiSkills];
+const spellingSkills: Skill[] = spelling.flatMap((title, index) => {
+  const week = index + 1;
+  const skillName = title.split(": ").slice(1).join(": ");
+  return [
+  skill("spelling", week, "الإملاء", `يكتب كلمات تطبق مهارة: ${skillName}`, "dictation"),
+  skill("spelling", week, "الخط", "يكتب بخط واضح مع مراعاة السطر والمسافات وشكل الحروف", "handwriting"),
+  ];
+});
+
+export const skills: Skill[] = [...quranSkills, ...islamicSkills, ...lughatiSkills, ...spellingSkills];
 
 export const values: ValueTarget[] = [
   { id: "value-family-ties", termId: "term-1", unitName: "أقاربي", title: "صلة الرحم", studentText: "أحترم أقاربي وأسأل عنهم وأعامل كبار الأسرة بلطف.", homeSuggestion: "شجّعه على السلام على قريب أو مساعدته أو السؤال عنه.", weekFrom: 1, weekTo: 4, active: true, source: "teacher" },
@@ -138,6 +156,7 @@ export const initialData: TaallamtData = {
   resources: [],
   values,
   valueStars: [],
+  behaviorEvaluations: [],
   spellingPractices,
   followUps: {},
   messages: [],

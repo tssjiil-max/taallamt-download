@@ -31,6 +31,11 @@ export default function StudentPage() {
   const [review, setReview] = useState(current?.nextReviewAt ?? "بعد أسبوعين");
   const [status, setStatus] = useState<SpecialFollowUp["status"]>(current?.status ?? "needs_review");
   const [teacherMessage, setTeacherMessage] = useState("");
+  const [summonsDate,setSummonsDate]=useState("");
+  const [summonsTime,setSummonsTime]=useState("");
+  const [summonsReason,setSummonsReason]=useState("مناقشة مستوى الطالب");
+  const [summonsMode,setSummonsMode]=useState("حضوري");
+  const [summonsSent,setSummonsSent]=useState(false);
   const plan = useMemo(() => current?.plan?.length ? current.plan : suggestedPlan(category), [current?.plan, category]);
 
   if (!student) return <main className="shell"><div className="notice warn">الطالب غير موجود أو تم حذفه.</div><Link className="btn section" href="/teacher/students">العودة للطلاب</Link></main>;
@@ -53,6 +58,12 @@ export default function StudentPage() {
     event.preventDefault();
     store.sendMessage(studentId, "teacher", teacherMessage);
     setTeacherMessage("");
+  }
+
+  function sendSummons(){
+    if(!summonsDate||!summonsTime)return;
+    store.sendMessage(studentId,"teacher",`استدعاء ولي أمر | الموعد: ${summonsDate} ${summonsTime} | الطريقة: ${summonsMode} | السبب: ${summonsReason}`);
+    setSummonsSent(true);
   }
 
   return (
@@ -92,6 +103,7 @@ export default function StudentPage() {
       </section>
 
       <section className="section no-print"><div className="section-head"><h2>التواصل مع ولي الأمر</h2><span className="badge">{studentMessages.length} رسالة</span></div><div className="card"><div className="list">{studentMessages.slice(-6).map((message) => <div className="row" key={message.id}><div><h4>{message.author === "teacher" ? "المعلم" : "ولي الأمر"}</h4><small>{message.body}</small></div></div>)}{studentMessages.length === 0 && <div className="notice">لا توجد رسائل بعد.</div>}</div><form className="toolbar section" onSubmit={sendTeacherMessage}><input className="field grow" required value={teacherMessage} onChange={(e) => setTeacherMessage(e.target.value)} placeholder="اكتب ردًا لولي الأمر" /><button className="btn" type="submit">إرسال</button></form></div></section>
+      <section className="section summons-section"><div className="section-head"><div><h2>استدعاء ولي أمر</h2><p>إنشاء وطباعة وإرسال الاستدعاء من ملف الطالب</p></div><span className="badge red">رسمي</span></div><div className="card summons-controls no-print"><div className="toolbar"><label>التاريخ<input className="field" type="date" value={summonsDate} onChange={e=>setSummonsDate(e.target.value)}/></label><label>الوقت<input className="field" type="time" value={summonsTime} onChange={e=>setSummonsTime(e.target.value)}/></label><label>طريقة اللقاء<select className="field" value={summonsMode} onChange={e=>setSummonsMode(e.target.value)}><option>حضوري</option><option>اتصال</option></select></label></div><label className="stack">السبب<select className="field" value={summonsReason} onChange={e=>setSummonsReason(e.target.value)}><option>المستوى الدراسي</option><option>متابعة المهارات</option><option>الخطة العلاجية</option><option>السلوك</option><option>عدم إنجاز المهام</option><option>مناقشة مستوى الطالب</option><option>سبب آخر</option></select></label><div className="toolbar"><button className="btn" disabled={!summonsDate||!summonsTime} onClick={sendSummons}>إرسال لولي الأمر</button><PrintButton label="طباعة / حفظ PDF"/></div>{summonsSent&&<div className="notice">تم إرسال الاستدعاء وتسجيله داخل ملف الطالب.</div>}</div><article className="summons-paper"><h1>استدعاء ولي أمر</h1><p>يسر مدرسة الطالب دعوتكم لمتابعة مستواه وتعزيز الشراكة بين الأسرة والمدرسة.</p><div className="kv"><span>اسم الطالب</span><b>{student.name}</b></div><div className="kv"><span>الصف والفصل</span><b>{student.className}</b></div><div className="kv"><span>الموعد</span><b>{summonsDate||"يحدد عند الاعتماد"} {summonsTime}</b></div><div className="kv"><span>طريقة اللقاء</span><b>{summonsMode}</b></div><div className="kv"><span>السبب</span><b>{summonsReason}</b></div><div className="summons-sign"><span>المعلم: سلطان الصاعدي</span><span>توقيع ولي الأمر: ______________</span></div></article></section>
     </main>
   );
 }

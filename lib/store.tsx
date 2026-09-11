@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { initialData } from "./sample-data";
-import type { FollowUpCategory, LearningResource, MasteryLevel, ResourceKind, SkillAssessment, SpecialFollowUp, TaallamtData, ValueTarget } from "./types";
+import type { BehaviorContext, BehaviorLevel, FollowUpCategory, LearningResource, MasteryLevel, ResourceKind, SkillAssessment, SpecialFollowUp, TaallamtData, ValueTarget } from "./types";
 
 const STORAGE_KEY = "taallamt-flex-v1";
 
@@ -28,6 +28,7 @@ type StoreValue = TaallamtData & {
   ready: boolean;
   activeTermId?: string;
   addStudent: (name: string) => void;
+  renameStudent: (id: string, name: string) => void;
   archiveStudent: (id: string) => void;
   restoreStudent: (id: string) => void;
   deleteStudent: (id: string) => void;
@@ -36,6 +37,7 @@ type StoreValue = TaallamtData & {
   addLearningResource: (resource: NewResource) => string;
   awardValueStar: (studentId: string, valueId: string, reason?: string) => void;
   removeValueStar: (studentId: string, valueId: string) => void;
+  setBehaviorEvaluation: (studentId:string, behaviorId:string, context:BehaviorContext, level:BehaviorLevel, evaluatedBy?:"teacher"|"guardian")=>void;
   addValueTarget: (value: Omit<ValueTarget, "id" | "termId" | "active" | "source">) => void;
   toggleValueTarget: (valueId: string) => void;
   setGuardianDevices: (studentId: string, count: number) => void;
@@ -66,17 +68,25 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<TaallamtData>;
+        const needsCurriculumMigration = localStorage.getItem("taallamt-data-version") !== "2";
+        const canonicalNames = new Map(initialData.students.map((student) => [student.id, student.name]));
         setData({
           ...initialData,
           ...parsed,
-          skills: parsed.skills ?? initialData.skills,
+          students: needsCurriculumMigration && parsed.students ? parsed.students.map((student) => ({ ...student, name: canonicalNames.get(student.id) ?? student.name })) : parsed.students ?? initialData.students,
+          subjects: needsCurriculumMigration ? initialData.subjects : parsed.subjects ?? initialData.subjects,
+          weeklyPlans: needsCurriculumMigration ? initialData.weeklyPlans : parsed.weeklyPlans ?? initialData.weeklyPlans,
+          skills: needsCurriculumMigration ? initialData.skills : parsed.skills ?? initialData.skills,
           assessments: parsed.assessments ?? initialData.assessments,
           resources: parsed.resources ?? initialData.resources,
           values: parsed.values ?? initialData.values,
           valueStars: parsed.valueStars ?? initialData.valueStars,
+          behaviorEvaluations: parsed.behaviorEvaluations ?? initialData.behaviorEvaluations,
           spellingPractices: parsed.spellingPractices ?? initialData.spellingPractices,
         });
+        localStorage.setItem("taallamt-data-version", "2");
       }
+      localStorage.setItem("taallamt-data-version", "2");
     } catch {}
     setReady(true);
   }, []);
@@ -90,6 +100,10 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     addStudent(name) {
       const clean = name.trim(); if (!clean) return;
       setData((d) => ({ ...d, students: [...d.students, { id: uid("student"), name: clean, className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 0, guardianAccessEnabled: false, specialFollowUp: false, subjectLevels: {} }] }));
+    },
+    renameStudent(id, name) {
+      const clean = name.trim(); if (!clean) return;
+      setData((d) => ({ ...d, students: d.students.map((student) => student.id === id ? { ...student, name: clean } : student) }));
     },
     archiveStudent(id) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === id ? { ...s, active: false } : s) })); },
     restoreStudent(id) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === id ? { ...s, active: true } : s) })); },
@@ -107,7 +121,11 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     setMastery(studentId, subjectId, level) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, subjectLevels: { ...s.subjectLevels, [subjectId]: level } } : s) })); },
     setSkillAssessment(studentId, skillId, level, note) {
       const assessment: SkillAssessment = { id: uid("assessment"), studentId, skillId, level, assessedAt: new Date().toISOString(), note: note?.trim() || undefined };
-      setData((d) => ({ ...d, assessments: [...d.assessments, assessment] }));
+      setData((d) => ({
+        ...d,
+        assessments: [...d.assessments.filter((item) => !(item.studentId === studentId && item.skillId === skillId)), assessment],
+        students: level === "needs_training" ? d.students.map((student) => student.id === studentId ? { ...student, specialFollowUp: true } : student) : d.students,
+      }));
     },
     addLearningResource(resource) {
       const id = uid("resource");
@@ -138,6 +156,10 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
         const actual = d.valueStars.length - 1 - index;
         return { ...d, valueStars: d.valueStars.filter((_, i) => i !== actual) };
       });
+    },
+    setBehaviorEvaluation(studentId, behaviorId, context, level, evaluatedBy="teacher") {
+      const entry = { id: uid("behavior"), studentId, behaviorId, context, level, evaluatedBy, evaluatedAt: new Date().toISOString() } as const;
+      setData((d) => ({ ...d, behaviorEvaluations: [...d.behaviorEvaluations.filter((item) => !(item.studentId===studentId&&item.behaviorId===behaviorId&&item.context===context)), entry] }));
     },
     addValueTarget(input) {
       if (!activeTermId || !input.title.trim()) return;

@@ -1,5 +1,17 @@
-self.addEventListener("install", () => self.skipWaiting());
+const CACHE = "taallamt-shell-v2";
+const APP_SHELL = ["/", "/guardian", "/manifest.webmanifest", "/shakabumbo.jpg", "/shakabumbo-guardian.webp"];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
+});
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET" || new URL(event.request.url).origin !== self.location.origin) return;
+  if (event.request.mode === "navigate") {
+    event.respondWith(fetch(event.request).catch(() => caches.match("/")));
+  }
+});
 
 self.addEventListener("push", (event) => {
   let data = {};

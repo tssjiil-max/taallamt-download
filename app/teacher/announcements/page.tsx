@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { DateBar } from "@/components/DateBar";
+import { useTaallamt } from "@/lib/store";
 
 type Announcement = {
   id: string;
@@ -15,6 +16,7 @@ type Announcement = {
 };
 
 export default function TeacherAnnouncementsPage() {
+  const store = useTaallamt();
   const [items, setItems] = useState<Announcement[]>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -63,7 +65,7 @@ export default function TeacherAnnouncementsPage() {
   const activeItems = items.filter((item) => item.active !== false);
 
   return <main className="shell">
-    <header className="topbar"><div className="brand"><div className="logo">📢</div><div><h1>الإعلانات</h1><p>أحداث وتنبيهات عامة تصل لجميع أولياء الأمور</p></div></div><Link className="btn secondary" href="/">الرئيسية</Link></header>
+    <header className="topbar"><div className="brand"><div className="logo">💬</div><div><h1>التواصل</h1><p>الإعلانات وطلبات أولياء الأمور في مكان واحد</p></div></div><Link className="btn secondary" href="/">الرئيسية</Link></header>
     <DateBar />
     <section className="section"><form className="card stack" onSubmit={submit}>
       <h2>إعلان جديد</h2>
@@ -71,9 +73,10 @@ export default function TeacherAnnouncementsPage() {
       <input className="field" required value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="عنوان الإعلان — مثال: لقاء أولياء الأمور" />
       <textarea className="field textarea" required value={body} onChange={(e)=>setBody(e.target.value)} placeholder="اكتب التفاصيل المختصرة التي تريد أن يراها ولي الأمر" />
       <button className="btn" type="submit" disabled={busy}>{busy ? "جاري النشر…" : "نشر لولي الأمر"}</button>
-      <small>هذا القسم للأحداث العامة فقط. الرسائل الفردية تبقى داخل صفحة الطالب وولي الأمر.</small>
+      <small>التواصل الفردي يبدأ بطلب من ولي الأمر ويظهر أدناه.</small>
     </form></section>
     {notice && <div className="notice section">{notice}</div>}
     <section className="section"><div className="section-head"><h2>الإعلانات المنشورة</h2><span className="pill">{activeItems.length}</span></div><div className="list">{activeItems.map((item)=><div className="row" key={item.id}><div><h4>📢 {item.title}</h4><small>{item.eventDate ? `التاريخ: ${item.eventDate} · ` : ""}{item.body}</small></div><button className="btn secondary" disabled={busy} type="button" onClick={()=>void hide(item.id)}>إخفاء</button></div>)}{activeItems.length===0 && <div className="notice">لا توجد إعلانات عامة منشورة حاليًا.</div>}</div></section>
+    <section className="section"><div className="section-head"><h2>طلبات أولياء الأمور</h2><span className="pill">{store.messages.filter(m=>m.author==="guardian").length}</span></div><div className="list">{store.messages.filter(m=>m.author==="guardian").map(message=>{const student=store.students.find(s=>s.id===message.studentId);return <div className="row" key={message.id}><div><h4>💬 {student?.name ?? "ولي أمر"}</h4><small>{message.body}</small></div><Link className="btn secondary" href={`/teacher/students/${message.studentId}`}>فتح ملف الطالب</Link></div>})}{store.messages.filter(m=>m.author==="guardian").length===0&&<div className="notice">لا توجد طلبات تواصل جديدة.</div>}</div></section>
   </main>;
 }

@@ -9,6 +9,8 @@ import {
   type GuardianSearchStudent,
 } from "@/lib/guardian-api";
 import { academicWeek, plansForWeek } from "@/lib/schedule";
+import { AppInstallPanel } from "@/components/AppInstallPanel";
+import { NotificationPanel } from "@/components/NotificationPanel";
 import type {
   LearningResource,
   MasteryLevel,
@@ -24,8 +26,8 @@ import type {
 } from "@/lib/types";
 import "./guardian-polish.css";
 const labels: Record<MasteryLevel, string> = {
-    mastered: "متقن",
-    partial: "أتقن البعض",
+    mastered: "أتقن",
+    partial: "يحتاج تدريب",
     needs_training: "يحتاج تدريب",
   },
   order = ["لغتي", "القرآن الكريم", "الدراسات الإسلامية"],
@@ -123,7 +125,9 @@ export default function GuardianPage() {
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [notice, setNotice] = useState(""),
-    [contactOpen, setContactOpen] = useState(false);
+    [contactOpen, setContactOpen] = useState(false),
+    [homeBehavior,setHomeBehavior]=useState("الالتزام بالتعليمات"),
+    [homeLevel,setHomeLevel]=useState("جيد ✓");
   const refresh = async () => {
     const b = await guardianMe<Bundle>();
     setBundle(b);
@@ -178,9 +182,17 @@ export default function GuardianPage() {
       await refresh();
       setNotice("تم إرسال طلب التواصل للمعلم");
       setContactOpen(false);
+    } catch {
+      setNotice("لم تُرسل الرسالة، ولن يعاد إرسالها تلقائيًا.");
     } finally {
       setBusy(false);
     }
+  }
+  async function sendHomeBehavior(){
+    setBusy(true);
+    try{await guardianSendMessage(`تقييم المنزل: ${homeBehavior} — ${homeLevel}`);await refresh();setNotice("تم إرسال تقييم المنزل للمعلم");}
+    catch{setNotice("لم يُرسل التقييم، ولن يعاد إرساله تلقائيًا.");}
+    finally{setBusy(false)}
   }
   if (!ready)
     return (
@@ -262,6 +274,7 @@ export default function GuardianPage() {
   return (
     <main className="shell guardian-shell guardian-dashboard">
       <GuardianHeader />
+      <AppInstallPanel compact />
       <section className="guardian-hero">
         <Link href="/guardian/profile" className="student-main-card">
           <div className="student-main-photo">
@@ -426,6 +439,13 @@ export default function GuardianPage() {
         )}
       </section>
       <section className="ui-section contact-section">
+        <NotificationPanel role="guardian" studentId={s.id} />
+      </section>
+      <section className="ui-section contact-section">
+        <div className="section-title-row"><div><h2>السلوك خارج المدرسة</h2><p>قيّم سلوك ابنك في المنزل فقط</p></div></div>
+        <div className="guardian-home-behavior"><select className="field" value={homeBehavior} onChange={e=>setHomeBehavior(e.target.value)}><option>الالتزام بالتعليمات</option><option>احترام الآخرين</option><option>تحمل المسؤولية</option><option>النظافة والترتيب</option><option>الصدق والأمانة</option></select><div className="segmented">{["متميز ⭐","جيد ✓","يحتاج متابعة !"].map(level=><button type="button" className={homeLevel===level?"active":""} onClick={()=>setHomeLevel(level)} key={level}>{level}</button>)}</div><button className="btn" disabled={busy} onClick={()=>void sendHomeBehavior()}>إرسال تقييم المنزل</button></div>
+      </section>
+      <section className="ui-section contact-section">
         <button
           type="button"
           className="guardian-contact-trigger"
@@ -474,8 +494,9 @@ export default function GuardianPage() {
             <p>للقراءة والتحميل</p>
           </div>
         </div>
+        <div className="square-grid">
         {bundle.resources.length ? (
-          <div className="square-grid">
+          <>
             {bundle.resources.map((r) => (
               <Link
                 className="square-card"
@@ -487,13 +508,13 @@ export default function GuardianPage() {
                 <p>{r.instructions}</p>
               </Link>
             ))}
-          </div>
+          </>
         ) : (
-          <div className="empty-state compact-empty">
-            لا توجد ملفات منشورة حاليًا.
-          </div>
+          null
         )}
+        </div>
       </section>
+      <section className="ui-section"><Link className="guardian-contact-trigger" href="/student"><img src={icons+"trophy.svg"} alt=""/><span><b>ملف إنجاز الطالب</b><small>الأعمال والنجوم والإنجازات المعتمدة</small></span></Link></section>
       <section className="ui-section follow-hub">
         <div className="section-title-row">
           <div>

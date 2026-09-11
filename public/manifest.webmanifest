@@ -3,8 +3,19 @@
   "short_name": "تعلّمت",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f6f8fb",
-  "theme_color": "#377cc7",
+  "background_color": "#eef8ff",
+  "theme_color": "#1769aa",
   "lang": "ar",
-  "dir": "rtl"
+  "dir": "rtl",
+  "orientation": "any",
+  "scope": "/",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "/shakabumbo.jpg", "sizes": "220x220", "type": "image/webp", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "التقييم السريع", "url": "/teacher/assessment" },
+    { "name": "الطلاب", "url": "/teacher/students" },
+    { "name": "ولي الأمر", "url": "/guardian" }
+  ]
 }

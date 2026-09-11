@@ -1,35 +1,33 @@
 "use client";
+import {FormEvent,useEffect,useMemo,useState} from "react";
+import {PrintButton} from "@/components/PrintButton";
+import {ShareButton} from "@/components/ShareButton";
+import {TeacherBackHeader,TeacherNav} from "@/components/TeacherChrome";
+import {useTaallamt} from "@/lib/store";
 
-import { PrintButton } from "@/components/PrintButton";
-import { ShareButton } from "@/components/ShareButton";
-import { useTaallamt } from "@/lib/store";
+const sections=["البيانات المهنية","التخطيط","تنفيذ التدريس","استراتيجيات التدريس","التقويم","تحليل النتائج","متابعة تعلم الطلاب","الخطط العلاجية","الإثراء","الفروق الفردية","إدارة الصف","القيم والسلوك","توظيف التقنية","مصادر التعلم","التواصل والشراكة مع الأسرة","الأنشطة والمبادرات","التطوير المهني","الإنجازات","الشواهد والمرفقات"];
+type Evidence={id:string;title:string;section:string;source:string;date:string;fileName?:string;automatic?:boolean};
+type Profile={teacher:string;school:string;principal:string;className:string;term:string;year:string;specialization:string;phone:string;email:string};
+const fixed:Profile={teacher:"سلطان الصاعدي",school:"مدرسة عمرو بن أوس الثقفي",principal:"تركي عبدالعزيز الحجيلي",className:"الصف الثاني / 4",term:"الفصل الدراسي الأول",year:"1448هـ",specialization:"",phone:"",email:""};
 
-const sections = [
-  ["👤","السيرة الذاتية","البيانات المهنية والمؤهلات والخبرات."],
-  ["🧭","الرؤية والرسالة والقيم","الرؤية المهنية والرسالة والقيم التي توجه العمل."],
-  ["🎯","أهداف المعلم","الأهداف المهنية والتعليمية خلال العام."],
-  ["🇸🇦","أهداف سياسة التعليم بالمملكة","مرجعية أهداف سياسة التعليم بالمملكة العربية السعودية."],
-  ["🤝","ميثاق أخلاقيات مهنة التعليم","المبادئ والمسؤوليات المهنية للمعلم."],
-  ["🎓","الدورات التدريبية والورش","إضافة الشهادات والدورات والورش وتوثيقها."],
-  ["🎤","المؤتمرات والملتقيات","المشاركات والحضور والأدلة المرتبطة بها."],
-  ["🔗","العضويات العلمية","العضويات المهنية والعلمية."],
-  ["🏆","الجوائز والإنجازات","الجوائز والإنجازات والمبادرات المتميزة."],
-  ["💐","شهادات الشكر والتقدير","حفظ شهادات الشكر والتقدير كأدلة."],
-  ["🪞","التقويم الذاتي","تأمل مهني ونقاط القوة وفرص التحسين."],
-  ["📝","نماذج أوراق العمل","يجمع النظام نماذج من أوراق العمل المسجلة."],
-  ["📋","نماذج من الاختبارات","يجمع النظام نماذج من الاختبارات المسجلة."],
-  ["🌟","مشاركات المعلم","الأنشطة والمبادرات والصور والأعمال التي تريد توثيقها."],
-] as const;
-
-export default function PortfolioPage() {
-  const { resources, students, subjects, terms } = useTaallamt();
-  const activeTerm = terms.find(t=>t.active) ?? terms[0];
-  const activeSubjects = subjects.filter(s=>s.enabled && s.termId===activeTerm?.id);
-  const worksheets = resources.filter(r=>r.kind==="worksheet" || r.kind==="skills_practice").length;
-  const tests = resources.filter(r=>r.kind==="midterm" || r.kind==="final").length;
-  return <main className="shell">
-    <header className="topbar"><div className="brand"><div className="logo">📁</div><div><h1>ملف إنجاز المعلم</h1><p>يتكوّن من بياناتك وأعمالك وأدلتك المسجلة في تعلّمت</p></div></div><div className="mini-actions"><PrintButton label="طباعة الملف" /><ShareButton title="ملف إنجاز المعلم" text="ملف إنجاز المعلم من منصة تعلّمت" /></div></header>
-    <section className="hero"><div><h2>ملف الإنجاز المهني</h2><p>أدخل البيانات الثابتة مرة واحدة، ويجمع النظام الأعمال التعليمية المسجلة تلقائيًا كلما أمكن.</p></div><div className="hero-stats"><div className="stat"><b>{activeSubjects.length}</b><span>مواد</span></div><div className="stat"><b>{students.filter(s=>s.active).length}</b><span>طالبًا</span></div><div className="stat"><b>{worksheets}</b><span>أوراق موثقة</span></div><div className="stat"><b>{tests}</b><span>اختبارات موثقة</span></div></div></section>
-    <section className="section"><div className="section-head"><div><h2>المحتويات المعتمدة</h2><p>هذه هي أقسام ملف الإنجاز المعتمدة. الإضافة اليدوية للأدلة والملفات ستكون من داخل القسم المناسب.</p></div></div><div className="grid">{sections.map(([icon,title,text])=><article className="card" key={title}><div className="icon">{icon}</div><h3>{title}</h3><p>{text}</p>{title==="نماذج أوراق العمل" && <span className="pill">{worksheets} مسجل</span>}{title==="نماذج من الاختبارات" && <span className="pill">{tests} مسجل</span>}</article>)}</div></section>
-  </main>;
+export default function PortfolioPage(){
+ const store=useTaallamt(),[profile,setProfile]=useState(fixed),[evidence,setEvidence]=useState<Evidence[]>([]),[title,setTitle]=useState(""),[section,setSection]=useState(sections[0]),[fileName,setFileName]=useState(""),[editing,setEditing]=useState(false);
+ useEffect(()=>{try{const p=localStorage.getItem("taallamt-teacher-profile"),e=localStorage.getItem("taallamt-portfolio-evidence");if(p)setProfile({...fixed,...JSON.parse(p)});if(e)setEvidence(JSON.parse(e))}catch{}},[]);
+ const automatic=useMemo<Evidence[]>(()=>[
+  ...store.resources.map(item=>({id:`resource:${item.id}`,title:item.title,section:item.kind==="worksheet"||item.kind==="skills_practice"?"مصادر التعلم":"التقويم",source:"المكتبة",date:item.createdAt,automatic:true})),
+  ...Object.values(store.followUps).map(item=>({id:`follow:${item.studentId}`,title:`متابعة وخطة للطالب ${store.students.find(s=>s.id===item.studentId)?.name??""}`,section:"الخطط العلاجية",source:"ملف الطالب",date:new Date().toISOString(),automatic:true})),
+  ...store.messages.filter(item=>item.author==="teacher").map(item=>({id:`message:${item.id}`,title:"تواصل موثق مع ولي أمر",section:"التواصل والشراكة مع الأسرة",source:"التواصل",date:item.createdAt,automatic:true})),
+  ...store.behaviorEvaluations.map(item=>({id:`behavior:${item.id}`,title:"تقييم سلوك وقيمة تربوية",section:"القيم والسلوك",source:"السلوك والتحفيز",date:item.evaluatedAt,automatic:true})),
+ ],[store.resources,store.followUps,store.messages,store.behaviorEvaluations,store.students]);
+ const all=[...automatic,...evidence],covered=new Set(all.map(item=>item.section)),completion=Math.round(covered.size/sections.length*100);
+ function saveProfile(event:FormEvent){event.preventDefault();localStorage.setItem("taallamt-teacher-profile",JSON.stringify(profile));setEditing(false)}
+ function addEvidence(event:FormEvent){event.preventDefault();if(!title.trim())return;const next=[{id:crypto.randomUUID(),title:title.trim(),section,source:"إضافة المعلم",date:new Date().toISOString(),fileName:fileName||undefined},...evidence];setEvidence(next);localStorage.setItem("taallamt-portfolio-evidence",JSON.stringify(next));setTitle("");setFileName("")}
+ function remove(id:string){const next=evidence.filter(item=>item.id!==id);setEvidence(next);localStorage.setItem("taallamt-portfolio-evidence",JSON.stringify(next))}
+ return <main className="shell inner-shell"><TeacherBackHeader title="ملف إنجاز المعلم" subtitle="يتعبأ تلقائيًا من أعمالك اليومية" icon="م"/>
+ <section className="inner-section portfolio-cover"><div><small>ملف الإنجاز المهني</small><h2>{profile.teacher}</h2><p>{profile.school} · {profile.className}</p><p>مدير المدرسة: {profile.principal}</p></div><div className="portfolio-progress"><b>{completion}%</b><span>اكتمال الملف</span></div></section>
+ <section className="inner-section no-print"><div className="inner-section-head"><div><h2>البيانات المعتمدة</h2><span>يمكنك تعديلها متى احتجت</span></div><button className="btn secondary" onClick={()=>setEditing(value=>!value)}>{editing?"إلغاء":"تعديل"}</button></div>{editing?<form className="stack" onSubmit={saveProfile}>{Object.entries(profile).map(([key,value])=><label className="stack" key={key}><span>{{teacher:"اسم المعلم",school:"المدرسة",principal:"مدير المدرسة",className:"الصف والفصل",term:"الفصل الدراسي",year:"العام",specialization:"التخصص",phone:"الجوال",email:"البريد"}[key as keyof Profile]}</span><input className="field" value={value} onChange={event=>setProfile({...profile,[key]:event.target.value})}/></label>)}<button className="btn">حفظ البيانات</button></form>:<div className="profile-facts"><span><small>المعلم</small><b>{profile.teacher}</b></span><span><small>المدرسة</small><b>{profile.school}</b></span><span><small>مدير المدرسة</small><b>{profile.principal}</b></span><span><small>الصف</small><b>{profile.className}</b></span></div>}</section>
+ <section className="inner-section no-print"><div className="inner-section-head"><div><h2>إضافة شاهد</h2><span>الأعمال المناسبة تضاف تلقائيًا؛ استخدم هذا للنواقص فقط</span></div></div><form className="stack" onSubmit={addEvidence}><input className="field" required value={title} onChange={e=>setTitle(e.target.value)} placeholder="عنوان الشاهد أو العمل"/><select className="field" value={section} onChange={e=>setSection(e.target.value)}>{sections.map(item=><option key={item}>{item}</option>)}</select><label className="field">إرفاق ملف<input type="file" onChange={e=>setFileName(e.target.files?.[0]?.name??"")}/></label><button className="btn">إضافة إلى ملف الإنجاز</button></form></section>
+ <section className="inner-section"><div className="inner-section-head"><div><h2>أقسام الملف</h2><span>{covered.size} من {sections.length} أقسام لديها شواهد</span></div><div className="mini-actions no-print"><PrintButton label="PDF / طباعة"/><ShareButton title="ملف إنجاز المعلم سلطان الصاعدي" text="ملف إنجاز المعلم — يتضمن أسماء الطلاب في الشواهد المختارة"/></div></div><div className="portfolio-sections">{sections.map(item=>{const count=all.filter(e=>e.section===item).length;return <article className={count?"complete":""} key={item}><span>{count?"✓":"○"}</span><div><b>{item}</b><small>{count?`${count} شاهد محفوظ`:"يحتاج شاهدًا"}</small></div></article>})}</div></section>
+ <section className="inner-section"><div className="inner-section-head"><h2>الشواهد المجمعة</h2><span>{all.length}</span></div><div className="list">{all.map(item=><div className="row" key={item.id}><div><h4>{item.title}</h4><small>{item.section} · {item.source}{item.fileName?` · ${item.fileName}`:""}</small></div>{item.automatic?<span className="badge">تلقائي</span>:<button className="btn danger no-print" onClick={()=>remove(item.id)}>حذف</button>}</div>)}{!all.length&&<div className="empty-state">سيبدأ النظام جمع الشواهد مع أول عمل تحفظه.</div>}</div></section>
+ <div className="notice warn no-print">عند المشاركة الخارجية ستظهر أسماء الطلاب الموجودة في الشواهد، حسب اختيارك.</div><footer className="site-credit">برمجة سلطان الصاعدي</footer><TeacherNav/></main>
 }

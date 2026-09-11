@@ -124,6 +124,7 @@ export default function TeacherBackendPage() {
       resources: store.resources,
       values: store.values,
       valueStars: store.valueStars,
+      behaviorEvaluations: store.behaviorEvaluations,
       spellingPractices: store.spellingPractices,
       followUps: store.followUps,
       messages: store.messages,

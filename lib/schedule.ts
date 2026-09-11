@@ -4,6 +4,14 @@ export const RIYADH_TZ = "Asia/Riyadh";
 export const TERM_START = "2026-08-30";
 export const SCHOOL_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"] as const;
 
+export type SchoolPeriod={id:string;label:string;from:string;to:string;teaching:boolean};
+export const DEFAULT_SCHOOL_PERIODS:SchoolPeriod[]=[
+ {id:"arrival",label:"الطابور",from:"07:00",to:"07:15",teaching:false},{id:"1",label:"الحصة الأولى",from:"07:15",to:"08:00",teaching:true},{id:"2",label:"الحصة الثانية",from:"08:00",to:"08:45",teaching:true},{id:"3",label:"الحصة الثالثة",from:"08:45",to:"09:30",teaching:true},{id:"break",label:"الفسحة",from:"09:30",to:"09:50",teaching:false},{id:"4",label:"الحصة الرابعة",from:"09:50",to:"10:30",teaching:true},{id:"5",label:"الحصة الخامسة",from:"10:30",to:"11:10",teaching:true},{id:"6",label:"الحصة السادسة",from:"11:10",to:"11:50",teaching:true},{id:"7",label:"الحصة السابعة",from:"11:50",to:"12:30",teaching:true},{id:"prayer",label:"الصلاة",from:"12:30",to:"12:50",teaching:false}
+];
+function minutesInRiyadh(date:Date){const parts=new Intl.DateTimeFormat("en-GB",{timeZone:RIYADH_TZ,hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(date);const values=Object.fromEntries(parts.map(part=>[part.type,part.value]));return Number(values.hour)*60+Number(values.minute)}
+function asMinutes(value:string){const[hour,minute]=value.split(":").map(Number);return hour*60+minute}
+export function getSchoolStatus(date=new Date(),periods=DEFAULT_SCHOOL_PERIODS){const day=dayName(date);if(!SCHOOL_DAYS.includes(day as (typeof SCHOOL_DAYS)[number]))return{label:"عطلة أسبوعية",current:null,next:null};const minute=minutesInRiyadh(date),current=periods.find(period=>minute>=asMinutes(period.from)&&minute<asMinutes(period.to))??null,next=periods.find(period=>minute<asMinutes(period.from))??null;if(current)return{label:current.label,current,next};if(minute<asMinutes(periods[0].from))return{label:`القادم: ${periods[0].label}`,current:null,next:periods[0]};return{label:"انتهى الدوام",current:null,next:null}}
+
 type DailyItem = { day: string; title: string };
 
 function riyadhDateKey(date: Date) {
