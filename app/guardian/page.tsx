@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   guardianLogin,
   guardianMe,
+  guardianRequestContact,
   guardianSearch,
   guardianSendMessage,
   type GuardianSearchStudent,
@@ -47,6 +48,12 @@ type Profile = {
   photoDataUrl?: string;
   learningDifficulties?: string;
 };
+type CommunicationAccess = {
+  status: "closed" | "pending" | "approved" | "rejected";
+  reason?: string;
+  requestedAt?: string;
+  updatedAt?: string;
+};
 type Bundle = {
   student: {
     id: string;
@@ -65,6 +72,7 @@ type Bundle = {
   valueStars: ValueStar[];
   followUp: SpecialFollowUp | null;
   messages: Message[];
+  communicationAccess?: CommunicationAccess;
 };
 function errText(e: unknown) {
   const p = (e as { payload?: { error?: string } })?.payload;
@@ -75,9 +83,9 @@ function GuardianHeader() {
   return (
     <header className="guardian-brand-header">
       <div>
-        <span>متابعة ولي الأمر</span>
+        <span>صفحة الطالب</span>
         <h1>تعلّمت</h1>
-        <p>معًا نصنع مستقبلهم</p>
+        <p>متابعة التعلم والإنجاز في صفحة واحدة</p>
       </div>
       <div className="guardian-shak-visual" aria-hidden="true">
         <img src="/shakabumbo-guardian.webp" alt="" />
@@ -124,6 +132,7 @@ export default function GuardianPage() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
+    [contactReason, setContactReason] = useState(""),
     [notice, setNotice] = useState(""),
     [contactOpen, setContactOpen] = useState(false),
     [homeBehavior,setHomeBehavior]=useState("الالتزام بالتعليمات"),
@@ -172,6 +181,20 @@ export default function GuardianPage() {
       setBusy(false);
     }
   }
+  async function requestContact(e?: FormEvent) {
+    e?.preventDefault();
+    setBusy(true);
+    try {
+      await guardianRequestContact(contactReason.trim());
+      setContactReason("");
+      await refresh();
+      setNotice("تم إرسال طلب التواصل للمعلم. تفتح المحادثة فقط بعد موافقته.");
+    } catch {
+      setNotice("تعذر إرسال طلب التواصل الآن.");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function send(e: FormEvent) {
     e.preventDefault();
     if (!message.trim()) return;
@@ -180,10 +203,10 @@ export default function GuardianPage() {
       await guardianSendMessage(message.trim());
       setMessage("");
       await refresh();
-      setNotice("تم إرسال طلب التواصل للمعلم");
-      setContactOpen(false);
-    } catch {
-      setNotice("لم تُرسل الرسالة، ولن يعاد إرسالها تلقائيًا.");
+      setNotice("تم إرسال الرسالة للمعلم");
+    } catch (x) {
+      const code = (x as { payload?: { error?: string } })?.payload?.error;
+      setNotice(code === "CONTACT_NOT_APPROVED" ? "المحادثة مغلقة حاليًا وتحتاج موافقة المعلم." : "لم تُرسل الرسالة، ولن يعاد إرسالها تلقائيًا.");
     } finally {
       setBusy(false);
     }
@@ -191,13 +214,13 @@ export default function GuardianPage() {
   async function sendHomeBehavior(){
     setBusy(true);
     try{await guardianSendMessage(`تقييم المنزل: ${homeBehavior} — ${homeLevel}`);await refresh();setNotice("تم إرسال تقييم المنزل للمعلم");}
-    catch{setNotice("لم يُرسل التقييم، ولن يعاد إرساله تلقائيًا.");}
+    catch(x){const code=(x as {payload?:{error?:string}})?.payload?.error;setNotice(code==="CONTACT_NOT_APPROVED"?"التواصل مغلق حاليًا. أرسل طلب تواصل للمعلم أولًا.":"لم يُرسل التقييم، ولن يعاد إرساله تلقائيًا.");}
     finally{setBusy(false)}
   }
   if (!ready)
     return (
       <main className="shell">
-        <div className="empty-state">جاري فتح بوابة ولي الأمر…</div>
+        <div className="empty-state">جاري فتح صفحة الطالب…</div>
       </main>
     );
   if (!bundle)
@@ -206,7 +229,7 @@ export default function GuardianPage() {
         <GuardianHeader />
       <GuardianMeta />
         <section className="ui-section">
-          <h2>دخول ولي الأمر</h2>
+          <h2>فتح صفحة الطالب</h2>
           <form className="card stack" onSubmit={login}>
             <input
               className="field"
@@ -247,6 +270,7 @@ export default function GuardianPage() {
     awards = Math.floor(stars / 30),
     progress = stars % 30,
     displayName = shortName(p?.preferredName || s.name),
+    communicationStatus = bundle.communicationAccess?.status ?? "closed",
     updates = [
       ...bundle.assessments.map((a) => ({
         id: a.id,
@@ -443,49 +467,42 @@ export default function GuardianPage() {
       </section>
       <section className="ui-section contact-section">
         <div className="section-title-row"><div><h2>السلوك خارج المدرسة</h2><p>قيّم سلوك ابنك في المنزل فقط</p></div></div>
-        <div className="guardian-home-behavior"><select className="field" value={homeBehavior} onChange={e=>setHomeBehavior(e.target.value)}><option>الالتزام بالتعليمات</option><option>احترام الآخرين</option><option>تحمل المسؤولية</option><option>النظافة والترتيب</option><option>الصدق والأمانة</option></select><div className="segmented">{["متميز ⭐","جيد ✓","يحتاج متابعة !"].map(level=><button type="button" className={homeLevel===level?"active":""} onClick={()=>setHomeLevel(level)} key={level}>{level}</button>)}</div><button className="btn" disabled={busy} onClick={()=>void sendHomeBehavior()}>إرسال تقييم المنزل</button></div>
+        <div className="guardian-home-behavior"><select className="field" value={homeBehavior} onChange={e=>setHomeBehavior(e.target.value)}><option>الالتزام بالتعليمات</option><option>احترام الآخرين</option><option>تحمل المسؤولية</option><option>النظافة والترتيب</option><option>الصدق والأمانة</option></select><div className="segmented">{["متميز ⭐","جيد ✓","يحتاج متابعة !"].map(level=><button type="button" className={homeLevel===level?"active":""} onClick={()=>setHomeLevel(level)} key={level}>{level}</button>)}</div><button className="btn" disabled={busy || communicationStatus!=="approved"} onClick={()=>void sendHomeBehavior()}>{communicationStatus==="approved"?"إرسال تقييم المنزل":"يفتح بعد موافقة المعلم"}</button></div>
       </section>
       <section className="ui-section contact-section">
-        <button
-          type="button"
-          className="guardian-contact-trigger"
-          onClick={() => setContactOpen((v) => !v)}
-        >
-          <img src={icons + "message.svg"} alt="" />
-          <span>
-            <b>طلب تواصل مع المعلم</b>
-            <small>
-              {contactOpen ? "إغلاق النموذج" : "اضغط لكتابة الرسالة"}
-            </small>
-          </span>
-        </button>
-        {contactOpen && (
-          <div className="contact-drawer card">
-            <div className="contact-drawer-head">
-              <h3>طلب تواصل مع المعلم</h3>
-              <button type="button" onClick={() => setContactOpen(false)}>
-                إغلاق
-              </button>
-            </div>
-            {bundle.messages.slice(-3).map((m) => (
-              <div className="message-mini" key={m.id}>
-                <b>{m.author === "teacher" ? "المعلم" : "ولي الأمر"}</b>
-                <p>{m.body}</p>
+        <div className="section-title-row"><div><h2>التواصل مع المعلم</h2><p>المحادثة مغلقة افتراضيًا وتفتح بموافقة المعلم</p></div><span className={`badge ${communicationStatus==="pending"?"warn":""}`}>{communicationStatus==="approved"?"مفتوح":communicationStatus==="pending"?"بانتظار المعلم":communicationStatus==="rejected"?"غير مفعّل":"مغلق"}</span></div>
+        {communicationStatus === "approved" ? <>
+          <button
+            type="button"
+            className="guardian-contact-trigger"
+            onClick={() => setContactOpen((v) => !v)}
+          >
+            <img src={icons + "message.svg"} alt="" />
+            <span>
+              <b>المحادثة مع المعلم</b>
+              <small>{contactOpen ? "إغلاق المحادثة" : "اضغط لعرض الرسائل أو إرسال رسالة"}</small>
+            </span>
+          </button>
+          {contactOpen && (
+            <div className="contact-drawer card">
+              <div className="contact-drawer-head">
+                <h3>المحادثة المعتمدة</h3>
+                <button type="button" onClick={() => setContactOpen(false)}>إغلاق</button>
               </div>
-            ))}
-            <form className="stack" onSubmit={send}>
-              <input
-                className="field"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="اكتب طلب التواصل أو رسالتك"
-              />
-              <button className="btn" disabled={busy}>
-                إرسال الطلب
-              </button>
-            </form>
-          </div>
-        )}
+              {bundle.messages.slice(-6).map((m) => (
+                <div className="message-mini" key={m.id}>
+                  <b>{m.author === "teacher" ? "المعلم" : "ولي الأمر"}</b>
+                  <p>{m.body}</p>
+                </div>
+              ))}
+              {!bundle.messages.length && <div className="empty-state compact-empty">المحادثة مفتوحة ولا توجد رسائل بعد.</div>}
+              <form className="stack" onSubmit={send}>
+                <input className="field" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="اكتب رسالتك للمعلم" />
+                <button className="btn" disabled={busy || !message.trim()}>إرسال الرسالة</button>
+              </form>
+            </div>
+          )}
+        </> : communicationStatus === "pending" ? <div className="attention-card"><b>تم إرسال طلب التواصل</b><p>بانتظار موافقة المعلم. لا يمكن إرسال رسائل قبل الاعتماد.</p></div> : <form className="stack card" onSubmit={requestContact}><p>{communicationStatus==="rejected"?"لم يُفعّل المعلم المحادثة حاليًا. يمكنك إرسال طلب جديد عند الحاجة.":"إذا احتجت التواصل، أرسل طلبًا مختصرًا للمعلم أولًا."}</p><input className="field" maxLength={500} value={contactReason} onChange={e=>setContactReason(e.target.value)} placeholder="سبب التواصل — اختياري"/><button className="btn" disabled={busy}>{busy?"جاري الإرسال…":"طلب فتح التواصل"}</button></form>}
       </section>
       <section className="ui-section" id="library">
         <div className="section-title-row">
@@ -514,7 +531,7 @@ export default function GuardianPage() {
         )}
         </div>
       </section>
-      <section className="ui-section"><Link className="guardian-contact-trigger" href="/student"><img src={icons+"trophy.svg"} alt=""/><span><b>ملف إنجاز الطالب</b><small>الأعمال والنجوم والإنجازات المعتمدة</small></span></Link></section>
+      <section className="ui-section"><Link className="guardian-contact-trigger" href="/guardian/portfolio"><img src={icons+"trophy.svg"} alt=""/><span><b>ملف إنجاز الطالب</b><small>الأعمال والنجوم والإنجازات المعتمدة</small></span></Link></section>
       <section className="ui-section follow-hub">
         <div className="section-title-row">
           <div>
