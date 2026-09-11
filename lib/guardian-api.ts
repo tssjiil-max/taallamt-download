@@ -12,6 +12,17 @@ export type GuardianStudentProfileInput = {
   helpfulNotes: string;
   photoDataUrl: string;
 };
+export type GuardianPortfolioItem = {
+  id: string;
+  studentId: string;
+  title: string;
+  fileName: string;
+  mimeType: string;
+  dataUrl: string;
+  source: "guardian" | "teacher";
+  createdAt: string;
+};
+export type GuardianPortfolioUploadInput = Pick<GuardianPortfolioItem, "title" | "fileName" | "mimeType" | "dataUrl">;
 
 async function readJson<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as T;
@@ -29,3 +40,6 @@ export async function guardianSendMessage(body: string) { return readJson<{ ok: 
 export async function guardianSendHomeBehavior(behavior: string, level: string) { return readJson<{ ok: true }>(await fetch("/api/guardian/home-behavior", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ behavior, level }) })); }
 export async function guardianSendFollowUp(category: FollowUpCategory, statement: string) { return readJson<{ ok: true }>(await fetch("/api/guardian/follow-up", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category, statement }) })); }
 export async function guardianSaveProfile(profile: GuardianStudentProfileInput) { return readJson<{ ok: true }>(await fetch("/api/guardian/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) })); }
+export async function guardianPortfolioItems() { return readJson<{ items: GuardianPortfolioItem[] }>(await fetch("/api/guardian/portfolio-items", { cache: "no-store" })); }
+export async function guardianPortfolioUpload(item: GuardianPortfolioUploadInput) { return readJson<{ ok: true; item: GuardianPortfolioItem }>(await fetch("/api/guardian/portfolio-items", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) })); }
+export async function guardianPortfolioDelete(id: string) { return readJson<{ ok: true }>(await fetch(`/api/guardian/portfolio-items?id=${encodeURIComponent(id)}`, { method: "DELETE" })); }
