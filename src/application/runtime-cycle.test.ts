@@ -1,0 +1,16 @@
+import { describe,expect,it } from 'vitest';
+import { LearningRuntime } from './learning-runtime';
+import type { ComprehensiveAssessment, CurriculumTarget, PortfolioEvent, RemediationPlan, Student } from '../core/domain';
+import type { ClassSession, TimetableEntry, WeeklyPlanItem } from '../core/session';
+
+describe('operational learning runtime',()=>{
+ it('saves teacher assessment and immediately projects it to student view',async()=>{
+  const students:Student[]=[{id:'s1',fullName:'طالب تجريبي',active:true,createdAt:'2026-09-11'}];
+  const assessments:ComprehensiveAssessment[]=[];const remediation:RemediationPlan[]=[];const portfolio:PortfolioEvent[]=[];let stars=0;
+  const learning={getSession:async(_id:string):Promise<ClassSession|null>=>null,saveSession:async(_v:ClassSession)=>{},saveAssessment:async(v:ComprehensiveAssessment)=>{assessments.push(v)},listStudentAssessments:async(id:string)=>assessments.filter(a=>a.studentId===id),listStudentRemediation:async(id:string)=>remediation.filter(p=>p.studentId===id),listStudentPortfolio:async(id:string)=>portfolio.filter(p=>p.studentId===id),saveRemediation:async(v:RemediationPlan)=>{remediation.push(v)},appendPortfolio:async(v:PortfolioEvent[])=>{portfolio.push(...v)},listTimetable:async(_id:string):Promise<TimetableEntry[]>=>[],listWeeklyPlan:async(_key:string):Promise<WeeklyPlanItem[]>=>[]};
+  const runtime=new LearningRuntime({students:{listActive:async()=>students,get:async()=>students[0],save:async()=>{},archive:async()=>{}},curriculum:{listTargets:async():Promise<CurriculumTarget[]>=>[{id:'skill',subject:'arabic',title:'مهارة'}],saveTargets:async()=>{}},learning,rewards:{getMonthlyStars:async()=>stars,addStars:async(_id,_m,n)=>{stars+=n}},studentLive:{assessments:async()=>assessments,remediation:async()=>remediation,portfolio:async()=>portfolio,stars:async()=>stars}});
+  const a:ComprehensiveAssessment={id:'a1',studentId:'s1',classSessionId:'c1',sessionDate:'2026-09-11',enteredAt:'2026-09-11T08:00:00',track:'general',academic:[{targetId:'skill',result:'mastered'}],behavior:[]};
+  await runtime.saveAssessments([a]);const view=await runtime.studentView('s1','2026-09');
+  expect(view.latestResults).toHaveLength(1);expect(view.stars.current).toBe(1);expect(view.achievements.length).toBeGreaterThan(0);
+ });
+});
