@@ -18,8 +18,8 @@ const items: NavItem[] = [
 ];
 
 const pages: Record<string, PageMeta> = {
-  "/teacher/assessment": { title: "التقييم الشامل", subtitle: "ملف واحد لكل طالب", icon: "check" },
-  "/teacher/students": { title: "طلاب الفصل", subtitle: "اضغط اسم الطالب لفتح تقييمه الشامل", icon: "users" },
+  "/teacher/assessment": { title: "التقييم", subtitle: "ملف واحد لكل طالب", icon: "check" },
+  "/teacher/students": { title: "طلاب الفصل", subtitle: "اضغط اسم الطالب لفتح تقييمه", icon: "users" },
   "/teacher/library": { title: "المكتبة", subtitle: "المصادر والملفات التعليمية", icon: "library" },
   "/teacher/announcements": { title: "الرسائل والتواصل", subtitle: "الرسائل والإعلانات وطلبات أولياء الأمور", icon: "message" },
   "/teacher/reports": { title: "التقارير", subtitle: "ملخصات التقدم والنتائج", icon: "report" },
@@ -41,7 +41,7 @@ function resolvePage(pathname: string): PageMeta {
   if (pathname.startsWith("/teacher/students/") && pathname.endsWith("/assessment")) return { title: "التقييم الشامل", subtitle: "المواد والسلوك والقيم والمتابعة في صفحة واحدة", icon: "check" };
   if (pathname.startsWith("/teacher/students/") && pathname.endsWith("/portfolio")) return { title: "ملف إنجاز الطالب", subtitle: "الشواهد والتقدم والمهارات", icon: "star" };
   if (pathname.startsWith("/teacher/students/")) return { title: "ملف الطالب", subtitle: "التقييم والمتابعة والتواصل", icon: "student" };
-  if (pathname.startsWith("/teacher/subject/")) return { title: "المادة والمهارات", subtitle: "خطة الأسبوع والتقييم", icon: "book" };
+  if (pathname.startsWith("/teacher/subject/")) return { title: "المادة والمهارات", subtitle: "خطة الأسبوع والمهارات", icon: "book" };
   return pages[pathname] ?? { title: "تعلّمت", subtitle: "صفحة المعلم", icon: "sparkle" };
 }
 
@@ -54,10 +54,10 @@ export function TeacherBrandHeader() {
           <div><h1>تعلّمت</h1><p>القمة تكفي الجميع</p></div>
         </Link>
 
-        <Link className="teacher-mascot-card" href="/teacher/shakabumbo" aria-label="فتح مساعد شكابمبو">
-          <Image src="/teacher-icons/shakabumbo-logo.svg" alt="شكابمبو" width={116} height={116} priority />
+        <div className="teacher-mascot-card" aria-label="شكابمبو">
+          <Image src="/teacher-icons/shakabumbo-logo.svg" alt="شكابمبو" width={96} height={96} priority />
           <span>المعرفة قوة</span>
-        </Link>
+        </div>
 
         <div className="teacher-header-time"><LiveSchoolTime /></div>
       </div>
@@ -69,7 +69,6 @@ export function TeacherBrandHeader() {
           <strong>أ. سلطان الصاعدي</strong>
           <span>الصف الثاني / 4 · مدرسة عمرو بن أوس الثقفي</span>
         </div>
-        <Link className="teacher-identity-settings" href="/teacher/settings" aria-label="إعدادات المعلم"><UiIcon name="settings" /></Link>
       </div>
     </header>
   );
@@ -99,6 +98,7 @@ export function TeacherFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const meta = resolvePage(pathname);
   const [alertMessage, setAlertMessage] = useState("");
+  const isComprehensiveAssessment = pathname.startsWith("/teacher/students/") && pathname.endsWith("/assessment");
 
   useEffect(() => {
     const originalAlert = window.alert;
@@ -111,15 +111,14 @@ export function TeacherFrame({ children }: { children: ReactNode }) {
       <div className="teacher-unified-shell">
         <TeacherBrandHeader />
 
-        <section className="teacher-page-heading">
-          <span className="teacher-page-heading-icon" aria-hidden="true"><UiIcon name={meta.icon} /></span>
-          <div className="teacher-page-heading-copy">
-            <small>صفحة المعلم</small>
-            <h2>{meta.title}</h2>
-            <p>{meta.subtitle}</p>
-          </div>
-          <Link href="/" className="teacher-page-heading-home"><UiIcon name="home" /><span>الرئيسية</span></Link>
-        </section>
+        {!isComprehensiveAssessment && (
+          <section className="teacher-page-heading teacher-page-heading-simple">
+            <div className="teacher-page-heading-copy">
+              <h2>{meta.title}</h2>
+              <p>{meta.subtitle}</p>
+            </div>
+          </section>
+        )}
 
         {alertMessage && <div className="teacher-inline-alert no-print" role="status"><span>{alertMessage}</span><button type="button" onClick={() => setAlertMessage("")} aria-label="إغلاق التنبيه">×</button></div>}
         <div className="teacher-unified-content">{children}</div>
@@ -132,9 +131,8 @@ export function TeacherFrame({ children }: { children: ReactNode }) {
 export function TeacherBackHeader({ title, subtitle, icon = "student" }: { title: string; subtitle?: string; icon?: UiIconName }) {
   return (
     <header className="ta-inner-header">
-      <Link href="/" className="ta-logo" aria-label="العودة إلى الرئيسية"><UiIcon name={icon} /></Link>
+      <div className="ta-logo" aria-hidden="true"><UiIcon name={icon} /></div>
       <div><small>تعلّمت · الصف الثاني / 4</small><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>
-      <Link href="/" className="ta-back"><UiIcon name="home" /><span>الرئيسية</span></Link>
     </header>
   );
 }
