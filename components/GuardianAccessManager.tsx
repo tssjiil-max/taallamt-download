@@ -19,6 +19,7 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
   const [accessEnabled, setAccessEnabled] = useState(Boolean(student?.guardianAccessEnabled));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmDisable, setConfirmDisable] = useState(false);
 
   function urlFor(token: string) {
     if (typeof window === "undefined") return "";
@@ -105,13 +106,14 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
   }
 
   async function disable() {
-    if (!confirm("تعطيل رابط صفحة الطالب وإلغاء الأجهزة الحالية؟")) return;
     setBusy(true);
+    setStatus("");
     try {
       await disableGuardianAccessRemote(id);
       store.disableGuardianAccess(id);
       setAccessEnabled(false);
       setShareUrl("");
+      setConfirmDisable(false);
       setStatus("تم تعطيل الرابط وإلغاء جلسات صفحة الطالب.");
     } catch {
       setStatus("تعذر تعطيل الرابط الآن.");
@@ -130,8 +132,12 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
         {!accessEnabled && <button className="btn" disabled={busy} type="button" onClick={() => void createLink()}>تفعيل الرابط</button>}
         <button className="btn" disabled={busy} type="button" onClick={() => void shareLink()}>مشاركة صفحة الطالب</button>
         <button className="btn secondary" disabled={busy} type="button" onClick={() => void copyLink()}>نسخ الرابط</button>
-        {accessEnabled && <button className="btn danger" disabled={busy} type="button" onClick={() => void disable()}>تعطيل الرابط</button>}
+        {accessEnabled && !confirmDisable && <button className="btn danger" disabled={busy} type="button" onClick={() => setConfirmDisable(true)}>تعطيل الرابط</button>}
       </div>
+      {confirmDisable && <div className="inline-confirm no-print" role="dialog" aria-label="تأكيد تعطيل رابط الطالب">
+        <div><b>تعطيل رابط صفحة الطالب؟</b><small>سيتم إلغاء الرابط الحالي والجلسات المفتوحة للعائلة. يمكنك إنشاء رابط جديد لاحقًا.</small></div>
+        <div className="mini-actions"><button className="btn danger" disabled={busy} type="button" onClick={() => void disable()}>{busy ? "جاري التعطيل…" : "نعم، تعطيل"}</button><button className="btn secondary" disabled={busy} type="button" onClick={() => setConfirmDisable(false)}>إلغاء</button></div>
+      </div>}
       {status && <div className="notice section" role="status">{status}</div>}
       <small className="notification-note">الرابط خاص بهذا الطالب؛ لا يحتاج ولي الأمر إلى إدخال رمز أو رقم سري.</small>
     </div>
