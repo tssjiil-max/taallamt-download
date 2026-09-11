@@ -48,7 +48,7 @@ export function TeacherWhatsAppComposer() {
   const students = useMemo(() => store.students.filter((student) => student.active), [store.students]);
   const [contacts, setContacts] = useState<GuardianContact[]>([]);
   const [studentId, setStudentId] = useState("");
-  const [type, setType] = useState<WhatsAppType>("student_page");
+  const [type, setType] = useState<WhatsAppType | "">("");
   const [guardianName, setGuardianName] = useState("");
   const [guardianPhone, setGuardianPhone] = useState("");
   const [message, setMessage] = useState("");
@@ -65,23 +65,17 @@ export function TeacherWhatsAppComposer() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const requestedStudent = params.get("student") ?? "";
-    const requestedType = params.get("type") as WhatsAppType | null;
     if (requestedStudent && students.some((student) => student.id === requestedStudent)) setStudentId(requestedStudent);
-    if (requestedType && types.some((item) => item.id === requestedType)) setType(requestedType);
   }, [students]);
 
   useEffect(() => {
     const contact = contacts.find((item) => item.studentId === studentId);
     setGuardianName(contact?.guardianName ?? "");
     setGuardianPhone(contact?.guardianPhone ?? "");
+    setType("");
     setMessage("");
     setNotice("");
   }, [studentId, contacts]);
-
-  useEffect(() => {
-    setMessage("");
-    setNotice("");
-  }, [type]);
 
   const selectedStudent = students.find((student) => student.id === studentId);
 
@@ -120,9 +114,14 @@ export function TeacherWhatsAppComposer() {
     return `${window.location.origin}/guardian?student=${encodeURIComponent(selectedStudent.id)}&token=${encodeURIComponent(token)}`;
   }
 
-  async function compose() {
+  async function compose(requestedType?: WhatsAppType) {
     if (!selectedStudent) {
       setNotice("اختر الطالب أولًا.");
+      return "";
+    }
+    const chosenType = requestedType ?? type;
+    if (!chosenType) {
+      setNotice("اختر نوع الرسالة.");
       return "";
     }
     setBusy(true);
@@ -145,21 +144,21 @@ export function TeacherWhatsAppComposer() {
         .at(-1);
 
       let text = "";
-      if (type === "student_page") {
+      if (chosenType === "student_page") {
         text = `${salutation}\nنأمل متابعة صفحة الطالب ${selectedStudent.name} في «تعلّمت». ستجدون فيها آخر التقييمات والمهارات والنجوم والمتابعة التعليمية.\n\nالرابط المباشر — لا يحتاج رقمًا سريًا:\n${pageUrl}\n\n${sign}`;
-      } else if (type === "summons") {
+      } else if (chosenType === "summons") {
         text = `${salutation}\nنرغب في التواصل معكم بخصوص متابعة الطالب ${selectedStudent.name}. يوجد استدعاء/تنسيق مع ولي الأمر، ونأمل الاطلاع على صفحة الطالب قبل التواصل مع المدرسة.\n\nصفحة الطالب:\n${pageUrl}\n\n${sign}`;
-      } else if (type === "skill_followup") {
+      } else if (chosenType === "skill_followup") {
         const skillsText = needs.length
           ? needs.slice(0, 3).map((skill) => `• ${skill.title}`).join("\n")
           : "لا توجد حاليًا مهارات مصنفة «يحتاج تدريب» في آخر تقييم.";
         text = `${salutation}\nهذه متابعة مختصرة لمستوى الطالب ${selectedStudent.name}.\n${needs.length ? "المهارات التي تحتاج تدريبًا حاليًا:" : "الحالة الحالية:"}\n${skillsText}\n\nيمكنكم متابعة التحديثات والتدريبات من صفحة الطالب:\n${pageUrl}\n\n${sign}`;
-      } else if (type === "behavior") {
+      } else if (chosenType === "behavior") {
         const level = latestBehavior?.level === "excellent" ? "متميز" : latestBehavior?.level === "needs_follow_up" ? "يحتاج متابعة" : latestBehavior ? "جيد" : "لا يوجد تقييم سلوكي حديث";
         text = `${salutation}\nمتابعة تربوية للطالب ${selectedStudent.name}: مستوى السلوك المسجل حاليًا «${level}». نأمل تعزيز السلوك الإيجابي في المنزل ومتابعة أي تحديثات من صفحة الطالب.\n\n${pageUrl}\n\n${sign}`;
-      } else if (type === "praise") {
+      } else if (chosenType === "praise") {
         text = `${salutation}\nيسعدنا إشادتكم بتقدم الطالب ${selectedStudent.name} وتشجيعه على الاستمرار. رصيده الحالي في «تعلّمت» هو ${stars} نجمة. دعمكم وتشجيعكم يصنع فرقًا كبيرًا. ⭐\n\nتابعوا إنجازاته من هنا:\n${pageUrl}\n\n${sign}`;
-      } else if (type === "homework") {
+      } else if (chosenType === "homework") {
         const planText = studentPlans.length
           ? studentPlans.map((plan) => `• ${plan.title}`).join("\n")
           : "يرجى مراجعة صفحة الطالب للاطلاع على خطة هذا الأسبوع.";
@@ -178,9 +177,20 @@ export function TeacherWhatsAppComposer() {
     }
   }
 
+  function chooseType(nextType: WhatsAppType) {
+    setType(nextType);
+    setMessage("");
+    setNotice("");
+    void compose(nextType);
+  }
+
   async function openWhatsApp() {
     if (!selectedStudent) {
       setNotice("اختر الطالب أولًا.");
+      return;
+    }
+    if (!type) {
+      setNotice("اختر نوع الرسالة أولًا.");
       return;
     }
     setBusy(true);
@@ -190,7 +200,7 @@ export function TeacherWhatsAppComposer() {
       return;
     }
     let text = message.trim();
-    if (!text) text = await compose();
+    if (!text) text = await compose(type);
     if (!text) {
       setBusy(false);
       return;
@@ -211,43 +221,66 @@ export function TeacherWhatsAppComposer() {
     <section className="section no-print" id="whatsapp">
       <div className="section-head">
         <div>
-          <h2>رسائل واتساب لولي الأمر</h2>
-          <p>اختر الطالب ونوع الرسالة؛ يجهّز النظام النص والرابط ثم تراجعه قبل الإرسال.</p>
+          <h2>الرسائل والتواصل مع ولي الأمر</h2>
+          <p>اختر الطالب أولًا، ثم اختر نوع الإرسال المناسب.</p>
         </div>
         <span className="badge">واتساب</span>
       </div>
       <div className="card stack whatsapp-composer">
-        <div className="two">
-          <label className="stack">الطالب
-            <select className="field" value={studentId} onChange={(event) => setStudentId(event.target.value)}>
-              <option value="">اختر الطالب</option>
-              {students.map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}
-            </select>
-          </label>
-          <label className="stack">نوع الرسالة
-            <select className="field" value={type} onChange={(event) => setType(event.target.value as WhatsAppType)}>
-              {types.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
-            </select>
-          </label>
-        </div>
-        <small>{types.find((item) => item.id === type)?.hint}</small>
-        <div className="two">
-          <label className="stack">اسم ولي الأمر
-            <input className="field" value={guardianName} onChange={(event) => setGuardianName(event.target.value)} placeholder="مثال: محمد أحمد" />
-          </label>
-          <label className="stack">جوال ولي الأمر
-            <input className="field" inputMode="tel" value={guardianPhone} onChange={(event) => setGuardianPhone(event.target.value)} placeholder="05xxxxxxxx" />
-          </label>
-        </div>
-        <div className="mini-actions">
-          <button className="btn secondary" type="button" disabled={busy || !selectedStudent} onClick={() => void compose()}>{busy ? "جاري التجهيز…" : "تجهيز الرسالة"}</button>
-          <button className="btn" type="button" disabled={busy || !selectedStudent} onClick={() => void openWhatsApp()}>فتح واتساب</button>
-        </div>
-        {message && <label className="stack">معاينة الرسالة
-          <textarea className="field textarea" rows={9} value={message} onChange={(event) => setMessage(event.target.value)} />
-        </label>}
+        <label className="stack">1. اختر الطالب
+          <select className="field" value={studentId} onChange={(event) => setStudentId(event.target.value)}>
+            <option value="">اختر اسم الطالب</option>
+            {students.map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}
+          </select>
+        </label>
+
+        {!selectedStudent && <div className="notice">اختر اسم الطالب لتظهر خيارات الإرسال.</div>}
+
+        {selectedStudent && <>
+          <div className="student-contact-summary">
+            <div><b>{selectedStudent.name}</b><span>{selectedStudent.className}</span></div>
+            <small>{guardianPhone ? `جوال ولي الأمر محفوظ: ${guardianPhone}` : "لم يُحفظ جوال ولي الأمر بعد"}</small>
+          </div>
+
+          <div className="stack">
+            <b>2. ماذا تريد أن ترسل؟</b>
+            <div className="whatsapp-message-options">
+              {types.map((item) => (
+                <button
+                  className={type === item.id ? "active" : ""}
+                  type="button"
+                  key={item.id}
+                  disabled={busy}
+                  onClick={() => chooseType(item.id)}
+                >
+                  <strong>{item.label}</strong>
+                  <small>{item.hint}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="two guardian-contact-fields">
+            <label className="stack">اسم ولي الأمر
+              <input className="field" value={guardianName} onChange={(event) => setGuardianName(event.target.value)} placeholder="اختياري" />
+            </label>
+            <label className="stack">جوال ولي الأمر
+              <input className="field" inputMode="tel" value={guardianPhone} onChange={(event) => setGuardianPhone(event.target.value)} placeholder="05xxxxxxxx" />
+            </label>
+          </div>
+
+          {message && <label className="stack">3. راجع الرسالة قبل الإرسال
+            <textarea className="field textarea" rows={9} value={message} onChange={(event) => setMessage(event.target.value)} />
+          </label>}
+
+          <div className="mini-actions">
+            {type && <button className="btn secondary" type="button" disabled={busy} onClick={() => void compose(type)}>{busy ? "جاري التجهيز…" : "إعادة تجهيز النص"}</button>}
+            <button className="btn" type="button" disabled={busy || !type} onClick={() => void openWhatsApp()}>فتح واتساب</button>
+          </div>
+        </>}
+
         {notice && <div className="notice" role="status">{notice}</div>}
-        <small>رابط صفحة الطالب مباشر ومخصص للطالب، ولا يحتاج ولي الأمر إلى إدخال رقم سري. رقم الجوال واسم ولي الأمر يُحفظان لاستخدامهما لاحقًا.</small>
+        <small>الإرسال النهائي لا يتم تلقائيًا؛ يفتح واتساب بعد تجهيز الرسالة لتراجعها أنت أولًا. رابط صفحة الطالب مباشر ومخصص له ولا يحتاج رقمًا سريًا.</small>
       </div>
     </section>
   );
