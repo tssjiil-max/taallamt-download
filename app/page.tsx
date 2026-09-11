@@ -3,8 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {academicWeek,getSchoolStatus} from "@/lib/schedule";
 import {useTaallamt} from "@/lib/store";
-import {LiveSchoolTime} from "@/components/LiveSchoolTime";
-import {TeacherNav} from "@/components/TeacherChrome";
+import {TeacherBrandHeader,TeacherNav} from "@/components/TeacherChrome";
 
 const subjectOrder=["لغتي","القرآن الكريم","الدراسات الإسلامية","الإملاء والخط"];
 const subjectMeta:Record<string,{icon:string;line:string;tone:string}>={"لغتي":{icon:"/guardian-icons/lughati.svg",line:"أقرأ · أفكر · أعبّر",tone:"blue"},"القرآن الكريم":{icon:"/guardian-icons/quran.svg",line:"تلاوة · حفظ · إتقان",tone:"aqua"},"الدراسات الإسلامية":{icon:"/guardian-icons/islamic.svg",line:"قيم · فقه · سلوك",tone:"indigo"},"الإملاء والخط":{icon:"/guardian-icons/message.svg",line:"كتابة صحيحة · خط أجمل",tone:"ice"}};
@@ -17,8 +16,7 @@ export default function TeacherHome(){
  const trainingStudents=new Set(store.assessments.filter(item=>item.level==="needs_training").map(item=>item.studentId)).size,guardianReplies=store.messages.filter(item=>item.author==="guardian").length,status=getSchoolStatus();
  const currentPlan=store.weeklyPlans.find(plan=>plan.week===week&&plan.subjectId===subjects[0]?.id);
  return <main className="ta-app ta-teacher-home">
-  <section className="ta-hero"><div className="ta-brand"><div className="ta-wordmark"><span>★</span><h1>تعلّمت</h1><p>معًا… برحلة تعليم أجمل</p></div><div className="ta-profile"><strong>أ. سلطان الصاعدي</strong><span>الصف الثاني / 4</span><small>مدرسة عمرو بن أوس الثقفي</small></div></div><Link className="ta-mascot" href="/teacher/shakabumbo"><Image src="/shakabumbo-guardian.webp" alt="شكابمبو" width={720} height={1080} priority/><div><b>شكابمبو</b><span>مساعدك الذكي</span></div></Link></section>
-  <LiveSchoolTime/>
+  <TeacherBrandHeader/>
   <section className="ta-card ta-now-card"><div className="ta-section-title"><div><small>مركز العمل اليومي</small><h2>{status.current?.teaching?"حصتي الآن":"الحصة القادمة"}</h2></div><span className="ta-period-badge">{status.label}</span></div><div className="ta-now-content"><div><b>{currentPlan?.title??"خطة اليوم جاهزة من توزيع المنهج"}</b><p>{weekSkills.slice(0,2).map(skill=>skill.category).join(" · ")||"تظهر المهارات عند بداية الحصة"}</p></div><Link href="/teacher/assessment">ابدأ الحصة</Link></div></section>
   <section className="ta-card ta-summary"><div className="ta-section-title"><div><small>ما يحتاج اهتمامك</small><h2>ملخص اليوم</h2></div><span>الأسبوع {week}</span></div><div className="ta-summary-grid"><Link href="/teacher/assessment"><strong>{pending}</strong><b>تقييمات مطلوبة</b></Link><Link href="/teacher/students"><strong>{trainingStudents}</strong><b>تحتاج متابعة</b></Link><Link href="/teacher/announcements"><strong>{guardianReplies}</strong><b>ردود أولياء الأمور</b></Link></div></section>
   <section className="ta-card ta-subject-panel"><div className="ta-section-title"><div><small>اختر المادة لبدء التقييم والمتابعة</small><h2>المواد والمهارات</h2></div><span>4 مواد</span></div><div className="ta-subject-grid">{subjects.map(subject=>{const meta=subjectMeta[subject.name],plan=store.weeklyPlans.find(item=>item.subjectId===subject.id&&item.week===week);return <Link className={`ta-subject ${meta?.tone??"blue"}`} href={`/teacher/subject/${subject.id}`} key={subject.id}><Image src={meta?.icon??"/guardian-icons/library.svg"} alt="" width={72} height={72}/><b>{subject.name}</b><span>{meta?.line}</span><small>{plan?.title??"لم تُحدد خطة هذا الأسبوع"}</small></Link>})}</div></section>
