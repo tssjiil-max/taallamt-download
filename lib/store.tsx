@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { initialData } from "./sample-data";
-import type { BehaviorContext, BehaviorLevel, FollowUpCategory, LearningResource, MasteryLevel, ResourceKind, SkillAssessment, SpecialFollowUp, TaallamtData, ValueTarget } from "./types";
+import type { BehaviorContext, BehaviorLevel, FollowUpCategory, LearningResource, MasteryLevel, ResourceKind, SkillAssessment, SpecialFollowUp, StudentFollowUpAction, TaallamtData, ValueTarget } from "./types";
 
 const STORAGE_KEY = "taallamt-flex-v1";
 
@@ -34,6 +34,7 @@ type StoreValue = TaallamtData & {
   deleteStudent: (id: string) => void;
   setMastery: (studentId: string, subjectId: string, level: MasteryLevel) => void;
   setSkillAssessment: (studentId: string, skillId: string, level: MasteryLevel, note?: string) => void;
+  setStudentFollowUp: (studentId: string, actions: StudentFollowUpAction[], note?: string) => void;
   addLearningResource: (resource: NewResource) => string;
   awardValueStar: (studentId: string, valueId: string, reason?: string) => void;
   removeValueStar: (studentId: string, valueId: string) => void;
@@ -58,6 +59,10 @@ type StoreValue = TaallamtData & {
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
+
+function withAction(actions: StudentFollowUpAction[] | undefined, action: StudentFollowUpAction) {
+  return Array.from(new Set([...(actions ?? []), action]));
+}
 
 export function TaallamtProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<TaallamtData>(initialData);
@@ -99,7 +104,7 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     ...data, ready, activeTermId,
     addStudent(name) {
       const clean = name.trim(); if (!clean) return;
-      setData((d) => ({ ...d, students: [...d.students, { id: uid("student"), name: clean, className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 0, guardianAccessEnabled: false, specialFollowUp: false, subjectLevels: {} }] }));
+      setData((d) => ({ ...d, students: [...d.students, { id: uid("student"), name: clean, className: "ثاني/4", active: true, guardianDeviceLimit: 2, guardianDevices: 0, guardianAccessEnabled: false, specialFollowUp: false, followUpActions: [], subjectLevels: {} }] }));
     },
     renameStudent(id, name) {
       const clean = name.trim(); if (!clean) return;
@@ -112,19 +117,46 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
         ...d,
         students: d.students.filter((s) => s.id !== id),
         assessments: d.assessments.filter((a) => a.studentId !== id),
+        behaviorEvaluations: d.behaviorEvaluations.filter((item) => item.studentId !== id),
         resources: d.resources.map((resource) => ({ ...resource, audienceStudentIds: resource.audienceStudentIds.filter((studentId) => studentId !== id) })),
         valueStars: d.valueStars.filter((star) => star.studentId !== id),
         messages: d.messages.filter((m) => m.studentId !== id),
         followUps: Object.fromEntries(Object.entries(d.followUps).filter(([key]) => key !== id)),
       }));
     },
-    setMastery(studentId, subjectId, level) { setData((d) => ({ ...d, students: d.students.map((s) => s.id === studentId ? { ...s, subjectLevels: { ...s.subjectLevels, [subjectId]: level } } : s) })); },
+    setMastery(studentId, subjectId, level) {
+      setData((d) => ({
+        ...d,
+        students: d.students.map((s) => {
+          if (s.id !== studentId) return s;
+          const followUpActions = level === "needs_training" ? withAction(s.followUpActions, "needs_follow_up") : s.followUpActions;
+          return {
+            ...s,
+            subjectLevels: { ...s.subjectLevels, [subjectId]: level },
+            specialFollowUp: level === "needs_training" ? true : s.specialFollowUp,
+            followUpActions,
+          };
+        }),
+      }));
+    },
     setSkillAssessment(studentId, skillId, level, note) {
       const assessment: SkillAssessment = { id: uid("assessment"), studentId, skillId, level, assessedAt: new Date().toISOString(), note: note?.trim() || undefined };
       setData((d) => ({
         ...d,
         assessments: [...d.assessments.filter((item) => !(item.studentId === studentId && item.skillId === skillId)), assessment],
-        students: level === "needs_training" ? d.students.map((student) => student.id === studentId ? { ...student, specialFollowUp: true } : student) : d.students,
+        students: level === "needs_training" ? d.students.map((student) => student.id === studentId ? { ...student, specialFollowUp: true, followUpActions: withAction(student.followUpActions, "needs_follow_up") } : student) : d.students,
+      }));
+    },
+    setStudentFollowUp(studentId, actions, note) {
+      const cleanActions = Array.from(new Set(actions));
+      setData((d) => ({
+        ...d,
+        students: d.students.map((student) => student.id === studentId ? {
+          ...student,
+          followUpActions: cleanActions,
+          followUpNote: note?.trim() || undefined,
+          specialFollowUp: cleanActions.includes("needs_follow_up") || cleanActions.includes("special_follow_up"),
+        } : student),
       }));
     },
     addLearningResource(resource) {
@@ -159,7 +191,11 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
     },
     setBehaviorEvaluation(studentId, behaviorId, context, level, evaluatedBy="teacher") {
       const entry = { id: uid("behavior"), studentId, behaviorId, context, level, evaluatedBy, evaluatedAt: new Date().toISOString() } as const;
-      setData((d) => ({ ...d, behaviorEvaluations: [...d.behaviorEvaluations.filter((item) => !(item.studentId===studentId&&item.behaviorId===behaviorId&&item.context===context)), entry] }));
+      setData((d) => ({
+        ...d,
+        behaviorEvaluations: [...d.behaviorEvaluations.filter((item) => !(item.studentId===studentId&&item.behaviorId===behaviorId&&item.context===context)), entry],
+        students: level === "needs_follow_up" ? d.students.map((student) => student.id === studentId ? { ...student, specialFollowUp: true, followUpActions: withAction(student.followUpActions, "needs_follow_up") } : student) : d.students,
+      }));
     },
     addValueTarget(input) {
       if (!activeTermId || !input.title.trim()) return;
@@ -220,12 +256,22 @@ export function TaallamtProvider({ children }: { children: React.ReactNode }) {
       const current = data.followUps[studentId];
       const next: SpecialFollowUp = current ?? { studentId, category, guardianStatement: "", schoolImpact: "", goal: "", plan: [], status: "needs_review", guardianVisible: true };
       const updated = { ...next, category, guardianStatement: statement, guardianVisible: true };
-      setData((d) => ({ ...d, followUps: { ...d.followUps, [studentId]: updated }, students: d.students.map((s) => s.id === studentId ? { ...s, specialFollowUp: true } : s) }));
+      setData((d) => ({ ...d, followUps: { ...d.followUps, [studentId]: updated }, students: d.students.map((s) => s.id === studentId ? { ...s, specialFollowUp: true, followUpActions: withAction(s.followUpActions, "special_follow_up") } : s) }));
     },
-    saveFollowUp(followUp) { setData((d) => ({ ...d, followUps: { ...d.followUps, [followUp.studentId]: followUp }, students: d.students.map((s) => s.id === followUp.studentId ? { ...s, specialFollowUp: true } : s) })); },
+    saveFollowUp(followUp) {
+      setData((d) => ({
+        ...d,
+        followUps: { ...d.followUps, [followUp.studentId]: followUp },
+        students: d.students.map((s) => s.id === followUp.studentId ? { ...s, specialFollowUp: true, followUpActions: withAction(s.followUpActions, "special_follow_up") } : s),
+      }));
+    },
     sendMessage(studentId, author, body) {
       if (!body.trim()) return;
-      setData((d) => ({ ...d, messages: [...d.messages, { id: uid("msg"), studentId, author, body: body.trim(), createdAt: new Date().toISOString() }] }));
+      setData((d) => ({
+        ...d,
+        messages: [...d.messages, { id: uid("msg"), studentId, author, body: body.trim(), createdAt: new Date().toISOString() }],
+        students: author === "teacher" ? d.students.map((s) => s.id === studentId ? { ...s, followUpActions: withAction(s.followUpActions, "guardian_contact") } : s) : d.students,
+      }));
     },
     resetLocalData() { setData(initialData); localStorage.removeItem(STORAGE_KEY); },
   }), [data, ready, activeTermId]);
