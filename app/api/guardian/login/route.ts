@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   if (limit.blocked) {
     return NextResponse.json(
       { error: "TOO_MANY_ATTEMPTS", retryAfterSeconds: limit.retryAfterSeconds },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
     );
   }
 
