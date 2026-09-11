@@ -30,11 +30,12 @@ export async function POST(request: Request) {
   }
   if (!sameOrigin(request)) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
 
-  const body = (await request.json().catch(() => null)) as { studentId?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { studentId?: unknown; shareToken?: unknown } | null;
   const studentId = typeof body?.studentId === "string" ? body.studentId.trim() : "";
+  const shareToken = typeof body?.shareToken === "string" ? body.shareToken.trim() : "";
 
-  if (!studentId) {
-    return NextResponse.json({ error: "NOT_FOUND" }, { status: 400 });
+  if (!studentId || !shareToken) {
+    return NextResponse.json({ error: "INVALID_CODE" }, { status: 400 });
   }
 
   const limitKey = rateLimitKey(request, "guardian", studentId);
@@ -42,12 +43,12 @@ export async function POST(request: Request) {
   if (limit.blocked) {
     return NextResponse.json(
       { error: "TOO_MANY_ATTEMPTS", retryAfterSeconds: limit.retryAfterSeconds },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) },
     );
   }
 
   try {
-    const session = await createGuardianSession(studentId);
+    const session = await createGuardianSession(studentId, shareToken);
     const response = NextResponse.json({ ok: true, expiresAtMs: session.expiresAtMs });
     response.cookies.set(GUARDIAN_COOKIE, session.cookieValue, guardianCookieOptions);
     return response;
