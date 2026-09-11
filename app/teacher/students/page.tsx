@@ -2,36 +2,62 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useTaallamt } from "@/lib/store";
+import type { StudentFollowUpAction } from "@/lib/types";
+
+type StudentFilter = "all" | "followup" | "guardian" | "counselor" | "vice" | "archived";
+
+const filterLabels: Record<StudentFilter, string> = {
+  all: "جميع الطلاب",
+  followup: "يحتاجون متابعة",
+  guardian: "تم التواصل مع ولي الأمر",
+  counselor: "محالون للمرشد",
+  vice: "محالون للوكيل",
+  archived: "الموقوفون",
+};
+
+function hasAction(actions: StudentFollowUpAction[] | undefined, action: StudentFollowUpAction) {
+  return Boolean(actions?.includes(action));
+}
 
 export default function StudentsPage() {
   const {
     students,
+    messages,
     addStudent,
     renameStudent,
     archiveStudent,
     restoreStudent,
     deleteStudent,
-    saveFollowUp,
   } = useTaallamt();
   const [query, setQuery] = useState("");
   const [newName, setNewName] = useState("");
-  const [filter, setFilter] = useState<"active" | "special" | "archived">("active");
+  const [filter, setFilter] = useState<StudentFilter>("all");
   const [editingId, setEditingId] = useState("");
   const [editName, setEditName] = useState("");
   const [deleteId, setDeleteId] = useState("");
   const [notice, setNotice] = useState("");
 
-  const shown = useMemo(
-    () =>
-      students.filter(
-        (s) =>
-          (filter === "archived" ? !s.active : s.active) &&
-          s.name.includes(query.trim()),
-      ),
-    [students, query, filter],
-  );
+  const shown = useMemo(() => {
+    return students.filter((student) => {
+      if (filter === "archived") {
+        if (student.active) return false;
+      } else if (!student.active) {
+        return false;
+      }
 
-  const followUpCount = students.filter((student) => student.active && student.specialFollowUp).length;
+      if (!student.name.includes(query.trim())) return false;
+
+      if (filter === "followup") {
+        return student.specialFollowUp || hasAction(student.followUpActions, "needs_follow_up") || hasAction(student.followUpActions, "special_follow_up");
+      }
+      if (filter === "guardian") {
+        return hasAction(student.followUpActions, "guardian_contact") || messages.some((message) => message.studentId === student.id && message.author === "teacher");
+      }
+      if (filter === "counselor") return hasAction(student.followUpActions, "counselor_referral");
+      if (filter === "vice") return hasAction(student.followUpActions, "vice_principal_referral");
+      return true;
+    });
+  }, [students, messages, query, filter]);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -57,23 +83,6 @@ export default function StudentsPage() {
     setNotice("تم تعديل اسم الطالب.");
   }
 
-  function addToFollowUp(id: string) {
-    const student = students.find((item) => item.id === id);
-    if (!student || student.specialFollowUp) return;
-    saveFollowUp({
-      studentId: id,
-      category: "learning",
-      guardianStatement: "",
-      schoolImpact: "",
-      goal: "",
-      plan: [],
-      status: "needs_review",
-      nextReviewAt: "",
-      guardianVisible: true,
-    });
-    setNotice(`تمت إضافة ${student.name} إلى «يحتاج متابعة».`);
-  }
-
   function confirmDelete(id: string) {
     const student = students.find((item) => item.id === id);
     deleteStudent(id);
@@ -85,25 +94,35 @@ export default function StudentsPage() {
     setNotice(student ? `تم حذف ${student.name}.` : "تم حذف الطالب.");
   }
 
+  function statusText(studentId: string) {
+    const student = students.find((item) => item.id === studentId);
+    if (!student) return "التقييم الشامل";
+    if (hasAction(student.followUpActions, "vice_principal_referral")) return "محال إلى الوكيل";
+    if (hasAction(student.followUpActions, "counselor_referral")) return "محال إلى المرشد";
+    if (student.specialFollowUp || hasAction(student.followUpActions, "needs_follow_up") || hasAction(student.followUpActions, "special_follow_up")) return "يحتاج متابعة";
+    if (hasAction(student.followUpActions, "guardian_contact") || messages.some((message) => message.studentId === student.id && message.author === "teacher")) return "تم التواصل مع ولي الأمر";
+    return "التقييم الشامل";
+  }
+
   return (
     <main className="shell inner-shell">
-      <section className="inner-panel no-print">
-        <div className="section-head"><div><h2>إدارة طلاب الفصل</h2><p>الملف والمتابعة وملف الإنجاز من مكان واحد.</p></div><span className="badge">{filter === "special" ? `${followUpCount} متابعة` : `${shown.length} طالب`}</span></div>
+      <section className="inner-panel no-print student-list-tools">
+        <div className="section-head"><div><h2>طلاب الفصل</h2><p>اضغط اسم الطالب لفتح التقييم الشامل مباشرة.</p></div><span className="badge">{shown.length} طالب</span></div>
         <form className="student-add" onSubmit={submit}>
           <input className="field" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="اسم الطالب الجديد" />
           <button className="btn" type="submit">إضافة طالب</button>
           <input className="field" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="البحث عن طالب..." />
         </form>
-        <div className="segmented">
-          <button className={filter === "active" ? "active" : ""} onClick={() => setFilter("active")} type="button">كل الطلاب</button>
-          <button className={filter === "special" ? "active" : ""} onClick={() => setFilter("special")} type="button">يحتاج متابعة</button>
-          <button className={filter === "archived" ? "active" : ""} onClick={() => setFilter("archived")} type="button">الموقوفون</button>
+        <div className="student-filter-row" aria-label="فلترة الطلاب">
+          {(["all", "followup", "guardian", "counselor", "vice"] as StudentFilter[]).map((item) => (
+            <button className={filter === item ? "active" : ""} onClick={() => setFilter(item)} type="button" key={item}>{filterLabels[item]}</button>
+          ))}
+          <button className={filter === "archived" ? "active secondary-filter" : "secondary-filter"} onClick={() => setFilter("archived")} type="button">الموقوفون</button>
         </div>
-        {filter === "special" && <div className="notice student-follow-up-help">اختر الطالب من القائمة ثم اضغط «إضافة للمتابعة». الطلاب المحددون يظهر عليهم ✓.</div>}
         {notice && <div className="notice" role="status">{notice}</div>}
       </section>
 
-      <section className="student-roster">
+      <section className="student-roster clean-student-roster">
         {shown.map((s, i) => (
           <article className={`student-summary-card ${editingId === s.id ? "is-editing" : ""} ${s.specialFollowUp ? "has-follow-up" : ""}`} key={s.id}>
             <span className="student-number">{i + 1}</span>
@@ -114,15 +133,13 @@ export default function StudentsPage() {
                   <div className="mini-actions"><button className="btn" type="button" onClick={() => saveEdit(s.id)}>حفظ</button><button className="btn secondary" type="button" onClick={() => { setEditingId(""); setEditName(""); }}>إلغاء</button></div>
                 </div>
               ) : (
-                <h3>{s.name}</h3>
+                <h3><Link className="student-name-link" href={`/teacher/students/${s.id}/assessment`}>{s.name}</Link></h3>
               )}
               <p>{s.className}</p>
-              <small>{s.specialFollowUp ? "يحتاج متابعة خاصة" : "التقييم والمتابعة"}</small>
+              <small>{statusText(s.id)}</small>
             </div>
-            <div className="student-card-actions no-print">
-              <Link className="student-open" href={`/teacher/students/${s.id}`}><span aria-hidden="true">⌁</span><span>الملف</span></Link>
+            <div className="student-card-actions compact-student-actions no-print">
               <Link className="student-portfolio-link" href={`/teacher/students/${s.id}/portfolio`}><span aria-hidden="true">★</span><span>الإنجاز</span></Link>
-              {filter !== "archived" && <button className={`student-follow-up-toggle ${s.specialFollowUp ? "active" : ""}`} type="button" disabled={s.specialFollowUp} onClick={() => addToFollowUp(s.id)}><span aria-hidden="true">{s.specialFollowUp ? "✓" : "+"}</span><span>{s.specialFollowUp ? "في المتابعة" : "متابعة"}</span></button>}
               <button type="button" disabled={editingId === s.id} onClick={() => startEdit(s.id, s.name)}><span aria-hidden="true">✎</span><span>تعديل</span></button>
               <button type="button" onClick={() => s.active ? archiveStudent(s.id) : restoreStudent(s.id)}><span aria-hidden="true">{s.active ? "Ⅱ" : "↻"}</span><span>{s.active ? "إيقاف" : "استعادة"}</span></button>
               <button className="student-delete-action" type="button" onClick={() => { setEditingId(""); setDeleteId(s.id); }}><span aria-hidden="true">×</span><span>حذف</span></button>
@@ -133,7 +150,7 @@ export default function StudentsPage() {
             </div>}
           </article>
         ))}
-        {!shown.length && <div className="empty-state">لا توجد نتائج.</div>}
+        {!shown.length && <div className="empty-state">لا توجد نتائج ضمن هذا الفلتر.</div>}
       </section>
       <footer className="site-credit">برمجة سلطان الصاعدي</footer>
     </main>
