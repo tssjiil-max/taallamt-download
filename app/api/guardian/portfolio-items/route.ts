@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 const MAX_DATA_URL = 700_000;
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+type PortfolioDoc = { id: string; createdAt?: string } & Record<string, unknown>;
 
 function unauthorized() {
   return NextResponse.json({ error: "INVALID_SESSION" }, { status: 401 });
@@ -29,7 +30,7 @@ export async function GET() {
     const studentId = await sessionStudentId();
     const snap = await getAdminDb().collection(firestoreCollectionName("portfolioItems")).where("studentId", "==", studentId).get();
     const items = snap.docs
-      .map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }))
+      .map((doc): PortfolioDoc => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }))
       .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")))
       .slice(0, 30);
     return NextResponse.json({ items });
