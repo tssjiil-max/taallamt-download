@@ -6,7 +6,7 @@ import {useTaallamt} from "@/lib/store";
 import {TeacherBrandHeader,TeacherNav} from "@/components/TeacherChrome";
 
 const subjectOrder=["لغتي","القرآن الكريم","الدراسات الإسلامية","الإملاء والخط"];
-const subjectMeta:Record<string,{icon:string;line:string;tone:string}>={"لغتي":{icon:"/guardian-icons/lughati.svg",line:"أقرأ · أفكر · أعبّر",tone:"blue"},"القرآن الكريم":{icon:"/guardian-icons/quran.svg",line:"تلاوة · حفظ · إتقان",tone:"aqua"},"الدراسات الإسلامية":{icon:"/guardian-icons/islamic.svg",line:"قيم · فقه · سلوك",tone:"indigo"},"الإملاء والخط":{icon:"/guardian-icons/message.svg",line:"كتابة صحيحة · خط أجمل",tone:"ice"}};
+const subjectMeta:Record<string,{icon:string;line:string;tone:string}>={"لغتي":{icon:"/subject-icons/lughati.svg",line:"أقرأ · أفكر · أعبّر",tone:"blue"},"القرآن الكريم":{icon:"/subject-icons/quran.svg",line:"تلاوة · حفظ · إتقان",tone:"aqua"},"الدراسات الإسلامية":{icon:"/subject-icons/islamic.svg",line:"قيم · فقه · سلوك",tone:"indigo"},"الإملاء والخط":{icon:"/subject-icons/handwriting.svg",line:"كتابة صحيحة · خط أجمل",tone:"ice"}};
 const levelLabel={mastered:"أتقن",partial:"في تقدم",needs_training:"يحتاج تدريبًا"} as const;
 
 function shortDate(value:string){
