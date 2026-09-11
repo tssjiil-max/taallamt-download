@@ -55,16 +55,33 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await requireTeacher();
-    const body = (await request.json().catch(() => null)) as { studentId?: unknown; guardianName?: unknown; guardianPhone?: unknown } | null;
+    const body = (await request.json().catch(() => null)) as { studentId?: unknown; guardianName?: unknown; guardianPhone?: unknown; studentName?: unknown; className?: unknown } | null;
     const studentId = cleanText(body?.studentId, 200);
     const guardianName = cleanText(body?.guardianName, 120);
     const guardianPhone = normalizePhone(body?.guardianPhone);
+    const studentName = cleanText(body?.studentName, 160);
+    const className = cleanText(body?.className, 80);
     if (!studentId || guardianPhone === null) return NextResponse.json({ error: "INVALID_CONTACT" }, { status: 400 });
 
-    const studentSnap = await getAdminDb().collection(firestoreCollectionName("students")).doc(studentId).get();
-    if (!studentSnap.exists) return NextResponse.json({ error: "STUDENT_NOT_FOUND" }, { status: 404 });
+    const db = getAdminDb();
+    const studentRef = db.collection(firestoreCollectionName("students")).doc(studentId);
+    const studentSnap = await studentRef.get();
+    if (!studentSnap.exists) {
+      if (!studentName) return NextResponse.json({ error: "STUDENT_NOT_FOUND" }, { status: 404 });
+      await studentRef.set({
+        id: studentId,
+        name: studentName,
+        className: className || "ثاني/4",
+        active: true,
+        guardianDeviceLimit: 2,
+        guardianDevices: 0,
+        specialFollowUp: false,
+        subjectLevels: {},
+        createdAt: new Date().toISOString(),
+      }, { merge: true });
+    }
 
-    await getAdminDb().collection(firestoreCollectionName("studentProfiles")).doc(studentId).set({
+    await db.collection(firestoreCollectionName("studentProfiles")).doc(studentId).set({
       studentId,
       guardianName,
       guardianPhone,
