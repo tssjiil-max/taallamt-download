@@ -21,7 +21,7 @@ const behaviors = [
 const labels: Record<BehaviorLevel, string> = {
   excellent: "متميز ⭐",
   good: "جيد ✓",
-  needs_follow_up: "يحتاج متابعة !",
+  needs_follow_up: "يحتاج متابعة",
 };
 
 const REWARD_TARGET = 30;
