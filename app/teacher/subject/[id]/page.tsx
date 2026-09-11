@@ -5,17 +5,13 @@ import { useMemo, useState } from "react";
 import { academicWeek } from "@/lib/schedule";
 import { useTaallamt } from "@/lib/store";
 import type { MasteryLevel } from "@/lib/types";
+
 const labels: Record<MasteryLevel, string> = {
   mastered: "أتقن",
   partial: "يحتاج تدريب",
   needs_training: "يحتاج تدريب",
 };
-const icon = (n: string) =>
-  n.includes("لغتي")
-    ? "/guardian-icons/lughati.svg"
-    : n.includes("قرآن")
-      ? "/guardian-icons/quran.svg"
-      : "/guardian-icons/islamic.svg";
+
 function latest(
   a: ReturnType<typeof useTaallamt>["assessments"],
   sid: string,
@@ -25,8 +21,9 @@ function latest(
   const value = m.at(-1)?.level;
   return value === "partial" ? "needs_training" : value;
 }
-type Tab =
-  "evaluation" | "week" | "skills" | "resources" | "spelling" | "values";
+
+type Tab = "evaluation" | "week" | "skills" | "resources" | "spelling" | "values";
+
 export default function SubjectWorkspace() {
   const { id } = useParams<{ id: string }>(),
     store = useTaallamt(),
@@ -40,32 +37,28 @@ export default function SubjectWorkspace() {
     [tab, setTab] = useState<Tab>("evaluation"),
     [skillId, setSkillId] = useState(""),
     [saving, setSaving] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+
   const plan = plans.find((x) => x.week === week),
     skills = store.skills.filter(
-      (x) =>
-        x.active &&
-        x.termId === term?.id &&
-        x.subjectId === id &&
-        x.week === week,
+      (x) => x.active && x.termId === term?.id && x.subjectId === id && x.week === week,
     ),
     skill = skills.find((x) => x.id === skillId) ?? skills[0];
+
   const stats = useMemo(() => {
-    const v = skill
-      ? students.map((s) => latest(store.assessments, s.id, skill.id))
-      : [];
+    const v = skill ? students.map((s) => latest(store.assessments, s.id, skill.id)) : [];
     return {
       mastered: v.filter((x) => x === "mastered").length,
       needs: v.filter((x) => x === "needs_training").length,
       pending: students.length - v.filter(Boolean).length,
     };
   }, [students, skill, store.assessments]);
-  if (!subject)
-    return (
-      <main className="shell">
-        <div className="empty-state">المادة غير موجودة</div>
-      </main>
-    );
+
+  if (!subject) {
+    return <main className="shell"><div className="empty-state">المادة غير موجودة</div></main>;
+  }
+
   const lughati = subject.name.includes("لغتي");
   const tabs: Array<{ id: Tab; label: string }> = [
     { id: "evaluation", label: "الطلاب والتقييم" },
@@ -79,6 +72,7 @@ export default function SubjectWorkspace() {
         ]
       : []),
   ];
+
   async function save(sid: string, level: MasteryLevel) {
     if (!skill) return;
     const key = sid + skill.id;
@@ -98,8 +92,10 @@ export default function SubjectWorkspace() {
       setSaving("");
     }
   }
+
   async function applyToAll() {
-    if (!skill || !confirm("تسجيل «أتقن» لجميع الطلاب؟")) return;
+    if (!skill) return;
+    setBulkConfirmOpen(false);
     setSaving("all");
     setNotice("");
     try {
@@ -119,219 +115,125 @@ export default function SubjectWorkspace() {
       setSaving("");
     }
   }
+
   return (
     <main className="shell inner-shell">
-      <header className="subject-hero">
-        <img src={icon(subject.name)} alt="" />
-        <div>
-          <span className="inner-kicker">تعلّمت · مادة</span>
-          <h1>{subject.name}</h1>
-          <p>
-            الأسبوع {week} · {plan?.title ?? "لا يوجد درس مسجل"}
-          </p>
-        </div>
-        <Link className="inner-home" href="/">
-          الرئيسية
-        </Link>
-      </header>
-      <section className="subject-stat-strip">
-        <span>
-          <b>{stats.mastered}</b> متقن
-        </span>
-        <span>
-          <b>{stats.needs}</b> يحتاج تدريب
-        </span>
-        <span>
-          <b>{stats.pending}</b> لم يقيّم
-        </span>
+      <section className="subject-context-strip">
+        <div><small>المادة</small><b>{subject.name}</b></div>
+        <div><small>الأسبوع</small><b>{week}</b></div>
+        <div className="grow"><small>الدرس الحالي</small><b>{plan?.title ?? "لا يوجد درس مسجل"}</b></div>
       </section>
+
+      <section className="subject-stat-strip">
+        <span><b>{stats.mastered}</b> متقن</span>
+        <span><b>{stats.needs}</b> يحتاج تدريب</span>
+        <span><b>{stats.pending}</b> لم يقيّم</span>
+      </section>
+
       <nav className="subject-tab-grid no-print">
         {tabs.map((t) => (
-          <button
-            type="button"
-            className={tab === t.id ? "active" : ""}
-            onClick={() => setTab(t.id)}
-            key={t.id}
-          >
-            {t.label}
-          </button>
+          <button type="button" className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)} key={t.id}>{t.label}</button>
         ))}
       </nav>
+
       {notice && <div className="notice">{notice}</div>}
+
       {tab === "evaluation" && (
         <>
           <section className="inner-section">
-            <div className="inner-section-head">
-              <h2>اختر الأسبوع</h2>
-              <span>{plan?.title ?? `الأسبوع ${week}`}</span>
-            </div>
+            <div className="inner-section-head"><h2>اختر الأسبوع</h2><span>{plan?.title ?? `الأسبوع ${week}`}</span></div>
             <div className="week-pills">
               {Array.from({ length: 17 }, (_, i) => i + 1).map((n) => (
-                <button
-                  type="button"
-                  className={week === n ? "active" : ""}
-                  onClick={() => {
-                    setWeek(n);
-                    setSkillId("");
-                  }}
-                  key={n}
-                >
-                  {n}
-                </button>
+                <button type="button" className={week === n ? "active" : ""} onClick={() => { setWeek(n); setSkillId(""); }} key={n}>{n}</button>
               ))}
             </div>
           </section>
+
           <section className="inner-section">
-            <div className="inner-section-head">
-              <h2>المهارة المراد تقييمها</h2>
-              <span>{skills.length} مهارات</span>
-            </div>
+            <div className="inner-section-head"><h2>المهارة المراد تقييمها</h2><span>{skills.length} مهارات</span></div>
             <div className="skill-cards">
               {skills.map((k) => (
-                <button
-                  type="button"
-                  className={skill?.id === k.id ? "active" : ""}
-                  onClick={() => setSkillId(k.id)}
-                  key={k.id}
-                >
-                  <b>{k.category}</b>
-                  <span>{k.title}</span>
-                </button>
+                <button type="button" className={skill?.id === k.id ? "active" : ""} onClick={() => setSkillId(k.id)} key={k.id}><b>{k.category}</b><span>{k.title}</span></button>
               ))}
             </div>
           </section>
+
           <section className="inner-section">
             <div className="inner-section-head">
               <div><h2>طلاب الفصل</h2><span>{students.length} طالبًا</span></div>
-              {skill && <button className="btn mastery-all" disabled={saving === "all"} type="button" onClick={() => void applyToAll()}>أتقن الكل</button>}
+              {skill && <button className="btn mastery-all" disabled={saving === "all"} type="button" onClick={() => setBulkConfirmOpen(true)}>أتقن الكل</button>}
             </div>
             {skill ? (
               <div className="clean-eval-list">
                 {students.map((s, i) => {
-                  const v = latest(store.assessments, s.id, skill.id),
-                    busy = saving === s.id + skill.id;
+                  const v = latest(store.assessments, s.id, skill.id), busy = saving === s.id + skill.id;
                   return (
                     <article key={s.id}>
                       <span className="student-number">{i + 1}</span>
-                      <div className="eval-name">
-                        <h3>{s.name}</h3>
-                        <small>
-                          {busy
-                            ? "جاري الحفظ…"
-                            : v
-                              ? labels[v]
-                              : "لم يقيّم بعد"}
-                        </small>
-                      </div>
+                      <div className="eval-name"><h3>{s.name}</h3><small>{busy ? "جاري الحفظ…" : v ? labels[v] : "لم يقيّم بعد"}</small></div>
                       <div className="eval-choice">
-                        {(
-                          ["mastered", "needs_training"] as MasteryLevel[]
-                        ).map((l) => (
-                          <button
-                            disabled={busy || saving === "all"}
-                            type="button"
-                            className={v === l ? `active ${l}` : l}
-                            onClick={() => void save(s.id, l)}
-                            key={l}
-                          >
-                            {labels[l]}
-                          </button>
+                        {(["mastered", "needs_training"] as MasteryLevel[]).map((l) => (
+                          <button disabled={busy || saving === "all"} type="button" className={v === l ? `active ${l}` : l} onClick={() => void save(s.id, l)} key={l}>{labels[l]}</button>
                         ))}
                       </div>
                     </article>
                   );
                 })}
               </div>
-            ) : (
-              <div className="empty-state">اختر مهارة أولًا.</div>
-            )}
+            ) : <div className="empty-state">اختر مهارة أولًا.</div>}
           </section>
         </>
       )}
+
       {tab === "week" && (
         <section className="inner-section">
-          <div className="inner-section-head">
-            <h2>خطة الأسابيع</h2>
-            <span>17 أسبوعًا</span>
-          </div>
+          <div className="inner-section-head"><h2>خطة الأسابيع</h2><span>17 أسبوعًا</span></div>
           <div className="plan-grid">
             {plans.map((p) => (
-              <button
-                type="button"
-                className={week === p.week ? "active" : ""}
-                onClick={() => setWeek(p.week)}
-                key={p.id}
-              >
-                <b>{p.week}</b>
-                <strong>{p.title}</strong>
-                <span>{week === p.week ? "محدد" : "فتح"}</span>
-              </button>
+              <button type="button" className={week === p.week ? "active" : ""} onClick={() => setWeek(p.week)} key={p.id}><b>{p.week}</b><strong>{p.title}</strong><span>{week === p.week ? "محدد" : "فتح"}</span></button>
             ))}
           </div>
         </section>
       )}
+
       {tab === "skills" && (
         <section className="inner-section">
-          <div className="inner-section-head">
-            <h2>مهارات الأسبوع {week}</h2>
-            <span>{skills.length}</span>
-          </div>
-          <div className="skill-list">
-            {skills.map((k) => (
-              <article key={k.id}>
-                <b>{k.category}</b>
-                <p>{k.title}</p>
-              </article>
-            ))}
-          </div>
+          <div className="inner-section-head"><h2>مهارات الأسبوع {week}</h2><span>{skills.length}</span></div>
+          <div className="skill-list">{skills.map((k) => <article key={k.id}><b>{k.category}</b><p>{k.title}</p></article>)}</div>
         </section>
       )}
+
       {tab === "resources" && (
         <section className="inner-section">
-          <div className="inner-section-head">
-            <h2>الأوراق والمكتبة</h2>
-          </div>
+          <div className="inner-section-head"><h2>الأوراق والمكتبة</h2></div>
           <div className="inner-action-grid">
-            <Link href="/teacher/resources">
-              <img src="/guardian-icons/followup.svg" alt="" />
-              <b>إنشاء تدريب أو ورقة عمل</b>
-            </Link>
-            <Link href="/teacher/library">
-              <img src="/guardian-icons/library.svg" alt="" />
-              <b>المكتبة</b>
-            </Link>
-            <Link href="/teacher/distribution">
-              <img src="/guardian-icons/lughati.svg" alt="" />
-              <b>التوزيع الأسبوعي</b>
-            </Link>
+            <Link href="/teacher/resources"><img src="/guardian-icons/followup.svg" alt="" /><b>إنشاء تدريب أو ورقة عمل</b></Link>
+            <Link href="/teacher/library"><img src="/guardian-icons/library.svg" alt="" /><b>المكتبة</b></Link>
+            <Link href="/teacher/distribution"><img src="/guardian-icons/lughati.svg" alt="" /><b>التوزيع الأسبوعي</b></Link>
           </div>
         </section>
       )}
+
       {tab === "spelling" && lughati && (
-        <section className="inner-section">
-          <div className="feature-link">
-            <img src="/guardian-icons/lughati.svg" alt="" />
-            <div>
-              <h2>الإملاء والخط</h2>
-              <p>المهارة والتدريب ومعايير الخط.</p>
-            </div>
-            <Link href="/teacher/spelling-handwriting">فتح</Link>
-          </div>
-        </section>
+        <section className="inner-section"><div className="feature-link"><img src="/guardian-icons/lughati.svg" alt="" /><div><h2>الإملاء والخط</h2><p>المهارة والتدريب ومعايير الخط.</p></div><Link href="/teacher/spelling-handwriting">فتح</Link></div></section>
       )}
+
       {tab === "values" && lughati && (
-        <section className="inner-section">
-          <div className="feature-link">
-            <img src="/guardian-icons/trophy.svg" alt="" />
-            <div>
-              <h2>القيم والنجوم</h2>
-              <p>تحفيز الطلاب ونجوم السلوك.</p>
-            </div>
-            <Link href="/teacher/values">فتح</Link>
-          </div>
-        </section>
+        <section className="inner-section"><div className="feature-link"><img src="/guardian-icons/trophy.svg" alt="" /><div><h2>القيم والنجوم</h2><p>تحفيز الطلاب ونجوم السلوك.</p></div><Link href="/teacher/values">فتح</Link></div></section>
       )}
+
       <footer className="site-credit">برمجة سلطان الصاعدي</footer>
+
+      {bulkConfirmOpen && (
+        <div className="teacher-modal-backdrop" role="presentation" onClick={() => setBulkConfirmOpen(false)}>
+          <section className="teacher-modal" role="dialog" aria-modal="true" aria-labelledby="subject-bulk-confirm-title" onClick={(event) => event.stopPropagation()}>
+            <div className="teacher-modal-icon" aria-hidden="true">✓</div>
+            <h3 id="subject-bulk-confirm-title">تسجيل «أتقن» لجميع الطلاب؟</h3>
+            <p>سيتم حفظ الإتقان للجميع، وبعدها تعدّل فقط الطلاب الذين يحتاجون تدريبًا.</p>
+            <div className="teacher-modal-actions"><button className="btn secondary" type="button" onClick={() => setBulkConfirmOpen(false)}>إلغاء</button><button className="btn" type="button" onClick={() => void applyToAll()}>تأكيد الحفظ</button></div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
