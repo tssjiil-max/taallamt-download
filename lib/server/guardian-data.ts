@@ -7,10 +7,11 @@ function docsWithIds(docs: QueryDocumentSnapshot[]): LooseDoc[] { return docs.ma
 export async function loadGuardianBundle(studentId: string) {
   const db = getAdminDb();
   const studentRef = db.collection(firestoreCollectionName("students")).doc(studentId);
-  const [studentSnap, activeTermsSnap, profileSnap] = await Promise.all([
+  const [studentSnap, activeTermsSnap, profileSnap, contactRequestSnap] = await Promise.all([
     studentRef.get(),
     db.collection(firestoreCollectionName("terms")).where("active", "==", true).limit(1).get(),
     db.collection(firestoreCollectionName("studentProfiles")).doc(studentId).get(),
+    db.collection(firestoreCollectionName("contactRequests")).doc(studentId).get(),
   ]);
   if (!studentSnap.exists) return null;
   const rawStudent = (studentSnap.data() ?? {}) as Record<string, unknown>;
@@ -46,8 +47,16 @@ export async function loadGuardianBundle(studentId: string) {
   const followUpRaw = followUpSnap.exists ? (followUpSnap.data() as Record<string, unknown>) : undefined;
   const followUp = followUpRaw?.guardianVisible === true ? { studentId, ...followUpRaw } : null;
   const profile = profileSnap.exists ? { studentId, ...(profileSnap.data() as Record<string, unknown>) } : null;
+  const contactRaw = contactRequestSnap.exists ? (contactRequestSnap.data() as Record<string, unknown>) : undefined;
+  const contactStatus = contactRaw?.status === "approved" || contactRaw?.status === "pending" || contactRaw?.status === "rejected" ? contactRaw.status : "closed";
+  const communicationAccess = {
+    status: contactStatus,
+    reason: typeof contactRaw?.reason === "string" ? contactRaw.reason : "",
+    requestedAt: typeof contactRaw?.requestedAt === "string" ? contactRaw.requestedAt : "",
+    updatedAt: typeof contactRaw?.updatedAt === "string" ? contactRaw.updatedAt : "",
+  };
   return {
     student: { id: studentSnap.id, name: String(rawStudent.name ?? ""), className: String(rawStudent.className ?? ""), subjectLevels: rawStudent.subjectLevels ?? {}, specialFollowUp: rawStudent.specialFollowUp === true, guardianDevices: Number(rawStudent.guardianDevices ?? 0), guardianDeviceLimit: Number(rawStudent.guardianDeviceLimit ?? 2) },
-    profile, activeTerm, subjects: guardianSubjects, weeklyPlans: guardianWeeklyPlans, skills: activeSkills, assessments, resources, values: guardianValues, valueStars, spellingPractices: guardianSpellingPractices, followUp, messages,
+    profile, activeTerm, subjects: guardianSubjects, weeklyPlans: guardianWeeklyPlans, skills: activeSkills, assessments, resources, values: guardianValues, valueStars, spellingPractices: guardianSpellingPractices, followUp, messages, communicationAccess,
   };
 }
