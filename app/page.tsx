@@ -1,82 +1,18 @@
 "use client";
-
 import Link from "next/link";
-import { academicWeek, getSchoolStatus } from "@/lib/schedule";
+import { academicWeek } from "@/lib/schedule";
 import { useTaallamt } from "@/lib/store";
-import { weeklyLearningSnapshot, weeklySkillSummary } from "@/lib/weekly-learning";
-import { TeacherBrandHeader, TeacherNav } from "@/components/TeacherChrome";
 
-export default function TeacherHome() {
-  const store = useTaallamt();
-  const term = store.terms.find((item) => item.active) ?? store.terms[0];
-  const week = academicWeek();
-  const status = getSchoolStatus();
-  const students = store.students.filter((item) => item.active);
-  const weekly = weeklyLearningSnapshot(store.weeklyPlans, store.skills, store.subjects, week, term?.id);
-
-  const needsAttention = students.filter((student) => {
-    const actionFollowUp = Boolean(student.followUpActions?.length) || student.specialFollowUp;
-    const subjectFollowUp = Object.values(student.subjectLevels).includes("needs_training");
-    const skillFollowUp = store.assessments.some((assessment) => assessment.studentId === student.id && assessment.level === "needs_training");
-    return actionFollowUp || subjectFollowUp || skillFollowUp;
-  });
-
-  const assessedStudentIds = new Set(store.assessments.map((assessment) => assessment.studentId));
-  const guardianReplies = store.messages.filter((item) => item.author === "guardian").length;
-
-  return (
-    <main className="tc-home-page">
-      <TeacherBrandHeader />
-
-      <section className="tc-week-strip">
-        <div><small>الأسبوع الحالي</small><strong>{week}</strong></div>
-        <div><small>حالة الدوام</small><strong>{status.label}</strong></div>
-        <div><small>الفصل</small><strong>ثاني / 4</strong></div>
-      </section>
-
-      <section className="tc-section tc-week-plan" aria-labelledby="week-plan-title">
-        <header className="tc-section-head">
-          <div><h2 id="week-plan-title">خطة الأسبوع</h2><p>الدرس والمهارة من الدليل والتوزيع المعتمد</p></div>
-          <span>الأسبوع {week}</span>
-        </header>
-        <div className="tc-plan-list">
-          {weekly.map((item) => (
-            <article className="tc-plan-row" key={item.subjectId}>
-              <b>{item.subjectName}</b>
-              <div><strong>{item.lesson}</strong><small>{weeklySkillSummary(item)}</small></div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="tc-section tc-attention" aria-labelledby="attention-title">
-        <header className="tc-section-head">
-          <div><h2 id="attention-title">يحتاج عملًا الآن</h2><p>الطلاب الذين لديهم متابعة أو مهارة تحتاج دعمًا</p></div>
-          <span>{needsAttention.length}</span>
-        </header>
-        {needsAttention.length ? (
-          <div className="tc-student-focus-list">
-            {needsAttention.slice(0, 10).map((student) => (
-              <Link href={`/teacher/students/${student.id}/assessment`} key={student.id}>
-                <div><b>{student.name}</b><small>{student.className}</small></div>
-                <span>فتح الملف ‹</span>
-              </Link>
-            ))}
-            {needsAttention.length > 10 && <Link className="tc-view-all" href="/teacher/students">عرض جميع الطلاب الذين يحتاجون متابعة</Link>}
-          </div>
-        ) : (
-          <div className="tc-empty">لا يوجد طالب يحتاج تدخلاً مسجلاً حاليًا.</div>
-        )}
-      </section>
-
-      <section className="tc-class-line" aria-label="ملخص الفصل">
-        <span><b>{students.length}</b> طالب</span>
-        <span><b>{assessedStudentIds.size}</b> تم تقييمهم</span>
-        <span><b>{guardianReplies}</b> رد ولي أمر</span>
-      </section>
-
-      <footer className="tc-credit">برمجة سلطان الصاعدي</footer>
-      <TeacherNav />
-    </main>
-  );
+export default function TeacherHome(){
+ const store=useTaallamt(); const students=store.students.filter(s=>s.active); const assessed=new Set(store.assessments.map(a=>a.studentId)); const needs=students.filter(s=>s.specialFollowUp||Object.values(s.subjectLevels).includes("needs_training")); const replies=store.messages.filter(m=>m.author==="guardian").length; const week=academicWeek();
+ const subjects=[{n:"لغتي",i:"📘",p:32},{n:"القرآن الكريم",i:"📖",p:25},{n:"الدراسات الإسلامية",i:"🕌",p:28},{n:"الإملاء والخط",i:"🖊️",p:30}];
+ return <main className="ref-page ref-teacher">
+  <header className="ref-teacher-hero"><div className="ref-hero-row"><div className="ref-teacher-id"><div className="ref-avatar">👤</div><div><b>أ. سلطان الصاعدي</b><span>مدرسة عمرو بن أوس الثقفي</span><span>الصف: الثاني / 4</span></div></div><div className="ref-brand">📖 تعلّمت<small>معًا نصنع جيلًا أفضل</small></div></div><div className="ref-credit">برمجة: سلطان الصاعدي</div><div className="ref-date-row"><div className="ref-pill">📅 1 سبتمبر 2026 م</div><div className="ref-pill">📅 4 ربيع الأول 1448 هـ</div><div className="ref-pill">🌱 كل خطوة في التعليم ... تصنع فرقًا كبيرًا</div></div></header>
+  <section className="ref-stats"><div className="ref-card ref-stat"><i>✉️</i><b>رسائل جديدة</b><strong>{replies}</strong></div><div className="ref-card ref-stat"><i>❗</i><b>يحتاجون متابعة</b><strong>{needs.length}</strong></div><div className="ref-card ref-stat"><i>⭐</i><b>تم تقييم اليوم</b><strong>{assessed.size}</strong></div><div className="ref-card ref-stat"><i>👥</i><b>عدد الطلاب</b><strong>{students.length}</strong></div></section>
+  <section className="ref-card ref-now"><div className="ref-title"><span>🕘 حصتي الآن</span><small>الحصة 3　 10:00 - 10:45</small></div><div className="ref-now-grid"><button className="ref-start" type="button" onClick={()=>document.getElementById("teacher-actions")?.scrollIntoView({behavior:"smooth"})}>▶ ابدأ الحصة</button><div className="ref-lesson"><b>🕌 الدراسات الإسلامية</b><p>الوحدة الثانية: أخلاق المسلم</p><p>الدرس: بر الوالدين</p><p><b>المهارات:</b> يبين صور بر الوالدين – يستنتج أثر البر في حياة المسلم</p></div></div></section>
+  <section className="ref-menu" id="teacher-actions"><Link className="ref-card" href="/teacher/curriculum"><i>📖</i><b>المناهج</b><small>الوحدات والدروس</small></Link><Link className="ref-card" href="/teacher/students"><i>👥</i><b>الطلاب</b><small>إدارة بيانات الطلاب</small></Link><Link className="ref-card" href="/teacher/assessment"><i>📋</i><b>التقييم الشامل</b><small>أكاديمي وسلوك</small></Link><Link className="ref-card" href="/teacher/messages"><i>💬</i><b>التواصل</b><small>رسائل أولياء الأمور</small></Link></section>
+  <section className="ref-two"><div className="ref-card ref-panel"><h3>📊 تقدم المنهج　<small>عرض الكل</small></h3>{subjects.map(s=><div className="ref-list-row" key={s.n}><span>{s.i} {s.n}</span><div><div className="ref-progress"><span style={{width:`${s.p}%`}}/></div><small>{s.p}%</small></div></div>)}</div><div className="ref-card ref-panel"><h3>🎯 متابعة اليوم　<small>عرض الكل</small></h3><div className="ref-list-row"><span>🔴 يحتاجون متابعة</span><b>{needs.length}</b></div><div className="ref-list-row"><span>🟢 ممتازون اليوم</span><b>{Math.max(0,assessed.size-needs.length)}</b></div><div className="ref-list-row"><span>🟡 لم يتم تقييمهم</span><b>{Math.max(0,students.length-assessed.size)}</b></div><div className="ref-list-row"><span>⚪ ملاحظات سلوكية</span><b>2</b></div></div></section>
+  <section className="ref-two"><div className="ref-card ref-panel"><h3>☑️ مهامي اليوم　<small>عرض الكل</small></h3><div className="ref-list-row"><span>□ إدخال تقييم لغتي - الوحدة 2</span></div><div className="ref-list-row"><span>□ مراجعة خطط علاجية</span></div><div className="ref-list-row"><span>□ إرسال واجبات الدراسات</span></div></div><div className="ref-card ref-panel"><h3>📣 الإعلانات　<small>عرض الكل</small></h3><div className="ref-list-row"><span>🔴 اجتماع أولياء الأمور يوم الأحد</span></div></div></section>
+  <nav className="ref-bottom"><Link className="active" href="/"><i>🏠</i><b>الرئيسية</b></Link><Link href="/teacher/students"><i>👥</i><b>الطلاب</b></Link><Link className="shaka" href="/student"><i>🤖</i><b>شكابمبو</b></Link><Link href="/teacher/curriculum"><i>📖</i><b>الكتب</b></Link><Link href="/teacher/settings"><i>•••</i><b>المزيد</b></Link></nav>
+ </main>;
 }
