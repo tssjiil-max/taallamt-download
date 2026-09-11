@@ -1,142 +1,15 @@
 "use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { DateBar } from "@/components/DateBar";
-import { latestAssessmentBySkill, skillsNeedingTraining, studentGoal } from "@/lib/assessment";
-import { academicWeek } from "@/lib/schedule";
-import type { MasteryLevel, Skill, SkillAssessment, SpellingPractice, Subject, Term, ValueStar, ValueTarget } from "@/lib/types";
-
-const labels: Record<MasteryLevel, string> = { mastered: "متقن", partial: "أتقن البعض", needs_training: "نحتاج تدريبًا" };
-
-type StudentListItem = { id: string; name: string; className: string };
-type StudentBundle = {
-  student: StudentListItem;
-  activeTerm: Term | null;
-  subjects: Subject[];
-  skills: Skill[];
-  assessments: SkillAssessment[];
-  values: ValueTarget[];
-  valueStars: ValueStar[];
-  spellingPractices: SpellingPractice[];
-};
-
-async function readJson<T>(response: Response) {
-  const payload = (await response.json().catch(() => ({}))) as T;
-  if (!response.ok) throw new Error("REQUEST_FAILED");
-  return payload;
-}
-
-export default function StudentPortal() {
-  const [students, setStudents] = useState<StudentListItem[]>([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [bundle, setBundle] = useState<StudentBundle | null>(null);
-  const [busy, setBusy] = useState(true);
-  const [notice, setNotice] = useState("");
-  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
-  const previousFingerprint = useRef("");
-
-  async function loadStudents() {
-    const result = await readJson<{ students: StudentListItem[] }>(await fetch("/api/teacher/student-preview", { cache: "no-store" }));
-    setStudents(result.students);
-    if (!selectedId && result.students.length) setSelectedId(result.students[0].id);
-  }
-
-  async function loadStudent(id: string, announce = false) {
-    if (!id) return;
-    const result = await readJson<StudentBundle>(await fetch(`/api/teacher/student-preview?studentId=${encodeURIComponent(id)}`, { cache: "no-store" }));
-    const fingerprint = `${result.assessments.length}:${result.valueStars.length}:${result.assessments.at(-1)?.id ?? ""}:${result.valueStars.at(-1)?.id ?? ""}`;
-    if (announce && previousFingerprint.current && previousFingerprint.current !== fingerprint) {
-      const oldParts = previousFingerprint.current.split(":");
-      const assessmentChanged = result.assessments.length !== Number(oldParts[0]);
-      const text = assessmentChanged ? "وصل تحديث جديد من المعلم على تقييمك." : "أضاف لك المعلم نجمة جديدة 🌟";
-      setNotice(text);
-      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        new Notification("تعلّمت", { body: text, icon: "/shakabumbo.jpg" });
-      }
-    }
-    previousFingerprint.current = fingerprint;
-    setBundle(result);
-  }
-
-  useEffect(() => {
-    if (!("Notification" in window)) setPermission("unsupported");
-    else setPermission(Notification.permission);
-    loadStudents().catch(() => setNotice("تعذر تحميل قائمة الطلاب. تأكد من دخول المعلم.")).finally(() => setBusy(false));
-  }, []);
-
-  useEffect(() => {
-    if (!selectedId) return;
-    setBusy(true);
-    previousFingerprint.current = "";
-    loadStudent(selectedId).catch(() => setNotice("تعذر تحميل بيانات الطالب من Firestore.")).finally(() => setBusy(false));
-    const timer = window.setInterval(() => {
-      loadStudent(selectedId, true).catch(() => undefined);
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [selectedId]);
-
-  async function refreshNow() {
-    if (!selectedId) return;
-    setBusy(true);
-    setNotice("");
-    await loadStudent(selectedId, true).catch(() => setNotice("تعذر التحديث الآن.")).finally(() => setBusy(false));
-  }
-
-  async function enableNotifications() {
-    if (!("Notification" in window)) {
-      setPermission("unsupported");
-      return;
-    }
-    const result = await Notification.requestPermission();
-    setPermission(result);
-  }
-
-  const week = academicWeek();
-  const latest = useMemo(() => bundle ? latestAssessmentBySkill(bundle.assessments, bundle.student.id) : new Map<string, SkillAssessment>(), [bundle]);
-
-  if (busy && !bundle) return <main className="shell"><div className="notice">جاري تحميل صفحة الطالب من Firestore…</div></main>;
-  if (!students.length) return <main className="shell"><div className="notice warn">لا توجد بيانات طلاب متاحة. افتح الصفحة بعد تسجيل دخول المعلم.</div><Link className="btn section" href="/">لوحة المعلم</Link></main>;
-  if (!bundle) return <main className="shell"><div className="notice warn">تعذر فتح بيانات الطالب.</div></main>;
-
-  const student = bundle.student;
-  const subjects = [...bundle.subjects].sort((a, b) => a.order - b.order);
-  const activeSkills = bundle.skills.filter((skill) => skill.active !== false);
-  const needsSkills = skillsNeedingTraining(activeSkills, bundle.assessments, student.id, bundle.activeTerm?.id);
-  const weeklySkills = activeSkills.filter((skill) => skill.week === week);
-  const focusSkill = needsSkills[0] ?? weeklySkills[0];
-  const focusSubject = focusSkill ? subjects.find((subject) => subject.id === focusSkill.subjectId) : undefined;
-  const firstName = student.name.split(" ")[0];
-  const mastered = Array.from(latest.values()).filter((assessment) => assessment.level === "mastered").length;
-  const stars = bundle.valueStars.length;
-  const spelling = bundle.spellingPractices.find((item) => item.active && item.week === week);
-  const currentValues = bundle.values.filter((item) => item.active && week >= item.weekFrom && week <= item.weekTo);
-
-  return (
-    <main className="shell">
-      <header className="topbar"><div className="brand"><div className="logo">🌟</div><div><h1>صفحة الطالب</h1><p>أتعلم · أطبق · أتحلى بقيمة جميلة</p></div></div><div className="mini-actions no-print"><button className="btn" type="button" disabled={busy} onClick={() => void refreshNow()}>{busy ? "يحدّث…" : "تحديث الآن"}</button><Link className="btn secondary" href="/">لوحة المعلم</Link></div></header>
-      <DateBar />
-
-      <div className="card no-print"><div className="toolbar"><span>الطالب:</span><select className="field grow" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>{students.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><span className="badge">تحديث تلقائي كل 5 ثوانٍ</span></div></div>
-
-      <section className="section no-print"><div className="section-head"><h2>🔔 إشعارات الطالب</h2>{permission === "granted" ? <span className="badge">مفعلة</span> : permission === "unsupported" ? <span className="badge warn">غير مدعومة</span> : <button className="btn" type="button" onClick={() => void enableNotifications()}>تفعيل الإشعارات</button>}</div>{notice ? <div className="notice">{notice}</div> : <div className="notice">أي تقييم أو نجمة جديدة من المعلم تظهر هنا تلقائيًا أثناء فتح الصفحة.</div>}</section>
-
-      <section className="hero section"><div><h2>أهلًا يا {firstName} 👋</h2><p>ركز اليوم على مهمة واحدة، ثم احتفل بتقدمك. هذه البيانات تأتي مباشرة من Firestore.</p></div><div className="hero-stats"><div className="stat"><b>{mastered}</b><span>مهارات متقنة</span></div><div className="stat"><b>{week}</b><span>الأسبوع</span></div><div className="stat"><b>{stars}</b><span>نجوم قيم</span></div><div className="stat"><b>{needsSkills.length}</b><span>أهداف تدريب</span></div></div></section>
-
-      <section className="section two">
-        <div className="card"><div className="icon amber">🎯</div><h3>مهمتي الآن</h3>{focusSkill ? <><p>{studentGoal(focusSkill)}</p><div className="toolbar section"><span className="badge">{focusSubject?.name ?? "المادة"}</span><span className="badge">{focusSkill.category}</span>{needsSkills.some((skill) => skill.id === focusSkill.id) && <span className="badge warn">أحاول مرة أخرى</span>}</div></> : <p>لا توجد مهمة مهارية محددة الآن.</p>}</div>
-
-        <details className="card">
-          <summary style={{ cursor: "pointer", fontWeight: 800 }}><span className="icon green">✍️</span> الإملاء والخط — اضغط للفتح</summary>
-          {spelling ? <div className="section"><h3>{spelling.unitName}</h3><p>{spelling.skill}</p>{spelling.handwritingChecklist?.length ? <ul>{spelling.handwritingChecklist.map((item) => <li key={item}>{item}</li>)}</ul> : null}</div> : <p className="section">لا يوجد تدريب إملاء محدد لهذا الأسبوع.</p>}
-        </details>
-      </section>
-
-      <section className="section"><div className="section-head"><h2>🌟 تحدي القيم</h2></div><div className="grid">{currentValues.map((value) => { const count = bundle.valueStars.filter((star) => star.valueId === value.id).length; const next = count >= 8 ? "أحسنت! وصلت للجائزة المميزة 🎉" : count >= 5 ? "أنت نجم الأسبوع 🌟" : count >= 3 ? "أنت بطل القيمة ⭐" : `اجمع ${3 - count} نجوم إضافية لتصبح بطل القيمة`; return <div className="card" key={value.id}><h3>{value.title}</h3><p>{value.studentText}</p><div style={{ fontSize: 24 }}>{"⭐".repeat(Math.min(count, 8)) || "☆ ☆ ☆"}</div><div className="notice section">{next}</div></div>; })}{currentValues.length === 0 && <div className="notice">لا توجد قيمة محددة لهذا الأسبوع.</div>}</div></section>
-
-      <section className="section"><div className="section-head"><h2>موادي — اضغط على المادة لفتح مهاراتها</h2></div><div className="grid">{subjects.map((subject) => { const subjectSkills = weeklySkills.filter((skill) => skill.subjectId === subject.id); const subjectNeeds = subjectSkills.filter((skill) => latest.get(skill.id)?.level === "needs_training").length; return <details className="card" key={subject.id}><summary style={{ cursor: "pointer", fontWeight: 800 }}><div className="icon">📚</div>{subject.name} {subjectNeeds ? <span className="badge warn">{subjectNeeds} تحتاج تدريب</span> : null}</summary><div className="list section">{subjectSkills.map((skill) => { const assessment = latest.get(skill.id); return <div className="row" key={skill.id}><div><h4>{skill.category}</h4><small>{skill.title}</small></div><span className={`badge ${assessment?.level === "needs_training" ? "warn" : ""}`}>{assessment ? labels[assessment.level] : "لم يقيّم"}</span></div>; })}{subjectSkills.length === 0 && <div className="notice">لا توجد مهارات لهذه المادة في الأسبوع الحالي.</div>}</div></details>; })}</div></section>
-
-      <section className="section"><div className="card shak-card"><img className="shak-thumb" src="/shakabumbo.jpg" alt="شكابمبو" /><div><h3>شكابمبو</h3><p>قد يناديك المعلم لتقرأ أو تسمّع أو تحاول مرة أخرى. اسمع التعليمات وخذها خطوة خطوة.</p></div></div></section>
-    </main>
-  );
-}
+import {useEffect,useState} from "react";
+type S={id:string;name:string;className:string}; type B={student:S;subjects:{id:string;name:string;order:number}[];assessments:{studentId:string;level:string}[];valueStars:{id:string}[]};
+export default function StudentPage(){const [students,setStudents]=useState<S[]>([]);const [bundle,setBundle]=useState<B|null>(null);const [id,setId]=useState("");
+ useEffect(()=>{fetch("/api/teacher/student-preview",{cache:"no-store"}).then(r=>r.json()).then(x=>{setStudents(x.students||[]);if(x.students?.[0])setId(x.students[0].id)}).catch(()=>{})},[]);
+ useEffect(()=>{if(!id)return;fetch(`/api/teacher/student-preview?studentId=${encodeURIComponent(id)}`,{cache:"no-store"}).then(r=>r.json()).then(setBundle).catch(()=>{})},[id]);
+ const student=bundle?.student??students[0]; const first=student?.name?.split(" ")[0]||"أحمد"; const stars=Math.min(30,bundle?.valueStars?.length??12); const subj=[{n:"الإملاء والخط",i:"🖊️",p:90},{n:"لغتي",i:"📘",p:92},{n:"الدراسات الإسلامية",i:"🕌",p:88},{n:"القرآن الكريم",i:"📖",p:95}]; const tasks=["مراجعة سورة الكوثر","حل تدريبات الدرس الثالث","كتابة كلمات الإملاء","مذاكرة درس آداب الطعام"]; const schedule=[["القرآن الكريم","8:00 - 8:40","📖"],["لغتي","8:50 - 9:30","📘"],["الدراسات الإسلامية","10:00 - 10:40","🕌"],["الإملاء والخط","11:00 - 11:40","🖊️"]];
+ return <main className="ref-page ref-student"><header className="ref-student-hero"><div className="ref-student-head"><div className="ref-student-welcome">☀️ مرحبًا {first}<br/><small>الصف الثاني / 4</small></div><div className="ref-student-brand">📖 تعلّمت<br/><small>معًا نصنع جيلًا أفضل</small></div></div><div className="ref-shaka-top">🤖</div></header>
+ <section className="ref-card ref-student-profile"><div className="ref-profile-grid"><div className="ref-profile-main"><div className="ref-child-avatar">👦🏻</div><div><span>👤 ملف الطالب</span><h2>{first}</h2><b>الصف الثاني / 4</b><div className="ref-bubble">أتعلم<br/>وأصنع مستقبلي المشرق! ☀️</div></div></div><div><div className="ref-star-today"><i>⭐</i><div><b>نجمي اليوم</b><br/><strong>{stars} / 30</strong><div className="ref-progress"><span style={{width:`${stars/30*100}%`,background:'#14bd6b'}}/></div></div></div><div className="ref-tags"><div>💚 <b>هواياتي</b><br/><small>القراءة　الرسم</small></div><div>🏆 <b>إنجازاتي</b><br/><small>قارئ مميز　متعاون</small></div></div></div></div></section>
+ <section className="ref-subjects">{subj.map(s=><div className="ref-card ref-subject" key={s.n}><i>{s.i}</i><b>{s.n}</b><strong>{s.p}%</strong><div className="ref-progress"><span style={{width:`${s.p}%`,background:s.n==='الإملاء والخط'?'#9c48ea':s.n==='لغتي'?'#258bea':'#16bd73'}}/></div></div>)}</section>
+ <section className="ref-today"><div className="ref-card ref-panel"><h3>📅 جدولي اليوم</h3><div className="ref-schedule">{schedule.map((x,i)=><div className="ref-task" key={i}><span>{x[2]}</span><div><b>{x[0]}</b><br/><small>{x[1]}</small></div></div>)}</div></div><div className="ref-card ref-panel"><h3>📋 مهامي اليوم</h3>{tasks.map((t,i)=><label className="ref-task" key={t}><input type="checkbox"/><span><b>{t}</b><br/><small>{subj[i]?.n}</small></span></label>)}</div></section>
+ <section className="ref-card ref-stars"><div className="ref-gift">🎁<b>مكافأة قادمة<br/>{stars} / 30</b></div><div><b>⭐ اجمع 30 نجمة لتحصل على مكافأتك!</b><div className="ref-star-grid">{Array.from({length:30},(_,i)=><span className={i<stars?'on':''} key={i}>★</span>)}</div></div><div className="ref-trophy">🏆🤖<b style={{display:'block',fontSize:16}}>نجومي ⭐</b></div></section>
+ {students.length>1&&<div style={{textAlign:'center',margin:10}}><select value={id} onChange={e=>setId(e.target.value)}>{students.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></div>}
+ <nav className="ref-bottom"><Link className="active" href="/student"><i>🏠</i><b>الرئيسية</b></Link><a href="#subjects"><i>📖</i><b>المواد</b></a><button className="shaka" type="button" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}><i>🤖</i><b>شكابمبو</b></button><Link href="/teacher/curriculum"><i>📖</i><b>الكتب</b></Link><Link href="/"><i>•••</i><b>المزيد</b></Link></nav></main>}
