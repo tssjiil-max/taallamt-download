@@ -12,6 +12,7 @@ import "./final-feature-polish.css";
 import "./shell-redesign.css";
 import "./strict-ui-fixes.css";
 import "./strict-last-mile.css";
+import "./teacher-student-parity.css";
 import { TaallamtProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
