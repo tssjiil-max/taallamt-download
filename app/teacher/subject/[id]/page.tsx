@@ -46,10 +46,9 @@ export default function SubjectWorkspace() {
 
       <section className="notice subject-assessment-moved no-print">
         <div>
-          <b>تقييم الطلاب أصبح موحدًا داخل «التقييم الشامل».</b>
-          <span>المواد والسلوك والقيم والمتابعة تُدار من ملف الطالب نفسه دون تكرار قائمة الطلاب.</span>
+          <b>تقييم الطالب يُدار من ملفه الواحد.</b>
+          <span>استخدم تبويب «التقييم» في الشريط السفلي لفتح الطالب ومتابعة المواد والسلوك والقيم من مكان واحد.</span>
         </div>
-        <Link className="btn" href="/teacher/students">فتح قائمة الطلاب</Link>
       </section>
 
       <nav className="subject-tab-grid no-print">
@@ -84,18 +83,17 @@ export default function SubjectWorkspace() {
       {tab === "resources" && (
         <section className="inner-section">
           <div className="inner-section-head"><h2>الأوراق والمكتبة</h2></div>
-          <div className="inner-action-grid">
-            <Link href="/teacher/resources"><img src="/guardian-icons/followup.svg" alt="" /><b>إنشاء تدريب أو ورقة عمل</b></Link>
-            <Link href="/teacher/library"><img src="/guardian-icons/library.svg" alt="" /><b>المكتبة</b></Link>
-            <Link href="/teacher/distribution"><img src="/guardian-icons/lughati.svg" alt="" /><b>التوزيع الأسبوعي</b></Link>
+          <div className="inner-action-grid compact-resource-links">
+            <Link href="/teacher/resources"><b>إنشاء تدريب أو ورقة عمل</b></Link>
+            <Link href="/teacher/library"><b>المكتبة</b></Link>
+            <Link href="/teacher/distribution"><b>التوزيع الأسبوعي</b></Link>
           </div>
         </section>
       )}
 
       {tab === "spelling" && lughati && (
         <section className="inner-section">
-          <div className="feature-link">
-            <img src="/guardian-icons/lughati.svg" alt="" />
+          <div className="feature-link compact-feature-link">
             <div><h2>الإملاء والخط</h2><p>المهارة والتدريب ومعايير الخط.</p></div>
             <Link href="/teacher/spelling-handwriting">فتح</Link>
           </div>
