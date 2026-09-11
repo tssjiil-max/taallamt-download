@@ -1,6 +1,13 @@
 export type MasteryLevel = "mastered" | "partial" | "needs_training";
 export type FollowUpCategory = "health" | "learning" | "behavior" | "family" | "other";
 export type ResourceKind = "worksheet" | "skills_practice" | "midterm" | "final";
+export type StudentFollowUpAction =
+  | "needs_follow_up"
+  | "special_follow_up"
+  | "guardian_contact"
+  | "counselor_referral"
+  | "vice_principal_referral"
+  | "guardian_summons";
 
 export type Term = { id: string; name: string; academicYear: string; active: boolean };
 export type Subject = { id: string; termId: string; name: string; enabled: boolean; order: number };
@@ -16,6 +23,8 @@ export type Student = {
   guardianAccessCodeHash?: string;
   guardianCodeUpdatedAt?: string;
   specialFollowUp: boolean;
+  followUpActions?: StudentFollowUpAction[];
+  followUpNote?: string;
   subjectLevels: Record<string, MasteryLevel>;
 };
 
