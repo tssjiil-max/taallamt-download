@@ -16,35 +16,83 @@ async function requireTeacher() {
   await readTeacherSession(cookieStore.get(TEACHER_COOKIE)?.value);
 }
 
+function clean(value: unknown, max = 300) {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
 export async function POST(request: Request) {
   try {
     await requireTeacher();
     const body = (await request.json().catch(() => null)) as {
       studentId?: unknown;
+      studentName?: unknown;
+      className?: unknown;
       skillId?: unknown;
       level?: unknown;
       note?: unknown;
+      skill?: {
+        termId?: unknown;
+        subjectId?: unknown;
+        week?: unknown;
+        category?: unknown;
+        title?: unknown;
+      };
     } | null;
 
-    const studentId = typeof body?.studentId === "string" ? body.studentId.trim() : "";
-    const skillId = typeof body?.skillId === "string" ? body.skillId.trim() : "";
+    const studentId = clean(body?.studentId, 200);
+    const studentName = clean(body?.studentName, 160);
+    const className = clean(body?.className, 80);
+    const skillId = clean(body?.skillId, 200);
     const level = typeof body?.level === "string" ? body.level as MasteryLevel : null;
-    const note = typeof body?.note === "string" ? body.note.trim().slice(0, 500) : "";
+    const note = clean(body?.note, 500);
 
     if (!studentId || !skillId || !level || !LEVELS.has(level)) {
       return NextResponse.json({ error: "INVALID_DATA" }, { status: 400 });
     }
 
     const db = getAdminDb();
-    const [studentSnap, skillSnap] = await Promise.all([
-      db.collection(firestoreCollectionName("students")).doc(studentId).get(),
-      db.collection(firestoreCollectionName("skills")).doc(skillId).get(),
-    ]);
+    const studentRef = db.collection(firestoreCollectionName("students")).doc(studentId);
+    const skillRef = db.collection(firestoreCollectionName("skills")).doc(skillId);
+    const [studentSnap, skillSnap] = await Promise.all([studentRef.get(), skillRef.get()]);
 
-    if (!studentSnap.exists || studentSnap.data()?.active !== true) {
+    if (!studentSnap.exists) {
+      if (!studentName) return NextResponse.json({ error: "STUDENT_NOT_FOUND" }, { status: 404 });
+      await studentRef.set({
+        id: studentId,
+        name: studentName,
+        className: className || "ثاني/4",
+        active: true,
+        guardianDeviceLimit: 2,
+        guardianDevices: 0,
+        specialFollowUp: false,
+        subjectLevels: {},
+        createdAt: new Date().toISOString(),
+      }, { merge: true });
+    } else if (studentSnap.data()?.active !== true) {
       return NextResponse.json({ error: "STUDENT_NOT_FOUND" }, { status: 404 });
     }
-    if (!skillSnap.exists || skillSnap.data()?.active === false) {
+
+    if (!skillSnap.exists) {
+      const skillMeta = body?.skill;
+      const termId = clean(skillMeta?.termId, 120);
+      const subjectId = clean(skillMeta?.subjectId, 120);
+      const category = clean(skillMeta?.category, 120);
+      const title = clean(skillMeta?.title, 400);
+      const week = Number(skillMeta?.week);
+      if (!termId || !subjectId || !category || !title || !Number.isFinite(week)) {
+        return NextResponse.json({ error: "SKILL_NOT_FOUND" }, { status: 404 });
+      }
+      await skillRef.set({
+        id: skillId,
+        termId,
+        subjectId,
+        week,
+        category,
+        title,
+        active: true,
+        source: "teacher",
+      }, { merge: true });
+    } else if (skillSnap.data()?.active === false) {
       return NextResponse.json({ error: "SKILL_NOT_FOUND" }, { status: 404 });
     }
 
