@@ -1,0 +1,194 @@
+/* Final visual unification layer for Taallamt teacher + student/guardian surfaces.
+   Visual only: no data, auth, API, assessment or Firestore behavior is changed here. */
+
+:where(.ta-teacher-home,.teacher-unified,.student-unified){
+  --tu-blue:#118fe0;
+  --tu-blue-2:#26b0ee;
+  --tu-blue-dark:#0a6fb6;
+  --tu-sky:#eaf8ff;
+  --tu-sky-2:#f7fcff;
+  --tu-card:#ffffff;
+  --tu-text:#17384a;
+  --tu-muted:#6c8394;
+  --tu-line:#d1e9f7;
+  --tu-gold:#f5a43a;
+  --tu-gold-soft:#fff4e4;
+  --tu-danger:#d95454;
+  --tu-shadow:0 7px 20px rgba(37,108,151,.055);
+  color:var(--tu-text);
+  background:linear-gradient(180deg,#eef9ff 0,#fbfdff 42%,#f4fbff 100%)!important;
+}
+
+/* Global typography and rhythm inside the two product surfaces. */
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(h1,h2,h3,h4,strong,b){color:var(--tu-text)}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(p,small,.muted){color:var(--tu-muted)}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.section,.ui-section){scroll-margin-top:12px}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(a,button,input,select,textarea){font-family:inherit}
+
+/* Cards: one radius, one border, one restrained shadow. */
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(
+  .ta-card,.card,.ui-section,.hero,.inner-panel,.inner-section,.student-summary-card,
+  .profile-info-card,.profile-settings-hero,.guardian-announcement-card,.attention-card,
+  .student-main-card,.contact-drawer,.resource-paper,.summons-paper,.clean-eval-list article,
+  .square-card,.activity-card,.empty-state
+){
+  background:rgba(255,255,255,.96)!important;
+  border:1px solid var(--tu-line)!important;
+  border-radius:20px!important;
+  box-shadow:var(--tu-shadow)!important;
+}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) .card .card{
+  background:#fbfdff!important;
+  box-shadow:none!important;
+}
+
+/* Primary/secondary actions are consistent everywhere. */
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.btn,.ta-now-content>a,.ta-quick-assessment,.guardian-contact-trigger){
+  border:1px solid transparent!important;
+  border-radius:15px!important;
+  background:linear-gradient(135deg,var(--tu-blue),var(--tu-blue-2))!important;
+  color:#fff!important;
+  box-shadow:0 6px 15px rgba(17,143,224,.14)!important;
+}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.btn.secondary,.soft-action){
+  background:#fff!important;
+  color:var(--tu-blue-dark)!important;
+  border-color:#bddff2!important;
+  box-shadow:none!important;
+}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) .btn.danger{
+  background:#fff5f5!important;color:#b84141!important;border-color:#efcccc!important;box-shadow:none!important;
+}
+
+/* Inputs and selects. */
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.field,input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  background:#fff!important;
+  color:var(--tu-text)!important;
+  border-color:#d2e7f4!important;
+  border-radius:13px!important;
+}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.field,input,select,textarea):focus{
+  outline:none!important;
+  border-color:#65c6ef!important;
+  box-shadow:0 0 0 3px #e7f7ff!important;
+}
+
+/* Chips, badges and notices use only blue + light amber. */
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.badge,.pill,.soft-chip,.ta-period-badge){
+  background:#e7f6ff!important;color:#126fa8!important;border-color:#cde8f7!important;
+}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.badge.warn,.notice.warn,.soft-chip.warn){
+  background:var(--tu-gold-soft)!important;color:#87561b!important;border-color:#f1c58b!important;
+}
+:where(.ta-teacher-home,.teacher-unified,.student-unified) .notice:not(.warn){
+  background:#eaf7ff!important;color:#155f8d!important;border-color:#cde8f7!important;border-radius:14px!important;
+}
+
+/* Teacher home: make it visually identical to the shared teacher shell. */
+.ta-teacher-home{
+  width:min(100%,760px)!important;
+  margin:0 auto!important;
+  padding:0 12px 100px!important;
+  min-height:100vh;
+}
+.ta-teacher-home .teacher-shared-hero{margin-inline:-12px!important}
+.ta-teacher-home :is(.ta-now-card,.ta-summary,.ta-subject-panel){margin-top:14px!important}
+.ta-teacher-home .ta-summary-grid>a,
+.ta-teacher-home .ta-action-grid>a,
+.ta-teacher-home .ta-mini-actions>a,
+.ta-teacher-home .ta-subject{
+  background:#fff!important;border:1px solid var(--tu-line)!important;border-radius:18px!important;
+  box-shadow:0 5px 16px rgba(33,106,151,.045)!important;color:var(--tu-text)!important;
+}
+.ta-teacher-home .ta-subject img,
+.ta-teacher-home .ta-action-grid img,
+.ta-teacher-home .ta-quick-assessment img{background:transparent!important;border:0!important;box-shadow:none!important}
+.ta-teacher-home .ta-summary-grid strong{color:var(--tu-blue-dark)!important}
+.ta-teacher-home .ta-mini-actions>a:nth-child(2){background:#f8fcff!important}
+.ta-teacher-home .ta-quick-assessment{margin-top:14px!important;min-height:92px!important}
+
+/* Shared teacher header and page banner. */
+.teacher-unified .teacher-shared-hero,
+.ta-teacher-home .teacher-shared-hero{
+  border:0!important;border-bottom:1px solid #cfeaf9!important;
+  border-radius:0 0 32px 32px!important;
+  background:radial-gradient(circle at 48% 10%,rgba(255,255,255,.99),rgba(234,248,255,.95) 45%,rgba(214,240,254,.96))!important;
+  box-shadow:0 10px 28px rgba(36,115,164,.08)!important;
+}
+.teacher-unified .teacher-shared-hero .ta-wordmark h1,
+.ta-teacher-home .teacher-shared-hero .ta-wordmark h1{color:#0878c6!important}
+.teacher-unified .teacher-shared-hero .ta-wordmark>span,
+.ta-teacher-home .teacher-shared-hero .ta-wordmark>span{color:#ffc928!important}
+.teacher-unified .teacher-shared-hero .ta-mascot img,
+.ta-teacher-home .teacher-shared-hero .ta-mascot img{background:transparent!important;border:0!important;box-shadow:none!important}
+.teacher-unified .teacher-page-banner{
+  background:rgba(255,255,255,.95)!important;border-color:var(--tu-line)!important;
+  border-radius:18px!important;box-shadow:0 5px 16px rgba(33,106,151,.045)!important;
+}
+.teacher-unified .teacher-page-icon{background:#e8f6ff!important;color:#0f82c9!important;border-radius:12px!important}
+.teacher-unified .teacher-page-home{background:#fff!important;color:#0b78ba!important;border-color:#c8e5f5!important}
+.teacher-unified .ta-date-strip,
+.ta-teacher-home .ta-date-strip{background:rgba(255,255,255,.95)!important;border-color:var(--tu-line)!important;color:var(--tu-text)!important}
+
+/* Kill legacy green/orange surfaces inside teacher routes without touching status semantics. */
+.teacher-unified :is(.teacher-logo-image,.logo,.avatar,.icon,.square-icon.green,.activity-icon){
+  background:#eaf7ff!important;border-color:#cde8f7!important;color:#126fa8!important;
+}
+.teacher-unified :is(.subject-choice-row button,.assessment-skill-grid button,.week-pills button,.value-card-grid button,.skill-choice,.tab,.week-chip){
+  background:#fff!important;border-color:#d3e8f5!important;color:#195d89!important;
+}
+.teacher-unified :is(.subject-choice-row button.active,.assessment-skill-grid button.active,.week-pills .active,.value-card-grid button.active,.skill-choice.active,.tab.active,.week-chip.active,.segmented .active){
+  background:var(--tu-blue)!important;border-color:var(--tu-blue)!important;color:#fff!important;box-shadow:none!important;
+}
+.teacher-unified .eval-choice button.active.mastered{background:var(--tu-blue)!important;border-color:var(--tu-blue)!important;color:#fff!important}
+.teacher-unified .eval-choice button.active.needs_training{background:var(--tu-gold-soft)!important;border-color:#f0be78!important;color:#8b571a!important}
+.teacher-unified .star-actions button{background:var(--tu-blue)!important;color:#fff!important}
+.teacher-unified .star-actions button+button{background:#f3f7fa!important;color:#5c7484!important}
+.teacher-unified .selected-value{background:#eaf7ff!important;border-color:#c7e6f7!important}
+.teacher-unified .picker-block+.picker-block{border-top-color:#d3e9f6!important}
+.teacher-unified :is(.value-students article,.values-overview article,.clean-eval-list article){border-color:#d5eaf7!important;background:#fff!important}
+
+/* Student/guardian: same design family but softer and more playful. */
+.student-unified .student-brand-header{
+  background:radial-gradient(circle at 48% 10%,rgba(255,255,255,.99),rgba(234,248,255,.95) 45%,rgba(214,240,254,.96))!important;
+  border-bottom-color:#cfeaf9!important;box-shadow:0 10px 28px rgba(36,115,164,.08)!important;
+}
+.student-unified .student-brand-copy h1{color:#0878c6!important}
+.student-unified .student-brand-copy>span{color:#ffc928!important}
+.student-unified .student-brand-mascot img{background:transparent!important;border:0!important;box-shadow:none!important}
+.student-unified .student-date-card{background:rgba(255,255,255,.9)!important;border-color:#d2eafa!important}
+.student-unified :is(.guardian-big-choice,.profile-top,.guardian-announcements-header,.guardian-meta-row){
+  background:rgba(255,255,255,.96)!important;border-color:var(--tu-line)!important;box-shadow:var(--tu-shadow)!important;
+}
+.student-unified .guardian-big-choice img{background:transparent!important;border:0!important;box-shadow:none!important}
+.student-unified .thirty-stars{background:#f9fdff!important;border-color:#d8ebf6!important}
+.student-unified .thirty-stars span.earned{color:#ffc52c!important}
+.student-unified .shak-card{background:linear-gradient(135deg,#eef9ff,#fff7eb)!important}
+
+/* One bottom navigation treatment for teacher + student. */
+.teacher-unified>.teacher-unified-shell>.ta-nav,
+.ta-teacher-home>.ta-nav,
+.student-bottom-nav{
+  background:rgba(255,255,255,.97)!important;border:1px solid #d4e9f6!important;
+  border-radius:24px!important;box-shadow:0 12px 30px rgba(38,101,143,.13)!important;backdrop-filter:blur(14px);
+}
+.teacher-unified>.teacher-unified-shell>.ta-nav a,
+.ta-teacher-home>.ta-nav a,
+.student-bottom-nav a{color:#5f7890!important;border-radius:17px!important}
+.teacher-unified>.teacher-unified-shell>.ta-nav a.active,
+.ta-teacher-home>.ta-nav a.active,
+.student-bottom-nav a.active{background:#e4f5ff!important;color:#087cc7!important}
+
+/* Print stays formal and uncluttered. */
+@media print{
+  .teacher-unified,.student-unified,.ta-teacher-home{background:#fff!important;padding-bottom:0!important}
+  .teacher-unified .teacher-shared-hero,.student-unified .student-brand-header,.ta-teacher-home .teacher-shared-hero,
+  .teacher-unified>.teacher-unified-shell>.ta-nav,.student-bottom-nav,.ta-teacher-home>.ta-nav{box-shadow:none!important}
+}
+
+@media(max-width:560px){
+  .ta-teacher-home{padding-inline:12px!important}
+  :where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.card,.ui-section,.hero,.ta-card){border-radius:18px!important}
+  :where(.ta-teacher-home,.teacher-unified,.student-unified) :is(.two,.grid){column-gap:9px!important;row-gap:9px!important}
+  .teacher-unified .teacher-page-banner{min-height:62px!important;padding:9px 10px!important}
+}
