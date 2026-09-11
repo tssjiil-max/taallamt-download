@@ -15,8 +15,10 @@ function DirectStudentLink() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const studentId = new URLSearchParams(window.location.search).get("student")?.trim();
-    if (!studentId) return;
+    const query = new URLSearchParams(window.location.search);
+    const studentId = query.get("student")?.trim();
+    const shareToken = query.get("token")?.trim();
+    if (!studentId || !shareToken) return;
     let alive = true;
 
     async function openStudent() {
@@ -25,11 +27,13 @@ function DirectStudentLink() {
         const login = await fetch("/api/guardian/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ studentId }),
+          body: JSON.stringify({ studentId, shareToken }),
         });
         if (!alive) return;
         if (!login.ok) {
-          setMessage(login.status === 403 ? "رابط صفحة الطالب غير مفعّل." : "تعذر فتح رابط صفحة الطالب الآن.");
+          if (login.status === 403) setMessage("رابط صفحة الطالب غير مفعّل.");
+          else if (login.status === 409) setMessage("بلغ الرابط الحد المسموح للأجهزة. اطلب من المعلم إعادة تفعيل الوصول.");
+          else setMessage("تعذر فتح رابط صفحة الطالب. تأكد أن الرابط كامل وحديث.");
           return;
         }
         window.location.replace("/guardian");
