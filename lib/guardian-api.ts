@@ -21,7 +21,7 @@ async function readJson<T>(response: Response): Promise<T> {
 
 export async function guardianBackendStatus() { return readJson<GuardianBackendStatus>(await fetch("/api/backend/status", { cache: "no-store" })); }
 export async function guardianSearch(query: string) { return readJson<{ students: GuardianSearchStudent[] }>(await fetch("/api/guardian/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query }) })); }
-export async function guardianLogin(studentId: string) { return readJson<{ ok: true; expiresAtMs: number }>(await fetch("/api/guardian/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studentId }) })); }
+export async function guardianLogin(studentId: string, shareToken = "") { return readJson<{ ok: true; expiresAtMs: number }>(await fetch("/api/guardian/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studentId, shareToken }) })); }
 export async function guardianMe<T = Record<string, unknown>>() { return readJson<T>(await fetch("/api/guardian/me", { cache: "no-store" })); }
 export async function guardianLogout() { return readJson<{ ok: true }>(await fetch("/api/guardian/logout", { method: "POST" })); }
 export async function guardianRequestContact(reason = "") { return readJson<{ ok: true; status: "pending" | "approved" }>(await fetch("/api/guardian/contact-request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason }) })); }
