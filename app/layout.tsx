@@ -15,22 +15,9 @@ import "./strict-last-mile.css";
 import "./teacher-student-parity.css";
 import "./teacher-visual-hotfix.css";
 import "./navigation-cleanup.css";
+import "./reference-pages.css";
 import { TaallamtProvider } from "@/lib/store";
 
-export const metadata: Metadata = {
-  title: "تعلّمت",
-  description: "متابعة الطالب والتواصل والتحفيز",
-  manifest: "/manifest.webmanifest",
-  applicationName: "تعلّمت",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "تعلّمت" },
-};
-
+export const metadata: Metadata = { title: "تعلّمت", description: "متابعة الطالب والتواصل والتحفيز", manifest: "/manifest.webmanifest", applicationName: "تعلّمت", appleWebApp: { capable: true, statusBarStyle: "default", title: "تعلّمت" } };
 export const viewport: Viewport = { themeColor: "#1769aa", width: "device-width", initialScale: 1 };
-
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="ar" dir="rtl">
-      <body><TaallamtProvider>{children}</TaallamtProvider></body>
-    </html>
-  );
-}
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="ar" dir="rtl"><body><TaallamtProvider>{children}</TaallamtProvider></body></html>; }
