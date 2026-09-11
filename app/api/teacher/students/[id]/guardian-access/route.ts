@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { firestoreCollectionName, getAdminDb, isFirebaseAdminConfigured } from "@/lib/server/firebase-admin";
-import { hashGuardianAccessCode } from "@/lib/server/guardian-auth";
+import { createGuardianShareToken, hashGuardianAccessCode } from "@/lib/server/guardian-auth";
 import { readTeacherSession, TEACHER_COOKIE, TeacherAuthError } from "@/lib/server/teacher-auth";
 
 export const runtime = "nodejs";
@@ -10,6 +10,33 @@ async function requireTeacher() {
   if (!isFirebaseAdminConfigured()) throw new TeacherAuthError("BACKEND_NOT_CONFIGURED");
   const cookieStore = await cookies();
   await readTeacherSession(cookieStore.get(TEACHER_COOKIE)?.value);
+}
+
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireTeacher();
+    const { id } = await context.params;
+    const studentId = id.trim();
+    const db = getAdminDb();
+    const snap = await db.collection(firestoreCollectionName("students")).doc(studentId).get();
+    if (!snap.exists) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+    const data = snap.data() ?? {};
+    const enabled = data.guardianAccessEnabled === true && typeof data.guardianAccessCodeHash === "string" && data.guardianAccessCodeHash.length > 0;
+    return NextResponse.json({
+      ok: true,
+      enabled,
+      shareToken: enabled ? createGuardianShareToken(studentId, data.guardianAccessCodeHash) : null,
+    });
+  } catch (error) {
+    if (error instanceof TeacherAuthError) {
+      return NextResponse.json({ error: error.code }, { status: error.code === "BACKEND_NOT_CONFIGURED" ? 503 : 401 });
+    }
+    console.error("teacher guardian access read failed", error);
+    return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
+  }
 }
 
 export async function POST(
@@ -31,10 +58,11 @@ export async function POST(
     const snap = await ref.get();
     if (!snap.exists) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
+    const accessHash = hashGuardianAccessCode(studentId, code);
     await ref.set(
       {
         guardianAccessEnabled: true,
-        guardianAccessCodeHash: hashGuardianAccessCode(studentId, code),
+        guardianAccessCodeHash: accessHash,
         guardianCodeUpdatedAt: new Date().toISOString(),
         guardianDeviceLimit: 2,
         guardianSearchName: String(snap.data()?.name ?? "")
@@ -51,7 +79,7 @@ export async function POST(
       { merge: true },
     );
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, shareToken: createGuardianShareToken(studentId, accessHash) });
   } catch (error) {
     if (error instanceof TeacherAuthError) {
       return NextResponse.json({ error: error.code }, { status: error.code === "BACKEND_NOT_CONFIGURED" ? 503 : 401 });
