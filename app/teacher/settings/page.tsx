@@ -10,6 +10,8 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState({ teacher: "سلطان الصاعدي", school: "مدرسة عمرو بن أوس الثقفي", className: "الصف الثاني / 4" });
   const [notice, setNotice] = useState("");
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copyProfile, setCopyProfile] = useState({ teacher: "", school: "", className: "" });
   const activeSubjects = store.subjects.filter((subject) => subject.termId === store.activeTermId);
 
   function addTerm(event: FormEvent) {
@@ -21,14 +23,26 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem("taallamt-teacher-profile");
-    if (!saved) return;
-    try { setProfile(JSON.parse(saved)); } catch {}
+    if (saved) {
+      try { setProfile(JSON.parse(saved)); } catch {}
+    }
+    const savedCopy = localStorage.getItem("taallamt-pending-copy-profile");
+    if (savedCopy) {
+      try { setCopyProfile(JSON.parse(savedCopy)); } catch {}
+    }
   }, []);
 
   function saveProfile(event: FormEvent) {
     event.preventDefault();
     localStorage.setItem("taallamt-teacher-profile", JSON.stringify(profile));
     setNotice("تم حفظ بيانات المعلم والمدرسة.");
+  }
+
+  function saveCopyProfile(event: FormEvent) {
+    event.preventDefault();
+    localStorage.setItem("taallamt-pending-copy-profile", JSON.stringify(copyProfile));
+    setNotice("تم حفظ بيانات النسخة المطلوبة دون نسخ بيانات الفصل الحالي.");
+    setCopyOpen(false);
   }
 
   function resetDemo() {
@@ -71,10 +85,19 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      <section className="section card">
+      <section className="section card copy-version-card">
         <h3>نسخة زميل أو فصل آخر</h3>
-        <p>البنية جاهزة لنسخة مستقلة ببيانات وصلاحيات منفصلة. لن تُنشأ بيانات افتراضية قبل توفر بيانات النسخة.</p>
-        <button className="btn secondary" type="button" disabled>بانتظار بيانات النسخة</button>
+        <p>أدخل بيانات النسخة الجديدة فقط. لن تُنسخ بيانات طلاب هذا الفصل ولن تُنشأ بيانات افتراضية.</p>
+        {!copyOpen ? (
+          <button className="btn secondary" type="button" onClick={() => setCopyOpen(true)}>إدخال بيانات النسخة</button>
+        ) : (
+          <form className="stack copy-version-form" onSubmit={saveCopyProfile}>
+            <input className="field" required value={copyProfile.teacher} onChange={(e) => setCopyProfile({ ...copyProfile, teacher: e.target.value })} placeholder="اسم المعلم" />
+            <input className="field" required value={copyProfile.school} onChange={(e) => setCopyProfile({ ...copyProfile, school: e.target.value })} placeholder="اسم المدرسة" />
+            <input className="field" required value={copyProfile.className} onChange={(e) => setCopyProfile({ ...copyProfile, className: e.target.value })} placeholder="الصف والفصل" />
+            <div className="mini-actions"><button className="btn" type="submit">حفظ بيانات النسخة</button><button className="btn secondary" type="button" onClick={() => setCopyOpen(false)}>إلغاء</button></div>
+          </form>
+        )}
       </section>
 
       <section className="section two">
