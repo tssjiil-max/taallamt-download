@@ -4,10 +4,10 @@ import { academicWeek } from "@/lib/schedule";
 import { useTaallamt } from "@/lib/store";
 import type { MasteryLevel } from "@/lib/types";
 
-const levels: MasteryLevel[] = ["mastered", "needs_training"];
+const levels: MasteryLevel[] = ["mastered", "partial", "needs_training"];
 const labels: Record<MasteryLevel, string> = {
   mastered: "أتقن",
-  partial: "يحتاج تدريب",
+  partial: "أتقن البعض",
   needs_training: "يحتاج تدريب",
 };
 
@@ -16,10 +16,9 @@ function latest(
   studentId: string,
   skillId: string,
 ) {
-  const found = assessments
+  return assessments
     .filter((item) => item.studentId === studentId && item.skillId === skillId)
     .at(-1)?.level;
-  return found === "partial" ? "needs_training" : found;
 }
 
 export default function AssessmentPage() {
@@ -47,10 +46,11 @@ export default function AssessmentPage() {
   const students = store.students.filter((item) => item.active);
 
   const stats = useMemo(() => {
-    if (!skill) return { mastered: 0, needs: 0, pending: students.length };
+    if (!skill) return { mastered: 0, partial: 0, needs: 0, pending: students.length };
     const values = students.map((student) => latest(store.assessments, student.id, skill.id));
     return {
       mastered: values.filter((value) => value === "mastered").length,
+      partial: values.filter((value) => value === "partial").length,
       needs: values.filter((value) => value === "needs_training").length,
       pending: values.filter((value) => !value).length,
     };
@@ -58,10 +58,24 @@ export default function AssessmentPage() {
 
   async function persist(studentId: string, level: MasteryLevel) {
     if (!skill) return;
+    const student = students.find((item) => item.id === studentId);
     const response = await fetch("/api/teacher/assessments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentId, skillId: skill.id, level }),
+      body: JSON.stringify({
+        studentId,
+        studentName: student?.name ?? "",
+        className: student?.className ?? "",
+        skillId: skill.id,
+        level,
+        skill: {
+          termId: skill.termId,
+          subjectId: skill.subjectId,
+          week: skill.week,
+          category: skill.category,
+          title: skill.title,
+        },
+      }),
     });
     if (!response.ok) throw new Error("save");
     store.setSkillAssessment(studentId, skill.id, level);
@@ -73,7 +87,13 @@ export default function AssessmentPage() {
     setNotice("");
     try {
       await persist(studentId, level);
-      setNotice(level === "mastered" ? "تم حفظ «أتقن»." : "تم الحفظ وإضافة الطالب للمتابعة.");
+      setNotice(
+        level === "mastered"
+          ? "تم حفظ «أتقن»."
+          : level === "partial"
+            ? "تم حفظ «أتقن البعض»."
+            : "تم الحفظ وإضافة الطالب للمتابعة.",
+      );
     } catch {
       setNotice("تعذر حفظ التقييم. أعد المحاولة.");
     } finally {
@@ -93,7 +113,7 @@ export default function AssessmentPage() {
     setNotice("");
     try {
       for (const student of students) await persist(student.id, "mastered");
-      setNotice("تم تسجيل «أتقن» للجميع. عدّل الاستثناءات فقط.");
+      setNotice("تم تسجيل «أتقن» للجميع. عدّل «أتقن البعض» و«يحتاج تدريب» فقط.");
     } catch {
       setNotice("توقف الحفظ قبل اكتماله. راجع النتائج ثم أعد المحاولة.");
     } finally {
@@ -102,19 +122,21 @@ export default function AssessmentPage() {
   }
 
   return (
-    <main className="shell inner-shell">
-      <section className="subject-stat-strip">
+    <main className="shell inner-shell assessment-page">
+      <section className="subject-stat-strip assessment-stat-strip">
         <span><b>{stats.mastered}</b>أتقن</span>
+        <span><b>{stats.partial}</b>أتقن البعض</span>
         <span><b>{stats.needs}</b>يحتاج تدريب</span>
         <span><b>{stats.pending}</b>لم يقيّم</span>
       </section>
-      {notice && <div className="notice">{notice}</div>}
+      {notice && <div className="notice" role="status">{notice}</div>}
       <section className="inner-section assessment-picker">
         <div className="picker-block">
           <h2>1. المادة</h2>
           <div className="subject-choice-row">
             {subjects.map((subject) => (
               <button
+                type="button"
                 className={subjectId === subject.id ? "active" : ""}
                 key={subject.id}
                 onClick={() => {
@@ -132,6 +154,7 @@ export default function AssessmentPage() {
           <div className="week-pills">
             {Array.from({ length: 17 }, (_, index) => index + 1).map((number) => (
               <button
+                type="button"
                 className={week === number ? "active" : ""}
                 key={number}
                 onClick={() => {
@@ -150,6 +173,7 @@ export default function AssessmentPage() {
             <div className="assessment-skill-grid">
               {skills.map((item) => (
                 <button
+                  type="button"
                   className={skill?.id === item.id ? "active" : ""}
                   key={item.id}
                   onClick={() => setSkillId(item.id)}
@@ -173,6 +197,7 @@ export default function AssessmentPage() {
           {skill && (
             <button
               className="btn mastery-all"
+              type="button"
               disabled={saving === "all"}
               onClick={requestApplyToAll}
             >
@@ -192,10 +217,11 @@ export default function AssessmentPage() {
                     <h3>{student.name}</h3>
                     <small>{rowSaving ? "جاري الحفظ…" : value ? labels[value] : "لم يقيّم بعد"}</small>
                   </div>
-                  <div className="eval-choice">
+                  <div className="eval-choice eval-choice-three">
                     {levels.map((level) => (
                       <button
-                        className={value === level ? `active ${level}` : ""}
+                        type="button"
+                        className={value === level ? `active ${level}` : level}
                         disabled={rowSaving || saving === "all"}
                         key={level}
                         onClick={() => void save(student.id, level)}
@@ -224,7 +250,7 @@ export default function AssessmentPage() {
           >
             <div className="teacher-modal-icon" aria-hidden="true">✓</div>
             <h3 id="bulk-confirm-title">تسجيل «أتقن» لجميع الطلاب؟</h3>
-            <p>سيتم حفظ الإتقان للجميع، وبعدها تعدّل فقط الطلاب الذين يحتاجون تدريبًا.</p>
+            <p>سيتم حفظ الإتقان للجميع، وبعدها تعدّل فقط من «أتقن البعض» أو «يحتاج تدريب».</p>
             <div className="teacher-modal-actions">
               <button className="btn secondary" type="button" onClick={() => setBulkConfirmOpen(false)}>إلغاء</button>
               <button className="btn" type="button" onClick={() => void confirmApplyToAll()}>تأكيد الحفظ</button>
