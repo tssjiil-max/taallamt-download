@@ -64,6 +64,13 @@ type Bundle = {
   messages: Message[];
   communicationAccess?: CommunicationAccess;
 };
+type SubjectCard = {
+  id: string;
+  name: string;
+  icon: string;
+  levelKey?: MasteryLevel;
+  level: string;
+};
 
 function shortName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -266,7 +273,7 @@ export default function GuardianPage() {
   const week = academicWeek();
   const weekly = plansForWeek(bundle.weeklyPlans, week);
   const subjects = bundle.subjects.filter((x) => x.enabled !== false && subjectOrder.includes(x.name)).sort((a, b) => subjectOrder.indexOf(a.name) - subjectOrder.indexOf(b.name));
-  const subjectCards = subjects.map((subject) => ({ id: subject.id, name: subject.name, icon: subjectIcon(subject.name), levelKey: student.subjectLevels[subject.id], level: student.subjectLevels[subject.id] ? levelLabel[student.subjectLevels[subject.id]] : "لم يقيّم" }));
+  const subjectCards: SubjectCard[] = subjects.map((subject) => ({ id: subject.id, name: subject.name, icon: subjectIcon(subject.name), levelKey: student.subjectLevels[subject.id], level: student.subjectLevels[subject.id] ? levelLabel[student.subjectLevels[subject.id]] : "لم يقيّم" }));
   const lughati = subjects.find((x) => x.name.includes("لغتي"));
   subjectCards.push({ id: "spelling", name: "الإملاء والخط", icon: subjectIcon("الإملاء والخط"), levelKey: lughati ? student.subjectLevels[lughati.id] : undefined, level: lughati && student.subjectLevels[lughati.id] ? levelLabel[student.subjectLevels[lughati.id]] : "لم يقيّم" });
 
