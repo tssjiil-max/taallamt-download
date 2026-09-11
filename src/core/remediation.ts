@@ -1,8 +1,10 @@
 import type { RemediationPlan } from './domain';
 export interface FailureRecord {studentId:string;targetId:string;result:'mastered'|'needs_practice'|'not_mastered'}
+export function isOpenRemediation(plan:RemediationPlan){return plan.status==='active'||plan.status==='improved'||plan.status==='needs_more_support'}
 export function decideRemediation(studentId:string,targetId:string,history:FailureRecord[],existing:RemediationPlan[],now:string):RemediationPlan|null{
- if(existing.some(p=>p.studentId===studentId&&p.targetId===targetId&&p.status!=='resolved'))return null;
- const failures=history.filter(h=>h.studentId===studentId&&h.targetId===targetId&&h.result==='not_mastered').length;
+ if(existing.some(p=>p.studentId===studentId&&p.targetId===targetId&&isOpenRemediation(p)))return null;
+ const relevant=history.filter(h=>h.studentId===studentId&&h.targetId===targetId);
+ let failures=0;for(const item of relevant){if(item.result==='mastered')failures=0;else if(item.result==='not_mastered')failures+=1}
  if(failures<3)return null;
  const cycle=existing.filter(p=>p.studentId===studentId&&p.targetId===targetId).length+1;
  return {id:`remediation:${studentId}:${targetId}:${cycle}`,studentId,targetId,trigger:'three_not_mastered',status:'active',startedAt:now};
