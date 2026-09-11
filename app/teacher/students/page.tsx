@@ -81,7 +81,10 @@ export default function StudentsPage() {
           <article className="student-summary-card" key={s.id}>
             <span className="student-number">{i + 1}</span>
             <div className="student-summary-copy">
-              <h3>{s.name}</h3>
+              <div className="student-name-line">
+                <h3>{s.name}</h3>
+                {s.active && <Link className="student-whatsapp-shortcut no-print" href={`/teacher/announcements?student=${encodeURIComponent(s.id)}&type=student_page#whatsapp`}>واتساب</Link>}
+              </div>
               <p>{s.className}</p>
               <small>
                 {s.specialFollowUp ? "يحتاج متابعة خاصة" : "التقييم والمتابعة"}
