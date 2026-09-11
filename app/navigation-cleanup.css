@@ -1,0 +1,418 @@
+/* Final navigation and weekly-plan cleanup. Visual/navigation structure only. */
+
+/* =========================
+   Teacher: one global navigation = bottom bar
+   ========================= */
+
+.teacher-unified,
+.ta-teacher-home{
+  --nav-blue:#0879d9;
+  --nav-deep:#173b58;
+  --nav-muted:#718ba0;
+  --nav-line:#cfe9f7;
+  --nav-surface:#ffffff;
+  --nav-sky:#eef9ff;
+}
+
+/* Compact brand header: no oversized or repeated navigation icons. */
+.teacher-app-header{
+  margin-bottom:12px!important;
+}
+.teacher-header-top{
+  min-height:112px!important;
+  grid-template-columns:1fr 82px 1fr!important;
+  gap:7px!important;
+}
+.teacher-wordmark-mark{
+  width:32px!important;
+  height:32px!important;
+}
+.teacher-wordmark h1{
+  font-size:30px!important;
+}
+.teacher-wordmark p{
+  font-size:10px!important;
+}
+.teacher-mascot-card img{
+  width:76px!important;
+  height:76px!important;
+}
+.teacher-mascot-card span{
+  font-size:11px!important;
+}
+.teacher-header-time .ta-date-strip{
+  min-height:72px!important;
+  padding:9px 10px!important;
+  border-radius:17px!important;
+}
+.teacher-identity-card{
+  min-height:82px!important;
+  padding:11px 14px!important;
+  border-radius:22px!important;
+  margin-bottom:12px!important;
+}
+.teacher-identity-avatar{
+  width:44px!important;
+  height:44px!important;
+  border-radius:14px!important;
+}
+.teacher-identity-avatar svg{
+  width:24px!important;
+  height:24px!important;
+}
+.teacher-identity-copy strong{
+  font-size:17px!important;
+}
+.teacher-identity-copy span{
+  font-size:10px!important;
+}
+
+/* Internal heading is text only; bottom bar handles global movement. */
+.teacher-page-heading-simple{
+  display:block!important;
+  min-height:auto!important;
+  margin:0 0 12px!important;
+  padding:9px 4px 10px!important;
+  border:0!important;
+  border-bottom:1px solid #e3eff6!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.teacher-page-heading-simple .teacher-page-heading-copy{
+  display:block!important;
+}
+.teacher-page-heading-simple h2{
+  margin:0!important;
+  font-size:18px!important;
+  color:var(--nav-deep)!important;
+}
+.teacher-page-heading-simple p{
+  margin:2px 0 0!important;
+  font-size:10px!important;
+  color:var(--nav-muted)!important;
+}
+.teacher-page-heading-icon,
+.teacher-page-heading-home{
+  display:none!important;
+}
+
+/* Comprehensive assessment: the title exists only inside the student's own sheet. */
+.teacher-unified .comprehensive-assessment{
+  padding-top:0!important;
+}
+.teacher-unified .comprehensive-student-head{
+  margin-top:0!important;
+  padding:16px!important;
+  border:1px solid var(--nav-line)!important;
+  border-radius:20px!important;
+  background:#fff!important;
+  box-shadow:0 5px 18px rgba(26,103,148,.05)!important;
+}
+.teacher-unified .comprehensive-student-title small{
+  color:var(--nav-blue)!important;
+  font-size:11px!important;
+  font-weight:800!important;
+}
+.teacher-unified .comprehensive-student-title h1{
+  margin:4px 0 2px!important;
+  font-size:25px!important;
+  line-height:1.35!important;
+}
+.teacher-unified .comprehensive-student-nav{
+  gap:6px!important;
+}
+.teacher-unified .comprehensive-student-nav :is(a,button){
+  min-height:38px!important;
+  padding:6px 10px!important;
+  border-radius:12px!important;
+  font-size:11px!important;
+}
+
+/* Home is information-first. Remove old duplicated assessment/navigation cards if cached CSS survives. */
+.ta-teacher-home .ta-quick-assessment,
+.ta-teacher-home .ta-action-grid{
+  display:none!important;
+}
+.ta-teacher-home .ta-summary-readonly{
+  display:grid!important;
+  grid-template-columns:repeat(3,1fr)!important;
+  overflow:hidden!important;
+  border:1px solid #e2eef5!important;
+  border-radius:18px!important;
+  background:#fbfdff!important;
+}
+.ta-teacher-home .ta-summary-readonly>div{
+  min-height:78px!important;
+  display:grid!important;
+  place-items:center!important;
+  align-content:center!important;
+  gap:3px!important;
+  padding:10px 5px!important;
+}
+.ta-teacher-home .ta-summary-readonly>div+div{
+  border-inline-start:1px solid #e2eef5!important;
+}
+.ta-teacher-home .ta-summary-readonly strong{
+  color:var(--nav-blue)!important;
+  font-size:22px!important;
+}
+.ta-teacher-home .ta-summary-readonly b{
+  color:#59758a!important;
+  font-size:10px!important;
+  text-align:center!important;
+}
+.ta-teacher-home .ta-subject{
+  min-height:138px!important;
+}
+.ta-teacher-home .ta-subject img{
+  width:52px!important;
+  height:52px!important;
+}
+.ta-teacher-home .ta-subject b{
+  font-size:15px!important;
+}
+.ta-teacher-home .ta-subject span{
+  font-size:10px!important;
+}
+.ta-teacher-home .ta-subject small{
+  font-size:9px!important;
+  line-height:1.55!important;
+}
+.ta-homework-static{
+  display:grid!important;
+  grid-template-columns:30px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:9px!important;
+  padding:11px 0!important;
+  border-bottom:1px solid #edf3f7!important;
+}
+.ta-homework-static:last-child{border-bottom:0!important}
+.ta-homework-static>span{
+  width:30px!important;
+  height:30px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:10px!important;
+  background:var(--nav-sky)!important;
+  color:var(--nav-blue)!important;
+}
+.ta-homework-static b{display:block!important;color:var(--nav-deep)!important;font-size:12px!important}
+.ta-homework-static small{display:block!important;color:var(--nav-muted)!important;font-size:10px!important;line-height:1.5!important}
+.ta-homework-static em{font-size:9px!important;color:#56816d!important;font-style:normal!important}
+
+/* Secondary tools are text only, not a second navigation bar. */
+.ta-secondary-tools{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  justify-content:center!important;
+  gap:7px!important;
+  margin:14px 0 20px!important;
+}
+.ta-secondary-tools a{
+  padding:7px 11px!important;
+  border:1px solid #dcecf5!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#52758c!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  box-shadow:none!important;
+}
+
+/* Subject pages: local tabs only; no large decorative icons or duplicate navigation CTA. */
+.teacher-unified-content .subject-assessment-moved{
+  grid-template-columns:1fr!important;
+  padding:12px 14px!important;
+}
+.teacher-unified-content .subject-assessment-moved b{
+  font-size:14px!important;
+}
+.teacher-unified-content .subject-assessment-moved span{
+  font-size:11px!important;
+}
+.teacher-unified-content .compact-resource-links{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+.teacher-unified-content .compact-resource-links a{
+  min-height:54px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:8px!important;
+  border:1px solid var(--nav-line)!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  text-align:center!important;
+}
+.teacher-unified-content .compact-resource-links b{
+  font-size:11px!important;
+  color:var(--nav-deep)!important;
+}
+.teacher-unified-content .compact-feature-link{
+  min-height:auto!important;
+  padding:12px!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+}
+.teacher-unified-content .compact-feature-link h2{
+  font-size:16px!important;
+}
+.teacher-unified-content .compact-feature-link p{
+  font-size:10px!important;
+}
+
+/* Student portfolio: no giant decorative repeated mascot/footer navigation. */
+.teacher-unified .student-portfolio-page .portfolio-subject-grid article{
+  grid-template-columns:1fr!important;
+}
+.teacher-unified .student-portfolio-page .portfolio-subject-grid article>div{
+  min-width:0!important;
+}
+
+/* Bottom teacher navigation is the persistent primary navigation. */
+.teacher-main-nav{
+  min-height:70px!important;
+  padding:6px 8px max(6px,env(safe-area-inset-bottom))!important;
+  border-radius:24px!important;
+}
+.teacher-main-nav a{
+  min-height:56px!important;
+  border-radius:17px!important;
+  gap:2px!important;
+}
+.teacher-main-nav .nav-icon{
+  width:25px!important;
+  height:25px!important;
+}
+.teacher-main-nav .nav-icon svg{
+  width:25px!important;
+  height:25px!important;
+}
+.teacher-main-nav b{
+  font-size:10px!important;
+}
+
+/* =========================
+   Student: automatic current-week plan
+   ========================= */
+.student-week-plan{
+  width:min(calc(100% - 34px),760px)!important;
+  margin:10px auto 14px!important;
+  padding:14px 15px!important;
+  border:1px solid #cfe9f7!important;
+  border-radius:22px!important;
+  background:linear-gradient(145deg,#f8fdff,#eef9ff)!important;
+  box-shadow:0 7px 22px rgba(26,103,148,.06)!important;
+}
+.student-week-plan>header{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  margin-bottom:10px!important;
+}
+.student-week-plan>header small{
+  display:block!important;
+  margin-bottom:2px!important;
+  color:#7a91a2!important;
+  font-size:9px!important;
+  font-weight:700!important;
+}
+.student-week-plan>header h2{
+  margin:0!important;
+  color:#173b58!important;
+  font-size:18px!important;
+  line-height:1.35!important;
+}
+.student-week-plan>header>span{
+  flex:0 0 auto!important;
+  padding:5px 8px!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#0879d9!important;
+  font-size:9px!important;
+  font-weight:800!important;
+}
+.student-week-plan-list{
+  display:grid!important;
+  gap:0!important;
+  border-top:1px solid #dceef7!important;
+}
+.student-week-plan-list article{
+  display:grid!important;
+  grid-template-columns:110px minmax(0,1fr)!important;
+  gap:10px!important;
+  align-items:start!important;
+  padding:9px 0!important;
+  border-bottom:1px solid #e6f2f8!important;
+}
+.student-week-plan-list article:last-child{border-bottom:0!important}
+.student-week-plan-list b{
+  color:#0879d9!important;
+  font-size:11px!important;
+}
+.student-week-plan-list p{
+  margin:0!important;
+  color:#486a80!important;
+  font-size:11px!important;
+  line-height:1.55!important;
+}
+
+@media(max-width:560px){
+  .teacher-header-top{
+    min-height:100px!important;
+    grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr)!important;
+  }
+  .teacher-mascot-card img{
+    width:66px!important;
+    height:66px!important;
+  }
+  .teacher-wordmark h1{
+    font-size:27px!important;
+  }
+  .teacher-header-time .ta-date-strip{
+    min-height:66px!important;
+    padding:7px 8px!important;
+  }
+  .teacher-identity-card{
+    min-height:76px!important;
+    padding:10px 12px!important;
+  }
+  .teacher-identity-copy strong{
+    font-size:16px!important;
+  }
+  .teacher-unified .comprehensive-student-head{
+    padding:13px!important;
+  }
+  .teacher-unified .comprehensive-student-title h1{
+    font-size:21px!important;
+  }
+  .teacher-unified .comprehensive-student-nav{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+  .teacher-unified .comprehensive-student-nav :is(a,button){
+    min-width:0!important;
+    padding:6px 4px!important;
+    font-size:9px!important;
+  }
+  .teacher-unified-content .compact-resource-links{
+    grid-template-columns:1fr!important;
+  }
+  .student-week-plan{
+    width:calc(100% - 28px)!important;
+    margin-top:8px!important;
+    padding:12px 13px!important;
+    border-radius:19px!important;
+  }
+  .student-week-plan-list article{
+    grid-template-columns:88px minmax(0,1fr)!important;
+    gap:8px!important;
+  }
+  .student-week-plan-list b,
+  .student-week-plan-list p{
+    font-size:10px!important;
+  }
+}
