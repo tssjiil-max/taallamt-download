@@ -1,0 +1,3 @@
+export interface Achievement {id:string;studentId:string;code:'monthly_30'|'remediation_resolved'|'consistent_mastery';title:string;earnedAt:string;sourceIds:string[]}
+export function monthlyThirtyAchievement(studentId:string,stars:number,now:string):Achievement|null{return stars>=30?{id:`${studentId}:monthly30:${now.slice(0,7)}`,studentId,code:'monthly_30',title:'أكمل 30 نجمة هذا الشهر',earnedAt:now,sourceIds:[]}:null}
+export function remediationAchievement(studentId:string,planId:string,now:string):Achievement{return {id:`${planId}:achievement`,studentId,code:'remediation_resolved',title:'تجاوز مهارة كانت تحتاج دعمًا',earnedAt:now,sourceIds:[planId]}}
