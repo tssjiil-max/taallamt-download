@@ -1,0 +1,385 @@
+/* Professional shell redesign based on the approved mobile reference.
+   Temporary line icons are intentionally neutral and can be swapped with the final icon pack later. */
+
+:root{
+  --shell-blue:#168fd8;
+  --shell-blue-deep:#0b6fab;
+  --shell-sky:#eaf8ff;
+  --shell-sky-soft:#f7fcff;
+  --shell-line:#d9edf8;
+  --shell-text:#17384a;
+  --shell-muted:#6f8796;
+  --shell-gold:#f6b73c;
+  --shell-shadow:0 12px 34px rgba(51,116,154,.08);
+}
+
+.ta-teacher-home,
+.teacher-unified,
+.student-unified{
+  background:linear-gradient(180deg,#f3fbff 0,#fbfdff 48%,#f5fbff 100%)!important;
+  color:var(--shell-text)!important;
+}
+
+.ta-teacher-home,
+.teacher-unified-shell,
+.student-unified-shell{
+  width:min(100%,760px)!important;
+  margin-inline:auto!important;
+}
+
+.teacher-unified-shell,
+.student-unified-shell{
+  padding:0 12px 104px!important;
+}
+
+/* ===== Shared teacher header ===== */
+.teacher-app-header,
+.student-app-header{
+  position:relative;
+  margin:0 -12px 14px!important;
+  padding:14px 14px 16px!important;
+  overflow:visible;
+  background:
+    radial-gradient(circle at 50% 0,rgba(255,255,255,.98) 0 18%,rgba(238,250,255,.98) 48%,rgba(222,244,255,.98) 100%)!important;
+  border:0!important;
+  border-bottom:1px solid #cfe9f7!important;
+  border-radius:0 0 30px 30px!important;
+  box-shadow:0 12px 32px rgba(50,115,154,.09)!important;
+}
+
+.teacher-header-top,
+.student-header-top{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 118px minmax(0,1fr);
+  align-items:start;
+  gap:8px;
+  min-height:126px;
+}
+
+.teacher-wordmark,
+.student-wordmark{
+  justify-self:start;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  padding-top:6px;
+  color:inherit!important;
+  text-decoration:none!important;
+}
+
+.teacher-wordmark-mark,
+.student-wordmark-mark{
+  display:grid;
+  place-items:center;
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  border-radius:11px;
+  background:#fff5ce;
+  color:#e8a918;
+  box-shadow:0 5px 14px rgba(214,160,32,.10);
+}
+.teacher-wordmark-mark svg,
+.student-wordmark-mark svg{width:18px;height:18px}
+
+.teacher-wordmark h1,
+.student-wordmark h1{
+  margin:0!important;
+  color:#0b79bf!important;
+  font-size:24px!important;
+  line-height:1!important;
+  font-weight:900!important;
+  letter-spacing:-.5px;
+}
+.teacher-wordmark p,
+.student-wordmark p{
+  margin:5px 0 0!important;
+  color:#7c93a1!important;
+  font-size:10px!important;
+  font-weight:700!important;
+  white-space:nowrap;
+}
+
+.teacher-mascot-card,
+.student-header-mascot{
+  justify-self:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  width:118px;
+  min-width:118px;
+  color:var(--shell-blue-deep)!important;
+  text-decoration:none!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.teacher-mascot-card img,
+.student-header-mascot img{
+  display:block;
+  width:100px!important;
+  height:100px!important;
+  object-fit:contain!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.teacher-mascot-card span,
+.student-header-mascot span{
+  margin-top:-3px;
+  padding:3px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.78);
+  color:#387694!important;
+  font-size:10px;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.teacher-header-time,
+.student-header-date{
+  justify-self:end;
+  width:min(100%,174px);
+}
+.teacher-header-time .ta-date-strip,
+.student-header-date{
+  min-height:78px!important;
+  padding:9px 10px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:center!important;
+  gap:5px!important;
+  background:rgba(255,255,255,.88)!important;
+  border:1px solid #d7ebf7!important;
+  border-radius:16px!important;
+  box-shadow:0 7px 18px rgba(42,116,160,.06)!important;
+  color:var(--shell-text)!important;
+}
+.teacher-header-time .ta-date-strip>div{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:2px!important;
+  text-align:center!important;
+}
+.teacher-header-time .ta-date-strip strong,
+.teacher-header-time .ta-date-strip b{
+  color:#27556d!important;
+  font-size:10px!important;
+  line-height:1.4!important;
+}
+.teacher-header-time .ta-date-strip small,
+.teacher-header-time .ta-date-strip span{
+  color:#8297a4!important;
+  font-size:9px!important;
+  line-height:1.35!important;
+}
+.teacher-header-time .ta-live-clock{
+  padding-top:4px!important;
+  border-top:1px solid #e5f2f9!important;
+}
+.student-header-date{text-align:center}
+.student-header-date>span{font-size:9px;font-weight:800;color:#8aa0ad}
+.student-header-date>b{font-size:10px;color:#31586c;line-height:1.45}
+.student-header-date>strong{font-size:15px;color:#0e77b8}
+
+.teacher-identity-card{
+  position:relative;
+  z-index:2;
+  margin:0 2px -4px;
+  padding:11px 12px;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) 38px;
+  align-items:center;
+  gap:10px;
+  background:rgba(255,255,255,.96);
+  border:1px solid #d8ebf6;
+  border-radius:18px;
+  box-shadow:0 8px 22px rgba(42,108,147,.07);
+}
+.teacher-identity-avatar{
+  display:grid;
+  place-items:center;
+  width:42px;height:42px;
+  border-radius:14px;
+  background:#e9f7ff;
+  color:#137ebc;
+}
+.teacher-identity-avatar svg{width:23px;height:23px}
+.teacher-identity-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.teacher-identity-copy small{font-size:9px!important;color:#8ba0ad!important;font-weight:800}
+.teacher-identity-copy strong{font-size:14px!important;color:#17384a!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.teacher-identity-copy span{font-size:10px;color:#718896;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.teacher-identity-settings{
+  display:grid;
+  place-items:center;
+  width:36px;height:36px;
+  border:1px solid #d7eaf5;
+  border-radius:12px;
+  background:#f8fcff;
+  color:#4d7f99!important;
+}
+.teacher-identity-settings svg{width:18px;height:18px}
+
+/* ===== Internal page title: compact and consistent ===== */
+.teacher-page-heading{
+  margin:12px 0 14px!important;
+  padding:10px 11px!important;
+  min-height:66px;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  background:#fff!important;
+  border:1px solid var(--shell-line)!important;
+  border-radius:18px!important;
+  box-shadow:0 6px 18px rgba(39,104,143,.045)!important;
+}
+.teacher-page-heading-icon{
+  display:grid;
+  place-items:center;
+  width:42px;height:42px;
+  border-radius:13px;
+  background:#eaf7ff;
+  color:#0e7fc2;
+}
+.teacher-page-heading-icon svg{width:22px;height:22px}
+.teacher-page-heading-copy{min-width:0}
+.teacher-page-heading-copy small{display:block;margin-bottom:2px;color:#8da0ac!important;font-size:9px!important;font-weight:800}
+.teacher-page-heading-copy h2{margin:0!important;color:#17384a!important;font-size:17px!important;line-height:1.25!important;font-weight:900!important}
+.teacher-page-heading-copy p{margin:3px 0 0!important;color:#7d919d!important;font-size:10px!important;line-height:1.4!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.teacher-page-heading-home{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:36px;
+  padding:7px 9px;
+  border:1px solid #d6e9f5;
+  border-radius:12px;
+  background:#f9fdff;
+  color:#2c718f!important;
+  text-decoration:none!important;
+  font-size:10px;
+  font-weight:800;
+}
+.teacher-page-heading-home svg{width:16px;height:16px}
+
+/* Internal content should start cleanly; old page-specific headers disappear. */
+.teacher-unified-content{
+  width:100%;
+}
+.teacher-unified-content>.shell,
+.teacher-unified-content>.inner-shell{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0 0 14px!important;
+}
+.teacher-unified-content :is(.subject-hero,.inner-hero,.topbar,.ta-inner-header,.teacher-hero){display:none!important}
+.teacher-unified-content>.shell>.section:first-child,
+.teacher-unified-content>.inner-shell>.inner-section:first-child{margin-top:0!important}
+
+.teacher-unified-content :is(.section,.inner-section){margin-top:12px!important}
+.teacher-unified-content :is(.card,.inner-section,.ui-section,.student-summary-card){
+  border-radius:18px!important;
+  border-color:#d9ecf7!important;
+  box-shadow:0 6px 18px rgba(39,104,143,.045)!important;
+}
+.teacher-unified-content :is(h2,h3){letter-spacing:-.15px}
+.teacher-unified-content .section-head,
+.teacher-unified-content .inner-section-head{gap:10px!important}
+
+/* ===== Bottom navigation: professional temporary outline icons ===== */
+.teacher-main-nav,
+.student-bottom-nav{
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  width:min(calc(100% - 24px),720px)!important;
+  padding:7px!important;
+  gap:4px!important;
+  background:rgba(255,255,255,.96)!important;
+  border:1px solid #d7eaf5!important;
+  border-radius:20px!important;
+  box-shadow:0 14px 34px rgba(40,102,140,.14)!important;
+}
+.teacher-main-nav a,
+.student-bottom-nav a{
+  min-height:48px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  border-radius:14px!important;
+  color:#6b8494!important;
+  background:transparent!important;
+}
+.teacher-main-nav .nav-icon,
+.student-bottom-nav .nav-icon{display:grid;place-items:center;width:22px;height:22px}
+.teacher-main-nav .nav-icon svg,
+.student-bottom-nav .nav-icon svg{width:21px;height:21px}
+.teacher-main-nav a b,
+.student-bottom-nav a b{font-size:10px!important;font-weight:800!important}
+.teacher-main-nav a.active,
+.student-bottom-nav a.active{
+  background:#e8f7ff!important;
+  color:#087bc0!important;
+}
+
+/* ===== Student header uses the same family, without teacher identity card ===== */
+.student-app-header{padding-bottom:12px!important}
+.student-header-top{min-height:122px}
+.student-unified-content{margin-top:0!important}
+
+/* Hide old header selectors if a legacy page still emits them. */
+.student-unified :is(.student-brand-header){display:none!important}
+
+/* ===== Mobile ===== */
+@media(max-width:560px){
+  .teacher-app-header,
+  .student-app-header{padding:11px 10px 13px!important}
+  .teacher-header-top,
+  .student-header-top{grid-template-columns:minmax(0,1fr) 94px minmax(0,1fr);min-height:108px;gap:4px}
+  .teacher-mascot-card,
+  .student-header-mascot{width:94px;min-width:94px}
+  .teacher-mascot-card img,
+  .student-header-mascot img{width:82px!important;height:82px!important}
+  .teacher-mascot-card span,
+  .student-header-mascot span{font-size:8px;padding:2px 6px}
+  .teacher-wordmark-mark,
+  .student-wordmark-mark{width:26px;height:26px;flex-basis:26px;border-radius:9px}
+  .teacher-wordmark-mark svg,
+  .student-wordmark-mark svg{width:15px;height:15px}
+  .teacher-wordmark,
+  .student-wordmark{gap:5px;padding-top:4px}
+  .teacher-wordmark h1,
+  .student-wordmark h1{font-size:19px!important}
+  .teacher-wordmark p,
+  .student-wordmark p{font-size:8px!important;margin-top:3px!important}
+  .teacher-header-time,
+  .student-header-date{width:112px}
+  .teacher-header-time .ta-date-strip,
+  .student-header-date{min-height:65px!important;padding:7px 6px!important;border-radius:13px!important}
+  .teacher-header-time .ta-date-strip strong,
+  .teacher-header-time .ta-date-strip b,
+  .student-header-date>b{font-size:8px!important}
+  .teacher-header-time .ta-date-strip small,
+  .teacher-header-time .ta-date-strip span,
+  .student-header-date>span{font-size:7px!important}
+  .student-header-date>strong{font-size:12px}
+  .teacher-identity-card{grid-template-columns:38px minmax(0,1fr) 34px;padding:9px 10px;gap:8px;border-radius:16px}
+  .teacher-identity-avatar{width:38px;height:38px;border-radius:12px}
+  .teacher-identity-copy strong{font-size:12px!important}
+  .teacher-identity-copy span{font-size:8px}
+  .teacher-identity-settings{width:32px;height:32px;border-radius:10px}
+  .teacher-page-heading{grid-template-columns:38px minmax(0,1fr) 34px;min-height:60px;padding:8px 9px!important;border-radius:16px!important}
+  .teacher-page-heading-icon{width:38px;height:38px;border-radius:12px}
+  .teacher-page-heading-copy h2{font-size:15px!important}
+  .teacher-page-heading-copy p{font-size:9px!important}
+  .teacher-page-heading-home{width:34px;height:34px;padding:0;justify-content:center;border-radius:10px}
+  .teacher-page-heading-home span{display:none}
+  .teacher-page-heading-home svg{width:17px;height:17px}
+}
