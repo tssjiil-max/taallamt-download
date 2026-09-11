@@ -90,25 +90,41 @@ export function TeacherWhatsAppComposer() {
       return false;
     }
     try {
-      const result = await saveTeacherStudentContact(selectedStudent.id, guardianName.trim(), phone);
+      const result = await saveTeacherStudentContact(
+        selectedStudent.id,
+        guardianName.trim(),
+        phone,
+        selectedStudent.name,
+        selectedStudent.className,
+      );
       setGuardianPhone(result.contact.guardianPhone);
       setContacts((current) => [
         ...current.filter((item) => item.studentId !== selectedStudent.id),
         result.contact,
       ]);
       return true;
-    } catch {
-      setNotice("تعذر حفظ بيانات ولي الأمر الآن.");
+    } catch (error) {
+      const info = error as { status?: number };
+      setNotice(info.status === 401 ? "انتهت جلسة المعلم. سجّل الدخول ثم أعد المحاولة." : "تعذر حفظ بيانات ولي الأمر الآن.");
       return false;
     }
   }
 
   async function ensureStudentPageUrl() {
     if (!selectedStudent) return "";
-    const current = await getGuardianShareAccess(selectedStudent.id);
-    let token = current.shareToken;
-    if (!current.enabled || !token) {
-      const created = await setGuardianAccessCode(selectedStudent.id, internalAccessCode());
+    let token = "";
+    try {
+      const current = await getGuardianShareAccess(selectedStudent.id);
+      if (current.enabled && current.shareToken) token = current.shareToken;
+    } catch {
+      // If the Firestore student record has not been bootstrapped yet, POST below creates it safely.
+    }
+    if (!token) {
+      const created = await setGuardianAccessCode(
+        selectedStudent.id,
+        internalAccessCode(),
+        { name: selectedStudent.name, className: selectedStudent.className },
+      );
       token = created.shareToken;
     }
     return `${window.location.origin}/guardian?student=${encodeURIComponent(selectedStudent.id)}&token=${encodeURIComponent(token)}`;
@@ -169,8 +185,9 @@ export function TeacherWhatsAppComposer() {
       setMessage(text);
       setNotice("تم تجهيز الرسالة حسب حالة الطالب. راجعها ثم افتح واتساب.");
       return text;
-    } catch {
-      setNotice("تعذر تجهيز رابط صفحة الطالب الآن. لم يتم فتح واتساب.");
+    } catch (error) {
+      const info = error as { status?: number };
+      setNotice(info.status === 401 ? "انتهت جلسة المعلم. سجّل الدخول ثم أعد تجهيز الرسالة." : "تعذر تجهيز رابط صفحة الطالب الآن. لم يتم فتح واتساب.");
       return "";
     } finally {
       setBusy(false);
@@ -242,7 +259,7 @@ export function TeacherWhatsAppComposer() {
             <small>{guardianPhone ? `جوال ولي الأمر محفوظ: ${guardianPhone}` : "لم يُحفظ جوال ولي الأمر بعد"}</small>
           </div>
 
-          <div className="stack">
+          <div className="stack whatsapp-type-step">
             <b>2. ماذا تريد أن ترسل؟</b>
             <div className="whatsapp-message-options">
               {types.map((item) => (
@@ -269,11 +286,11 @@ export function TeacherWhatsAppComposer() {
             </label>
           </div>
 
-          {message && <label className="stack">3. راجع الرسالة قبل الإرسال
+          {message && <label className="stack whatsapp-preview">3. راجع الرسالة قبل الإرسال
             <textarea className="field textarea" rows={9} value={message} onChange={(event) => setMessage(event.target.value)} />
           </label>}
 
-          <div className="mini-actions">
+          <div className="whatsapp-composer-actions">
             {type && <button className="btn secondary" type="button" disabled={busy} onClick={() => void compose(type)}>{busy ? "جاري التجهيز…" : "إعادة تجهيز النص"}</button>}
             <button className="btn" type="button" disabled={busy || !type} onClick={() => void openWhatsApp()}>فتح واتساب</button>
           </div>
