@@ -1,7 +1,64 @@
-/* Last-mile cleanup for teacher mobile pages. Loaded after every older stylesheet. */
+/* Final strict mobile cleanup for the teacher interface. Loaded last. */
+
+.teacher-unified,
+.ta-teacher-home{
+  --teacher-warm-line:#f2cfa0;
+  --teacher-warm-line-soft:#f7dfbf;
+  --teacher-ink:#17384a;
+  --teacher-muted:#708696;
+}
 
 /* The secure preview/share controls live in GuardianAccessManager. Hide the old unsigned preview link. */
 .teacher-unified-content a[href^="/guardian?student="]{display:none!important}
+
+/* The date/time already exists in the shared top header. Remove the large duplicate green date banner. */
+.teacher-unified-content .date-bar,
+.ta-teacher-home .date-bar{
+  display:none!important;
+}
+
+/* One light orange border language across the teacher site. */
+.teacher-unified :is(
+  .teacher-app-header,
+  .teacher-identity-card,
+  .teacher-page-heading,
+  .card,
+  .inner-section,
+  .notice,
+  .field,
+  input,
+  select,
+  textarea,
+  .row,
+  .clean-eval-list article,
+  .assessment-stat-strip span,
+  .assessment-skill-grid button,
+  .subject-choice-row button,
+  .week-pills button,
+  .week-compact-row,
+  .portfolio-sections article,
+  .guardian-direct-access,
+  .summons-paper,
+  .inline-confirm
+),
+.ta-teacher-home :is(
+  .teacher-app-header,
+  .teacher-identity-card,
+  .ta-card,
+  .ta-subject,
+  .ta-action-grid>a,
+  .ta-quick-assessment,
+  .ta-mini-actions>a,
+  .ta-recent-list>a,
+  .ta-homework-list>a
+){
+  border-color:var(--teacher-warm-line)!important;
+}
+
+.teacher-unified .btn.secondary,
+.ta-teacher-home .btn.secondary{
+  border-color:var(--teacher-warm-line)!important;
+}
 
 /* Legacy .section rules must never draw lines through student follow-up fields. */
 .teacher-unified-content .card>.two.section,
@@ -27,5 +84,160 @@
   content:none!important;
 }
 
+/* Quick assessment must remain readable even if older blue-card rules are loaded. */
+.ta-teacher-home .ta-quick-assessment{
+  background:#f4faff!important;
+  color:var(--teacher-ink)!important;
+  border:1.5px solid var(--teacher-warm-line)!important;
+  box-shadow:0 8px 24px rgba(38,82,110,.07)!important;
+  text-shadow:none!important;
+}
+.ta-teacher-home .ta-quick-assessment :is(h2,p,small,span,b,strong){
+  color:var(--teacher-ink)!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+.ta-teacher-home .ta-quick-assessment p,
+.ta-teacher-home .ta-quick-assessment small{
+  color:var(--teacher-muted)!important;
+}
+.ta-teacher-home .ta-quick-assessment>span{
+  color:#178fcf!important;
+  font-size:34px!important;
+}
+.ta-teacher-home .ta-quick-assessment img{
+  width:76px!important;
+  height:76px!important;
+  object-fit:contain!important;
+}
+
+/* Subject cards use the approved illustrated subject language without oversized backgrounds. */
+.ta-teacher-home .ta-subject{
+  background:#fff!important;
+  box-shadow:0 6px 20px rgba(38,82,110,.05)!important;
+}
+.ta-teacher-home .ta-subject img{
+  width:74px!important;
+  height:74px!important;
+  object-fit:contain!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.ta-teacher-home .ta-subject :is(b,span,small){
+  color:var(--teacher-ink)!important;
+  opacity:1!important;
+}
+.ta-teacher-home .ta-subject small{
+  color:var(--teacher-muted)!important;
+}
+
+/* Guardian link actions: visible recovery when the secure teacher session expires. */
+.teacher-unified .guardian-inline-login{
+  margin-top:14px!important;
+  padding:13px!important;
+  border:1px solid var(--teacher-warm-line)!important;
+  border-radius:15px!important;
+  background:#fffaf3!important;
+}
+.teacher-unified .guardian-inline-login b{
+  display:block!important;
+  margin-bottom:4px!important;
+  color:var(--teacher-ink)!important;
+}
+.teacher-unified .guardian-inline-login p{
+  margin:0 0 10px!important;
+  color:var(--teacher-muted)!important;
+  line-height:1.6!important;
+  font-size:12px!important;
+}
+.teacher-unified .guardian-inline-login-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  gap:8px!important;
+}
+.teacher-unified .guardian-inline-login-row .btn{
+  min-width:118px!important;
+}
+.teacher-unified .guardian-access-actions{
+  position:relative!important;
+  z-index:3!important;
+}
+.teacher-unified .guardian-access-actions button{
+  pointer-events:auto!important;
+}
+
+/* Parent summons: separate labels from values so Arabic text never glues together. */
+.teacher-unified .summons-paper{
+  padding:22px 20px!important;
+  overflow:hidden!important;
+}
+.teacher-unified .summons-paper>h1{
+  margin:0 0 18px!important;
+  line-height:1.35!important;
+}
+.teacher-unified .summons-paper>p{
+  margin:0 0 18px!important;
+  line-height:1.85!important;
+  color:var(--teacher-muted)!important;
+}
+.teacher-unified .summons-paper .kv{
+  display:grid!important;
+  grid-template-columns:104px minmax(0,1fr)!important;
+  align-items:start!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:9px 0!important;
+  border:0!important;
+  background:transparent!important;
+}
+.teacher-unified .summons-paper .kv span{
+  color:#5f7482!important;
+  font-weight:700!important;
+  white-space:nowrap!important;
+}
+.teacher-unified .summons-paper .kv b{
+  min-width:0!important;
+  color:var(--teacher-ink)!important;
+  font-weight:900!important;
+  line-height:1.6!important;
+  overflow-wrap:anywhere!important;
+}
+.teacher-unified .summons-sign{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:10px!important;
+  margin-top:18px!important;
+  padding-top:14px!important;
+  border-top:1px solid var(--teacher-warm-line-soft)!important;
+}
+
+/* The colleague-copy control must be a real action, not a disabled placeholder. */
+.teacher-unified .copy-version-card .btn{
+  pointer-events:auto!important;
+}
+.teacher-unified .copy-version-form{
+  margin-top:12px!important;
+}
+
 /* Keep the bottom navigation from covering the final controls in long forms. */
-.teacher-unified-content>main{padding-bottom:36px!important}
+.teacher-unified-content>main{padding-bottom:44px!important}
+
+@media(max-width:560px){
+  .teacher-unified .summons-paper{
+    padding:20px 16px!important;
+  }
+  .teacher-unified .summons-paper .kv{
+    grid-template-columns:92px minmax(0,1fr)!important;
+    gap:10px!important;
+  }
+  .teacher-unified .guardian-inline-login-row{
+    grid-template-columns:1fr!important;
+  }
+  .teacher-unified .guardian-inline-login-row .btn{
+    width:100%!important;
+  }
+  .ta-teacher-home .ta-quick-assessment{
+    padding:16px!important;
+  }
+}
