@@ -4,12 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { GuardianHomeBehaviorPanel } from "@/components/GuardianHomeBehaviorPanel";
+import { UiIcon, type UiIconName } from "@/components/UiIcon";
 
-const navItems = [
-  { href: "/guardian", label: "الرئيسية", icon: "⌂" },
-  { href: "/guardian#follow", label: "متابعة", icon: "◉" },
-  { href: "/guardian#library", label: "المكتبة", icon: "▤" },
-  { href: "/guardian/profile", label: "المزيد", icon: "•••" },
+type StudentNavItem = { href: string; label: string; icon: UiIconName };
+
+const navItems: StudentNavItem[] = [
+  { href: "/guardian", label: "الرئيسية", icon: "home" },
+  { href: "/guardian#follow", label: "متابعة", icon: "check" },
+  { href: "/guardian#library", label: "المكتبة", icon: "library" },
+  { href: "/guardian/profile", label: "المزيد", icon: "more" },
 ];
 
 function DirectStudentLink() {
@@ -53,6 +56,7 @@ function DirectStudentLink() {
 export function StudentBrandHeader() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+
   useEffect(() => {
     const tick = () => {
       const now = new Date();
@@ -63,20 +67,25 @@ export function StudentBrandHeader() {
     const id = window.setInterval(tick, 60000);
     return () => window.clearInterval(id);
   }, []);
+
   return (
-    <header className="student-brand-header">
-      <div className="student-brand-copy">
-        <span>★</span>
-        <h1>تعلّمت</h1>
-        <p>القمة تكفي الجميع</p>
-      </div>
-      <div className="student-brand-mascot">
-        <img src="/teacher-icons/shakabumbo-logo.svg" alt="شكابمبو" />
-        <b>المعرفة قوة</b>
-      </div>
-      <div className="student-date-card">
-        <b>{date || "اليوم"}</b>
-        <span>{time || "--:--"}</span>
+    <header className="student-app-header">
+      <div className="student-header-top">
+        <Link className="student-wordmark" href="/guardian" aria-label="تعلّمت - الرئيسية">
+          <span className="student-wordmark-mark"><UiIcon name="sparkle" /></span>
+          <div><h1>تعلّمت</h1><p>القمة تكفي الجميع</p></div>
+        </Link>
+
+        <div className="student-header-mascot">
+          <img src="/teacher-icons/shakabumbo-logo.svg" alt="شكابمبو" />
+          <span>المعرفة قوة</span>
+        </div>
+
+        <div className="student-header-date">
+          <span>اليوم</span>
+          <b>{date || "—"}</b>
+          <strong>{time || "--:--"}</strong>
+        </div>
       </div>
     </header>
   );
@@ -88,7 +97,12 @@ export function StudentBottomNav() {
     <nav className="student-bottom-nav" aria-label="تنقل صفحة الطالب">
       {navItems.map((item) => {
         const active = item.href === "/guardian" ? pathname === "/guardian" : pathname === item.href;
-        return <Link className={active ? "active" : ""} href={item.href} key={item.href}><span aria-hidden="true">{item.icon}</span><b>{item.label}</b></Link>;
+        return (
+          <Link className={active ? "active" : ""} href={item.href} key={item.href}>
+            <span className="nav-icon" aria-hidden="true"><UiIcon name={item.icon} /></span>
+            <b>{item.label}</b>
+          </Link>
+        );
       })}
     </nav>
   );
