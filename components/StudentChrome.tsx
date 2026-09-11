@@ -11,6 +11,46 @@ const navItems = [
   { href: "/guardian/profile", label: "المزيد", icon: "•••" },
 ];
 
+function DirectStudentLink() {
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const studentId = new URLSearchParams(window.location.search).get("student")?.trim();
+    if (!studentId) return;
+    let alive = true;
+
+    async function openStudent() {
+      setMessage("جاري فتح صفحة الطالب مباشرة…");
+      try {
+        const current = await fetch("/api/guardian/me", { cache: "no-store" });
+        if (current.ok) {
+          window.history.replaceState({}, "", "/guardian");
+          setMessage("");
+          return;
+        }
+        const login = await fetch("/api/guardian/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ studentId }),
+        });
+        if (!alive) return;
+        if (!login.ok) {
+          setMessage(login.status === 403 ? "رابط صفحة الطالب غير مفعّل." : "تعذر فتح رابط صفحة الطالب الآن.");
+          return;
+        }
+        window.location.replace("/guardian");
+      } catch {
+        if (alive) setMessage("تعذر فتح رابط صفحة الطالب الآن.");
+      }
+    }
+
+    void openStudent();
+    return () => { alive = false; };
+  }, []);
+
+  return message ? <div className="student-direct-link-status" role="status">{message}</div> : null;
+}
+
 export function StudentBrandHeader() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -60,6 +100,7 @@ export function StudentFrame({ children }: { children: ReactNode }) {
     <div className="student-unified">
       <div className="student-unified-shell">
         <StudentBrandHeader />
+        <DirectStudentLink />
         <div className="student-unified-content">{children}</div>
         <StudentBottomNav />
       </div>
