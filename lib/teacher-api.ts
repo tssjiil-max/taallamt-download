@@ -45,13 +45,18 @@ export async function teacherSync(data: TaallamtData) {
   return readJson<{ ok: true; writes: number }>(response);
 }
 
+export async function getGuardianShareAccess(studentId: string) {
+  const response = await fetch(`/api/teacher/students/${encodeURIComponent(studentId)}/guardian-access`, { cache: "no-store" });
+  return readJson<{ ok: true; enabled: boolean; shareToken: string | null }>(response);
+}
+
 export async function setGuardianAccessCode(studentId: string, code: string) {
   const response = await fetch(`/api/teacher/students/${encodeURIComponent(studentId)}/guardian-access`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code }),
   });
-  return readJson<{ ok: true }>(response);
+  return readJson<{ ok: true; shareToken: string }>(response);
 }
 
 export async function disableGuardianAccess(studentId: string) {
