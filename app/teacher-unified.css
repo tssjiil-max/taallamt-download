@@ -1,0 +1,34 @@
+/* Unified teacher visual system: one blue/sky identity on every teacher page. */
+.teacher-unified {
+  --bg:#f4fbff;--card:#fff;--text:#193547;--muted:#6b8192;--line:#d5eaf7;
+  --green:#1596df;--green-soft:#eaf7ff;--blue:#1596df;--blue-soft:#eaf7ff;
+  --orange:#f3a341;--orange-soft:#fff4e4;--amber:#f3a341;--amber-soft:#fff4e4;
+  min-height:100vh;padding-bottom:96px;color:var(--text);
+  background:linear-gradient(180deg,#eef9ff 0,#f8fcff 36%,#f4fbff 100%);
+}
+.teacher-unified-shell{width:min(100%,760px);margin:0 auto;padding:0 12px}
+.teacher-unified .teacher-shared-hero{margin-inline:-12px!important}
+.teacher-unified .teacher-shared-hero .ta-mascot img{background:transparent!important;border:0!important;box-shadow:none!important;mix-blend-mode:multiply}
+.teacher-unified .ta-date-strip{border:1px solid #d2e9f7!important;background:rgba(255,255,255,.94)!important;color:#17384a!important;box-shadow:0 6px 18px rgba(33,106,151,.06)!important}
+.teacher-unified .ta-date-strip small,.teacher-unified .ta-date-strip span{color:#6b8192!important}
+.teacher-page-banner{margin:12px 0 2px;min-height:96px;padding:14px 16px;display:grid;grid-template-columns:50px minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid #d2e9f7;border-radius:24px;background:rgba(255,255,255,.94);box-shadow:0 6px 18px rgba(33,106,151,.06)}
+.teacher-page-icon{width:50px;height:50px;display:grid;place-items:center;border-radius:16px;color:#0f82c9;background:#e7f6ff;font-size:1.55rem;font-weight:900}
+.teacher-page-banner small{color:#2b8bc2;font-weight:800}.teacher-page-banner h2{margin:3px 0 2px;font-size:1.35rem;color:#17384a}.teacher-page-banner p{margin:0;font-size:.76rem;color:#718899}
+.teacher-page-home{min-height:42px;padding:9px 12px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d2e9f7;border-radius:14px;background:#f8fcff;color:#0b78ba;font-weight:800;font-size:.78rem}
+.teacher-unified-content .subject-hero,.teacher-unified-content .inner-hero,.teacher-unified-content .topbar,.teacher-unified-content .ta-inner-header,.teacher-unified-content .teacher-hero{display:none!important}
+.teacher-unified-content .ta-nav{display:none!important}.teacher-unified-content>main{width:100%;max-width:100%;margin:0;background:transparent!important;padding-top:10px}
+.teacher-unified .btn{background:linear-gradient(135deg,#148fdd,#22a9ee)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 6px 14px rgba(20,143,221,.14)!important}
+.teacher-unified .btn.secondary{background:#fff!important;color:#0f78b8!important;border:1px solid #bfe0f3!important;box-shadow:none!important}
+.teacher-unified .field{background:#fff!important;border-color:#d3e8f5!important;color:#17384a!important;border-radius:16px!important}.teacher-unified .field:focus{border-color:#69c6ef!important;box-shadow:0 0 0 3px #e5f6ff!important;outline:none!important}
+.teacher-unified :is(.card,.inner-panel,.inner-section,.section,.hero,.student-summary-card,.clean-eval-list article){border-color:#d3e9f6!important;box-shadow:0 6px 18px rgba(33,106,151,.055)!important}
+.teacher-unified .notice{background:#eaf7ff!important;border-color:#cde8f7!important;color:#155f8d!important}.teacher-unified :is(.badge,.pill,.soft-chip){background:#e8f6ff!important;color:#126fa8!important}
+.teacher-unified :is(.segmented .active,.subject-choice-row button.active,.assessment-skill-grid button.active,.week-pills .active,.subject-tab-grid .active,.eval-choice button.active.mastered){background:#1596df!important;border-color:#1596df!important;color:#fff!important}
+.teacher-unified .eval-choice button.active.needs_training{background:#fff2df!important;border-color:#f0be78!important;color:#8b571a!important}
+.teacher-unified :is(.subject-choice-row button,.assessment-skill-grid button,.week-pills button,.value-card-grid button){background:#fff!important;border-color:#d3e8f5!important;color:#195d89!important}
+.teacher-unified .assessment-skill-grid button.active strong,.teacher-unified .assessment-skill-grid button.active span{color:#fff!important}.teacher-unified .picker-block+.picker-block{border-top-color:#cce7f7!important}
+.teacher-unified .selected-value{background:#eaf7ff!important;border-color:#c7e6f7!important}.teacher-unified .value-card-grid button:nth-child(2n){background:#f8fcff!important}.teacher-unified .value-card-grid button.active{background:#e8f6ff!important;border-color:#1596df!important;color:#174d72!important}.teacher-unified .star-actions button{background:#1596df!important}.teacher-unified .star-actions button+button{background:#f2f7fa!important;color:#5c7484!important}
+.teacher-unified .values-overview article{border-color:#d5eaf7!important}.teacher-unified .values-overview article:nth-child(2){background:#fff5e7!important}.teacher-unified .values-overview article:nth-child(3),.teacher-unified .values-overview article:nth-child(4){background:#edf8ff!important}.teacher-unified .values-overview b{color:#174d72!important}.teacher-unified .student-number{background:#e5f5ff!important;color:#087bc6!important}.teacher-unified .soft-action{background:#eaf7ff!important;color:#126fa8!important}
+.teacher-unified>.teacher-unified-shell>.ta-nav{width:min(calc(100% - 24px),720px);bottom:10px;padding:7px 8px max(7px,env(safe-area-inset-bottom));border:1px solid #d4e9f6;border-radius:24px;background:rgba(255,255,255,.97);box-shadow:0 12px 30px rgba(38,101,143,.13);backdrop-filter:blur(14px)}
+.teacher-unified>.teacher-unified-shell>.ta-nav a{color:#5f7890;border-radius:17px}.teacher-unified>.teacher-unified-shell>.ta-nav a.active{background:#e4f5ff;color:#087cc7}
+.teacher-modal-backdrop{position:fixed;z-index:9999;inset:0;padding:22px;display:grid;place-items:center;background:rgba(15,45,65,.38);backdrop-filter:blur(5px)}.teacher-modal{width:min(100%,430px);padding:22px;text-align:center;border:1px solid #cce7f7;border-radius:28px;background:#fff;box-shadow:0 24px 60px rgba(19,63,91,.22)}.teacher-modal-icon{width:58px;height:58px;margin:0 auto 10px;display:grid;place-items:center;border-radius:18px;background:#e5f5ff;color:#1185ce;font-size:1.7rem;font-weight:900}.teacher-modal h3{margin:0 0 8px;color:#17384a;font-size:1.3rem}.teacher-modal p{margin:0;color:#6e8596;line-height:1.75}.teacher-modal-actions{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:9px}.teacher-modal-actions .btn{min-height:48px;border-radius:15px}
+@media(max-width:560px){.teacher-page-banner{grid-template-columns:44px minmax(0,1fr);padding:12px;min-height:88px;border-radius:21px}.teacher-page-icon{width:44px;height:44px;border-radius:14px;font-size:1.3rem}.teacher-page-banner h2{font-size:1.16rem}.teacher-page-banner p{font-size:.69rem}.teacher-page-home{grid-column:1/-1;min-height:38px;justify-self:stretch}.teacher-unified-content>main{padding-inline:0!important}}
