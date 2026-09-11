@@ -7,6 +7,14 @@ import { readTeacherSession, TEACHER_COOKIE, TeacherAuthError } from "@/lib/serv
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type MessageDoc = {
+  id: string;
+  studentId?: unknown;
+  author?: unknown;
+  body?: unknown;
+  createdAt?: unknown;
+} & Record<string, unknown>;
+
 async function requireTeacher() {
   if (!isFirebaseAdminConfigured()) throw new TeacherAuthError("BACKEND_NOT_CONFIGURED");
   const cookieStore = await cookies();
@@ -18,10 +26,10 @@ export async function GET(request: Request) {
     await requireTeacher();
     const url = new URL(request.url);
     const studentId = url.searchParams.get("studentId")?.trim() ?? "";
-    let query = getAdminDb().collection(firestoreCollectionName("messages"));
-    const snap = studentId ? await query.where("studentId", "==", studentId).get() : await query.get();
+    const collection = getAdminDb().collection(firestoreCollectionName("messages"));
+    const snap = studentId ? await collection.where("studentId", "==", studentId).get() : await collection.get();
     const messages = snap.docs
-      .map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }))
+      .map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) } as MessageDoc))
       .sort((a, b) => String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? "")))
       .slice(-200);
     return NextResponse.json({ messages });
