@@ -11,6 +11,11 @@ export type ContactRequest = {
   requestedAt: string;
   updatedAt: string;
 };
+export type GuardianContact = {
+  studentId: string;
+  guardianName: string;
+  guardianPhone: string;
+};
 
 async function readJson<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as T;
@@ -77,6 +82,18 @@ export async function teacherSendMessage(studentId: string, body: string) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ studentId, body }),
+  }));
+}
+
+export async function getTeacherStudentContacts() {
+  return readJson<{ contacts: GuardianContact[] }>(await fetch("/api/teacher/student-contacts", { cache: "no-store" }));
+}
+
+export async function saveTeacherStudentContact(studentId: string, guardianName: string, guardianPhone: string) {
+  return readJson<{ ok: true; contact: GuardianContact }>(await fetch("/api/teacher/student-contacts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId, guardianName, guardianPhone }),
   }));
 }
 
