@@ -12,6 +12,10 @@ async function requireTeacher() {
   await readTeacherSession(cookieStore.get(TEACHER_COOKIE)?.value);
 }
 
+function clean(value: unknown, max = 200) {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
@@ -47,16 +51,32 @@ export async function POST(
     await requireTeacher();
     const { id } = await context.params;
     const studentId = id.trim();
-    const body = (await request.json().catch(() => null)) as { code?: unknown } | null;
-    const code = typeof body?.code === "string" ? body.code.trim() : "";
+    const body = (await request.json().catch(() => null)) as { code?: unknown; studentName?: unknown; className?: unknown } | null;
+    const code = clean(body?.code, 20);
+    const studentName = clean(body?.studentName, 160);
+    const className = clean(body?.className, 80);
     if (!studentId || !/^\d{6}$/.test(code)) {
       return NextResponse.json({ error: "INVALID_CODE" }, { status: 400 });
     }
 
     const db = getAdminDb();
     const ref = db.collection(firestoreCollectionName("students")).doc(studentId);
-    const snap = await ref.get();
-    if (!snap.exists) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+    let snap = await ref.get();
+    if (!snap.exists) {
+      if (!studentName) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+      await ref.set({
+        id: studentId,
+        name: studentName,
+        className: className || "ثاني/4",
+        active: true,
+        guardianDeviceLimit: 2,
+        guardianDevices: 0,
+        specialFollowUp: false,
+        subjectLevels: {},
+        createdAt: new Date().toISOString(),
+      }, { merge: true });
+      snap = await ref.get();
+    }
 
     const accessHash = hashGuardianAccessCode(studentId, code);
     await ref.set(
@@ -65,7 +85,7 @@ export async function POST(
         guardianAccessCodeHash: accessHash,
         guardianCodeUpdatedAt: new Date().toISOString(),
         guardianDeviceLimit: 2,
-        guardianSearchName: String(snap.data()?.name ?? "")
+        guardianSearchName: String(snap.data()?.name ?? studentName)
           .normalize("NFKC")
           .replace(/[\u064B-\u065F\u0670]/g, "")
           .replace(/[إأآٱ]/g, "ا")
