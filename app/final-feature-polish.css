@@ -1,0 +1,62 @@
+/* Final polish for the last unified teacher/student interactions. */
+.teacher-inline-alert{
+  margin:10px 0 0;
+  min-height:46px;
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid #cde8f7;
+  border-radius:14px;
+  background:#eaf7ff;
+  color:#155f8d;
+  font-weight:800;
+  box-shadow:0 5px 16px rgba(33,106,151,.045);
+}
+.teacher-inline-alert button{
+  width:32px;
+  height:32px;
+  border:0;
+  border-radius:10px;
+  background:#fff;
+  color:#0b78ba;
+  font-size:20px;
+  cursor:pointer;
+}
+.teacher-unified .reward-center{overflow:hidden}
+.teacher-unified .reward-selectors{margin-top:10px}
+.teacher-unified .reward-progress{
+  width:100%;
+  height:14px;
+  margin-top:14px;
+  overflow:hidden;
+  border:1px solid #d3e8f5;
+  border-radius:999px;
+  background:#f3f9fd;
+}
+.teacher-unified .reward-progress-bar{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#23aae8,#118fe0);
+  transition:width .2s ease;
+}
+.teacher-unified .reward-progress-copy{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+.teacher-unified .reward-progress-copy b{color:#0a6fb6}
+.teacher-unified .reward-progress-copy span{color:#6c8394;font-size:12px}
+.teacher-unified .guardian-independent-home-behavior,
+.student-unified .guardian-independent-home-behavior{
+  border-color:#d1e9f7!important;
+  background:rgba(255,255,255,.96)!important;
+}
+@media(max-width:560px){
+  .teacher-inline-alert{margin-inline:0}
+  .teacher-unified .reward-selectors{grid-template-columns:1fr!important}
+}
