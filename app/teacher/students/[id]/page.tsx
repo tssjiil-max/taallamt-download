@@ -42,6 +42,8 @@ export default function StudentPage() {
   if (!student) return <main className="shell"><div className="notice warn">الطالب غير موجود أو تم حذفه.</div><Link className="btn section" href="/teacher/students">العودة للطلاب</Link></main>;
 
   const studentId = student.id;
+  const studentName = student.name;
+  const studentClassName = student.className;
   const activeSubjects = store.subjects.filter((subject) => subject.enabled && subject.termId === store.activeTermId).sort((a, b) => a.order - b.order);
   const activeSkills = store.skills.filter((skill) => skill.active && skill.termId === store.activeTermId);
   const latest = latestAssessmentBySkill(store.assessments, studentId);
@@ -71,8 +73,8 @@ export default function StudentPage() {
     const progressLabel = status === "improving" ? "يتحسن" : status === "stable" ? "مستقر" : "يحتاج مراجعة";
     const text = [
       `إلى ${recipient} المحترم،`,
-      `أرفع لكم ملخص متابعة الطالب: ${student.name}`,
-      `الصف والفصل: ${student.className}`,
+      `أرفع لكم ملخص متابعة الطالب: ${studentName}`,
+      `الصف والفصل: ${studentClassName}`,
       `نوع المتابعة: ${categoryLabels[category]}`,
       `حالة التقدم: ${progressLabel}`,
       impact ? `الأثر على التعلم: ${impact}` : "",
@@ -85,7 +87,7 @@ export default function StudentPage() {
     ].filter(Boolean).join("\n");
     try {
       if (navigator.share) {
-        await navigator.share({ title: `متابعة الطالب ${student.name}`, text });
+        await navigator.share({ title: `متابعة الطالب ${studentName}`, text });
         setShareStatus(`تم فتح خيارات الإرسال إلى ${recipient}.`);
       } else {
         await navigator.clipboard.writeText(text);
@@ -98,7 +100,7 @@ export default function StudentPage() {
 
   return (
     <main className="shell">
-      <header className="topbar"><div className="brand"><div className="logo">🧒</div><div><h1>{student.name}</h1><p>{student.className} · سجل الطالب</p></div></div><div className="mini-actions"><PrintButton label="طباعة سجل الطالب" /><Link className="btn secondary no-print" href="/teacher/students">الطلاب</Link></div></header>
+      <header className="topbar"><div className="brand"><div className="logo">🧒</div><div><h1>{studentName}</h1><p>{studentClassName} · سجل الطالب</p></div></div><div className="mini-actions"><PrintButton label="طباعة سجل الطالب" /><Link className="btn secondary no-print" href="/teacher/students">الطلاب</Link></div></header>
 
       <section className="two">
         <GuardianAccessManager studentId={studentId} />
@@ -138,7 +140,7 @@ export default function StudentPage() {
       </section>
 
       <section className="section no-print"><div className="section-head"><h2>التواصل مع ولي الأمر</h2><span className="badge">{studentMessages.length} رسالة</span></div><div className="card"><div className="list">{studentMessages.slice(-6).map((message) => <div className="row" key={message.id}><div><h4>{message.author === "teacher" ? "المعلم" : "ولي الأمر"}</h4><small>{message.body}</small></div></div>)}{studentMessages.length === 0 && <div className="notice">لا توجد رسائل بعد.</div>}</div><form className="toolbar section" onSubmit={sendTeacherMessage}><input className="field grow" required value={teacherMessage} onChange={(e) => setTeacherMessage(e.target.value)} placeholder="اكتب ردًا لولي الأمر" /><button className="btn" type="submit">إرسال</button></form></div></section>
-      <section className="section summons-section"><div className="section-head"><div><h2>استدعاء ولي أمر</h2><p>إنشاء وطباعة وإرسال الاستدعاء من ملف الطالب</p></div><span className="badge red">رسمي</span></div><div className="card summons-controls no-print"><div className="toolbar"><label>التاريخ<input className="field" type="date" value={summonsDate} onChange={e=>setSummonsDate(e.target.value)}/></label><label>الوقت<input className="field" type="time" value={summonsTime} onChange={e=>setSummonsTime(e.target.value)}/></label><label>طريقة اللقاء<select className="field" value={summonsMode} onChange={e=>setSummonsMode(e.target.value)}><option>حضوري</option><option>اتصال</option></select></label></div><label className="stack">السبب<select className="field" value={summonsReason} onChange={e=>setSummonsReason(e.target.value)}><option>المستوى الدراسي</option><option>متابعة المهارات</option><option>الخطة العلاجية</option><option>السلوك</option><option>عدم إنجاز المهام</option><option>مناقشة مستوى الطالب</option><option>سبب آخر</option></select></label><div className="toolbar"><button className="btn" disabled={!summonsDate||!summonsTime} onClick={sendSummons}>إرسال لولي الأمر</button><PrintButton label="طباعة / حفظ PDF"/></div>{summonsSent&&<div className="notice">تم إرسال الاستدعاء وتسجيله داخل ملف الطالب.</div>}</div><article className="summons-paper"><h1>استدعاء ولي أمر</h1><p>يسر مدرسة الطالب دعوتكم لمتابعة مستواه وتعزيز الشراكة بين الأسرة والمدرسة.</p><div className="kv"><span>اسم الطالب</span><b>{student.name}</b></div><div className="kv"><span>الصف والفصل</span><b>{student.className}</b></div><div className="kv"><span>الموعد</span><b>{summonsDate||"يحدد عند الاعتماد"} {summonsTime}</b></div><div className="kv"><span>طريقة اللقاء</span><b>{summonsMode}</b></div><div className="kv"><span>السبب</span><b>{summonsReason}</b></div><div className="summons-sign"><span>المعلم: سلطان الصاعدي</span><span>توقيع ولي الأمر: ______________</span></div></article></section>
+      <section className="section summons-section"><div className="section-head"><div><h2>استدعاء ولي أمر</h2><p>إنشاء وطباعة وإرسال الاستدعاء من ملف الطالب</p></div><span className="badge red">رسمي</span></div><div className="card summons-controls no-print"><div className="toolbar"><label>التاريخ<input className="field" type="date" value={summonsDate} onChange={e=>setSummonsDate(e.target.value)}/></label><label>الوقت<input className="field" type="time" value={summonsTime} onChange={e=>setSummonsTime(e.target.value)}/></label><label>طريقة اللقاء<select className="field" value={summonsMode} onChange={e=>setSummonsMode(e.target.value)}><option>حضوري</option><option>اتصال</option></select></label></div><label className="stack">السبب<select className="field" value={summonsReason} onChange={e=>setSummonsReason(e.target.value)}><option>المستوى الدراسي</option><option>متابعة المهارات</option><option>الخطة العلاجية</option><option>السلوك</option><option>عدم إنجاز المهام</option><option>مناقشة مستوى الطالب</option><option>سبب آخر</option></select></label><div className="toolbar"><button className="btn" disabled={!summonsDate||!summonsTime} onClick={sendSummons}>إرسال لولي الأمر</button><PrintButton label="طباعة / حفظ PDF"/></div>{summonsSent&&<div className="notice">تم إرسال الاستدعاء وتسجيله داخل ملف الطالب.</div>}</div><article className="summons-paper"><h1>استدعاء ولي أمر</h1><p>يسر مدرسة الطالب دعوتكم لمتابعة مستواه وتعزيز الشراكة بين الأسرة والمدرسة.</p><div className="kv"><span>اسم الطالب</span><b>{studentName}</b></div><div className="kv"><span>الصف والفصل</span><b>{studentClassName}</b></div><div className="kv"><span>الموعد</span><b>{summonsDate||"يحدد عند الاعتماد"} {summonsTime}</b></div><div className="kv"><span>طريقة اللقاء</span><b>{summonsMode}</b></div><div className="kv"><span>السبب</span><b>{summonsReason}</b></div><div className="summons-sign"><span>المعلم: سلطان الصاعدي</span><span>توقيع ولي الأمر: ______________</span></div></article></section>
     </main>
   );
 }
