@@ -1,0 +1,31 @@
+/* Last-mile cleanup for teacher mobile pages. Loaded after every older stylesheet. */
+
+/* The secure preview/share controls live in GuardianAccessManager. Hide the old unsigned preview link. */
+.teacher-unified-content a[href^="/guardian?student="]{display:none!important}
+
+/* Legacy .section rules must never draw lines through student follow-up fields. */
+.teacher-unified-content .card>.two.section,
+.teacher-unified-content .card>label.section,
+.teacher-unified-content .card>h3.section{
+  border-top:0!important;
+  border-bottom:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.teacher-unified-content .card>.two.section{
+  padding-top:0!important;
+  padding-bottom:0!important;
+}
+.teacher-unified-content .card>label.section{
+  padding:0!important;
+}
+.teacher-unified-content .card>.two.section::before,
+.teacher-unified-content .card>.two.section::after,
+.teacher-unified-content .card>label.section::before,
+.teacher-unified-content .card>label.section::after{
+  display:none!important;
+  content:none!important;
+}
+
+/* Keep the bottom navigation from covering the final controls in long forms. */
+.teacher-unified-content>main{padding-bottom:36px!important}
