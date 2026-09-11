@@ -103,6 +103,12 @@ export default function GuardianProfilePage() {
           <p>معلومات تساعد المعلم على فهم الطفل ودعمه</p>
         </div>
       </header>
+      <section className="profile-info-card no-print">
+        <Link className="guardian-contact-trigger" href="/guardian/portfolio">
+          <img src="/guardian-icons/trophy.svg" alt="" />
+          <span><b>ملف إنجاز الطالب</b><small>المهارات والنجوم والأعمال والشواهد — يتحدث تلقائيًا</small></span>
+        </Link>
+      </section>
       <form onSubmit={save}>
         <label className="profile-settings-hero">
           <span className="profile-photo editable-photo">
