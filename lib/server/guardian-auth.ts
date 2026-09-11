@@ -61,6 +61,12 @@ function safeHexEqual(left: string, right: string) {
   return timingSafeEqual(Buffer.from(left, "hex"), Buffer.from(right, "hex"));
 }
 
+function safeTextEqual(left: string, right: string) {
+  const a = Buffer.from(left, "utf8");
+  const b = Buffer.from(right, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export function normalizeGuardianSearchName(value: string) {
   return value
     .normalize("NFKC")
@@ -88,6 +94,19 @@ function verifyGuardianAccessCode(studentId: string, code: string, storedHash: s
   return safeHexEqual(actual, expected);
 }
 
+export function createGuardianShareToken(studentId: string, storedAccessHash: string) {
+  if (!studentId || !storedAccessHash) throw new GuardianAuthError("INVALID_CODE");
+  return createHmac("sha256", guardianSecret())
+    .update(`guardian-share:${studentId}:${storedAccessHash}`, "utf8")
+    .digest("base64url");
+}
+
+function verifyGuardianShareToken(studentId: string, storedAccessHash: string, shareToken: string) {
+  if (!shareToken || shareToken.length < 30) return false;
+  const expected = createGuardianShareToken(studentId, storedAccessHash);
+  return safeTextEqual(expected, shareToken);
+}
+
 function hashSessionToken(sessionId: string, token: string) {
   return createHmac("sha256", guardianSecret()).update(`${sessionId}:${token}`, "utf8").digest("hex");
 }
@@ -99,7 +118,7 @@ function parseCookie(value?: string) {
   return { sessionId, token };
 }
 
-export async function createGuardianSession(studentId: string) {
+export async function createGuardianSession(studentId: string, shareToken: string) {
   if (!studentId) throw new GuardianAuthError("NOT_FOUND");
   guardianSecret();
 
@@ -116,12 +135,18 @@ export async function createGuardianSession(studentId: string) {
     if (!studentSnap.exists) throw new GuardianAuthError("NOT_FOUND");
 
     const student = studentSnap.data() as StudentAuthData;
-    if (!student.active) {
+    if (!student.active || !student.guardianAccessEnabled) {
       throw new GuardianAuthError("ACCESS_DISABLED");
     }
+    if (!student.guardianAccessCodeHash || !verifyGuardianShareToken(studentId, student.guardianAccessCodeHash, shareToken)) {
+      throw new GuardianAuthError("INVALID_CODE");
+    }
+
     const slots = (student.guardianSessionSlots ?? []).filter(
       (slot) => slot && typeof slot.id === "string" && Number(slot.expiresAtMs) > now,
     );
+    const deviceLimit = Math.max(1, Number(student.guardianDeviceLimit) || 2);
+    if (slots.length >= deviceLimit) throw new GuardianAuthError("DEVICE_LIMIT");
 
     transaction.set(sessionRef, {
       studentId,
@@ -162,7 +187,7 @@ export async function readGuardianSession(cookieValue?: string) {
 
   const studentSnap = await db.collection(firestoreCollectionName("students")).doc(session.studentId).get();
   const student = studentSnap.data() as StudentAuthData | undefined;
-  if (!studentSnap.exists || !student?.active) {
+  if (!studentSnap.exists || !student?.active || !student.guardianAccessEnabled) {
     throw new GuardianAuthError("INVALID_SESSION");
   }
 
