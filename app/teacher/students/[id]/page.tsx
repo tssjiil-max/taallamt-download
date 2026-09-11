@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { GuardianAccessManager } from "@/components/GuardianAccessManager";
 import { PrintButton } from "@/components/PrintButton";
 import { assessedSkills, latestAssessmentBySkill, remedialAction, skillsNeedingTraining } from "@/lib/assessment";
+import { getTeacherContactRequests, getTeacherMessages, teacherSendMessage, type ContactRequestStatus } from "@/lib/teacher-api";
 import { useTaallamt } from "@/lib/store";
-import type { FollowUpCategory, MasteryLevel, SpecialFollowUp } from "@/lib/types";
+import type { FollowUpCategory, MasteryLevel, Message, SpecialFollowUp } from "@/lib/types";
 
 const masteryLabels: Record<MasteryLevel, string> = { mastered: "متقن", partial: "أتقن البعض", needs_training: "يحتاج تدريب" };
 const categoryLabels: Record<FollowUpCategory, string> = { health: "حالة صحية مؤثرة على التعلم", learning: "صعوبة أو ضعف تعليمي", behavior: "متابعة سلوكية", family: "ظرف أسري مؤثر", other: "متابعة أخرى" };
@@ -31,6 +32,10 @@ export default function StudentPage() {
   const [review, setReview] = useState(current?.nextReviewAt ?? "بعد أسبوعين");
   const [status, setStatus] = useState<SpecialFollowUp["status"]>(current?.status ?? "needs_review");
   const [teacherMessage, setTeacherMessage] = useState("");
+  const [remoteMessages, setRemoteMessages] = useState<Message[]>([]);
+  const [messagesReady, setMessagesReady] = useState(false);
+  const [contactStatus, setContactStatus] = useState<ContactRequestStatus>("closed");
+  const [messageNotice, setMessageNotice] = useState("");
   const [summonsDate,setSummonsDate]=useState("");
   const [summonsTime,setSummonsTime]=useState("");
   const [summonsReason,setSummonsReason]=useState("مناقشة مستوى الطالب");
@@ -38,6 +43,26 @@ export default function StudentPage() {
   const [summonsSent,setSummonsSent]=useState(false);
   const [shareStatus,setShareStatus]=useState("");
   const plan = useMemo(() => current?.plan?.length ? current.plan : suggestedPlan(category), [current?.plan, category]);
+
+  useEffect(() => {
+    const id = student?.id;
+    if (!id) return;
+    let alive = true;
+    Promise.all([getTeacherMessages(id), getTeacherContactRequests()])
+      .then(([messageData, contactData]) => {
+        if (!alive) return;
+        setRemoteMessages(messageData.messages);
+        setMessagesReady(true);
+        setContactStatus(contactData.requests.find((item) => item.studentId === id)?.status ?? "closed");
+      })
+      .catch(() => {
+        if (alive) {
+          setMessagesReady(false);
+          setMessageNotice("تعذر تحميل المحادثة من الخادم الآن.");
+        }
+      });
+    return () => { alive = false; };
+  }, [student?.id]);
 
   if (!student) return <main className="shell"><div className="notice warn">الطالب غير موجود أو تم حذفه.</div><Link className="btn section" href="/teacher/students">العودة للطلاب</Link></main>;
 
@@ -50,17 +75,32 @@ export default function StudentPage() {
   const assessed = assessedSkills(activeSkills, store.assessments, studentId, store.activeTermId);
   const needsSkills = skillsNeedingTraining(activeSkills, store.assessments, studentId, store.activeTermId);
   const masteredCount = assessed.filter(({ assessment }) => assessment.level === "mastered").length;
-  const studentMessages = store.messages.filter((message) => message.studentId === studentId);
+  const studentMessages = messagesReady ? remoteMessages : store.messages.filter((message) => message.studentId === studentId);
 
   function saveSpecial() {
     store.saveFollowUp({ studentId, category, guardianStatement: current?.guardianStatement ?? "", schoolImpact: impact, goal, plan: suggestedPlan(category), status, nextReviewAt: review, guardianVisible: true });
     alert("تم حفظ ملف المتابعة الخاصة");
   }
 
-  function sendTeacherMessage(event: FormEvent) {
+  async function sendTeacherMessage(event: FormEvent) {
     event.preventDefault();
-    store.sendMessage(studentId, "teacher", teacherMessage);
-    setTeacherMessage("");
+    if (!teacherMessage.trim()) return;
+    if (contactStatus !== "approved") {
+      setMessageNotice("المحادثة مغلقة. افتح التواصل من صفحة «التواصل» بعد طلب ولي الأمر.");
+      return;
+    }
+    setMessageNotice("");
+    try {
+      await teacherSendMessage(studentId, teacherMessage.trim());
+      setTeacherMessage("");
+      const fresh = await getTeacherMessages(studentId);
+      setRemoteMessages(fresh.messages);
+      setMessagesReady(true);
+      setMessageNotice("تم إرسال الرسالة.");
+    } catch (error) {
+      const code = (error as { payload?: { error?: string } })?.payload?.error;
+      setMessageNotice(code === "CONTACT_NOT_APPROVED" ? "المحادثة ليست معتمدة حاليًا." : "تعذر إرسال الرسالة الآن.");
+    }
   }
 
   function sendSummons(){
@@ -104,7 +144,7 @@ export default function StudentPage() {
 
       <section className="two">
         <GuardianAccessManager studentId={studentId} />
-        <div className="card"><h3>ملخص المهارات</h3><div className="kv"><span>مقيّمة</span><b>{assessed.length}</b></div><div className="kv"><span>متقنة</span><b>{masteredCount}</b></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsSkills.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div><div className="mini-actions section no-print"><Link className="btn" href={`/guardian?student=${encodeURIComponent(studentId)}`}>فتح صفحة الطالب</Link></div></div>
+        <div className="card"><h3>ملخص المهارات</h3><div className="kv"><span>مقيّمة</span><b>{assessed.length}</b></div><div className="kv"><span>متقنة</span><b>{masteredCount}</b></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsSkills.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div><div className="mini-actions section no-print"><Link className="btn" href={`/guardian?student=${encodeURIComponent(studentId)}`}>فتح صفحة الطالب</Link><Link className="btn secondary" href={`/teacher/students/${studentId}/portfolio`}>ملف الإنجاز</Link></div></div>
       </section>
 
       <section className="section">
@@ -139,7 +179,7 @@ export default function StudentPage() {
         <div className="card"><p>اختر الجهة، وسيجهز النظام ملخص الطالب الحالي ويفتح خيارات المشاركة في الجوال.</p><div className="mini-actions section"><button className="btn" type="button" onClick={() => void shareReferral("المرشد الطلابي")}>إرسال للمرشد الطلابي</button><button className="btn secondary" type="button" onClick={() => void shareReferral("الوكيل")}>إرسال للوكيل</button></div>{shareStatus && <div className="notice section" role="status">{shareStatus}</div>}</div>
       </section>
 
-      <section className="section no-print"><div className="section-head"><h2>التواصل مع ولي الأمر</h2><span className="badge">{studentMessages.length} رسالة</span></div><div className="card"><div className="list">{studentMessages.slice(-6).map((message) => <div className="row" key={message.id}><div><h4>{message.author === "teacher" ? "المعلم" : "ولي الأمر"}</h4><small>{message.body}</small></div></div>)}{studentMessages.length === 0 && <div className="notice">لا توجد رسائل بعد.</div>}</div><form className="toolbar section" onSubmit={sendTeacherMessage}><input className="field grow" required value={teacherMessage} onChange={(e) => setTeacherMessage(e.target.value)} placeholder="اكتب ردًا لولي الأمر" /><button className="btn" type="submit">إرسال</button></form></div></section>
+      <section className="section no-print"><div className="section-head"><div><h2>التواصل مع ولي الأمر</h2><p>يفتح فقط بعد موافقتك على طلب التواصل.</p></div><span className={`badge ${contactStatus === "pending" ? "warn" : ""}`}>{contactStatus === "approved" ? `مفتوح · ${studentMessages.length} رسالة` : contactStatus === "pending" ? "طلب بانتظار قرارك" : "مغلق"}</span></div><div className="card"><div className="list">{studentMessages.slice(-6).map((message) => <div className="row" key={message.id}><div><h4>{message.author === "teacher" ? "المعلم" : "ولي الأمر"}</h4><small>{message.body}</small></div></div>)}{studentMessages.length === 0 && <div className="notice">لا توجد رسائل بعد.</div>}</div>{contactStatus === "approved" ? <form className="toolbar section" onSubmit={sendTeacherMessage}><input className="field grow" required value={teacherMessage} onChange={(e) => setTeacherMessage(e.target.value)} placeholder="اكتب ردًا لولي الأمر" /><button className="btn" type="submit">إرسال</button></form> : <div className="notice warn section">المحادثة مغلقة. افتح «التواصل» لمراجعة طلب ولي الأمر والموافقة عليه أو رفضه.</div>}{messageNotice && <div className="notice section" role="status">{messageNotice}</div>}</div></section>
       <section className="section summons-section"><div className="section-head"><div><h2>استدعاء ولي أمر</h2><p>إنشاء وطباعة وإرسال الاستدعاء من ملف الطالب</p></div><span className="badge red">رسمي</span></div><div className="card summons-controls no-print"><div className="toolbar"><label>التاريخ<input className="field" type="date" value={summonsDate} onChange={e=>setSummonsDate(e.target.value)}/></label><label>الوقت<input className="field" type="time" value={summonsTime} onChange={e=>setSummonsTime(e.target.value)}/></label><label>طريقة اللقاء<select className="field" value={summonsMode} onChange={e=>setSummonsMode(e.target.value)}><option>حضوري</option><option>اتصال</option></select></label></div><label className="stack">السبب<select className="field" value={summonsReason} onChange={e=>setSummonsReason(e.target.value)}><option>المستوى الدراسي</option><option>متابعة المهارات</option><option>الخطة العلاجية</option><option>السلوك</option><option>عدم إنجاز المهام</option><option>مناقشة مستوى الطالب</option><option>سبب آخر</option></select></label><div className="toolbar"><button className="btn" disabled={!summonsDate||!summonsTime} onClick={sendSummons}>إرسال لولي الأمر</button><PrintButton label="طباعة / حفظ PDF"/></div>{summonsSent&&<div className="notice">تم إرسال الاستدعاء وتسجيله داخل ملف الطالب.</div>}</div><article className="summons-paper"><h1>استدعاء ولي أمر</h1><p>يسر مدرسة الطالب دعوتكم لمتابعة مستواه وتعزيز الشراكة بين الأسرة والمدرسة.</p><div className="kv"><span>اسم الطالب</span><b>{studentName}</b></div><div className="kv"><span>الصف والفصل</span><b>{studentClassName}</b></div><div className="kv"><span>الموعد</span><b>{summonsDate||"يحدد عند الاعتماد"} {summonsTime}</b></div><div className="kv"><span>طريقة اللقاء</span><b>{summonsMode}</b></div><div className="kv"><span>السبب</span><b>{summonsReason}</b></div><div className="summons-sign"><span>المعلم: سلطان الصاعدي</span><span>توقيع ولي الأمر: ______________</span></div></article></section>
     </main>
   );
