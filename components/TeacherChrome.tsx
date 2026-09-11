@@ -5,67 +5,90 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { LiveSchoolTime } from "@/components/LiveSchoolTime";
+import { UiIcon, type UiIconName } from "@/components/UiIcon";
 
-type PageMeta = { title: string; subtitle: string; icon: string };
+type PageMeta = { title: string; subtitle: string; icon: UiIconName };
+type NavItem = { href: string; label: string; icon: UiIconName };
 
-const items = [
-  { href: "/", label: "الرئيسية", icon: "⌂" },
-  { href: "/teacher/assessment", label: "التقييم", icon: "✓" },
-  { href: "/teacher/students", label: "الطلاب", icon: "◉" },
-  { href: "/teacher/values", label: "السلوك", icon: "★" },
+const items: NavItem[] = [
+  { href: "/", label: "الرئيسية", icon: "home" },
+  { href: "/teacher/assessment", label: "التقييم", icon: "check" },
+  { href: "/teacher/students", label: "الطلاب", icon: "users" },
+  { href: "/teacher/values", label: "السلوك", icon: "star" },
 ];
 
 const pages: Record<string, PageMeta> = {
-  "/teacher/assessment": { title: "التقييم السريع", subtitle: "تقييم واضح وسريع أثناء الحصة", icon: "✓" },
-  "/teacher/students": { title: "طلاب الفصل", subtitle: "الملفات والتقييم والمتابعة", icon: "◉" },
-  "/teacher/library": { title: "المكتبة", subtitle: "المصادر والملفات التعليمية", icon: "▤" },
-  "/teacher/announcements": { title: "التواصل", subtitle: "الرسائل والإعلانات وطلبات أولياء الأمور", icon: "◌" },
-  "/teacher/reports": { title: "التقارير", subtitle: "ملخصات التقدم والنتائج", icon: "▥" },
-  "/teacher/settings": { title: "الإعدادات والمزيد", subtitle: "الفصل والجدول وأدوات النظام", icon: "•••" },
-  "/teacher/values": { title: "السلوك والتحفيز", subtitle: "السلوك والقيم والنجوم والمكافآت", icon: "★" },
-  "/teacher/portfolio": { title: "ملف إنجازي", subtitle: "أعمال المعلم وإنجازاته", icon: "◇" },
-  "/teacher/resources": { title: "الموارد", subtitle: "المحتوى والمواد المساندة", icon: "▦" },
-  "/teacher/schedule": { title: "الجدول الدراسي", subtitle: "الحصص والأسبوع الدراسي", icon: "≡" },
-  "/teacher/shakabumbo": { title: "شكابمبو", subtitle: "مساعدك الذكي داخل تعلّمت", icon: "✦" },
-  "/teacher/spelling-handwriting": { title: "الإملاء والخط", subtitle: "التدريب والمتابعة الأسبوعية", icon: "✎" },
-  "/teacher/distribution": { title: "توزيع المنهج", subtitle: "الخطة الأسبوعية للمواد", icon: "▧" },
-  "/teacher/data-exchange": { title: "البيانات", subtitle: "الاستيراد والتصدير والنسخ الاحتياطي", icon: "⇄" },
-  "/teacher/backend": { title: "حالة النظام", subtitle: "الربط والخدمات الخلفية", icon: "◎" },
-  "/teacher/auth-secret": { title: "دخول المعلم", subtitle: "إعداد الدخول الآمن", icon: "◈" },
-  "/teacher/firebase-secret": { title: "إعداد الربط", subtitle: "إعدادات الخدمة", icon: "◈" },
+  "/teacher/assessment": { title: "التقييم السريع", subtitle: "تقييم واضح وسريع أثناء الحصة", icon: "check" },
+  "/teacher/students": { title: "طلاب الفصل", subtitle: "الملفات والتقييم والمتابعة", icon: "users" },
+  "/teacher/library": { title: "المكتبة", subtitle: "المصادر والملفات التعليمية", icon: "library" },
+  "/teacher/announcements": { title: "الرسائل والتواصل", subtitle: "الرسائل والإعلانات وطلبات أولياء الأمور", icon: "message" },
+  "/teacher/reports": { title: "التقارير", subtitle: "ملخصات التقدم والنتائج", icon: "report" },
+  "/teacher/settings": { title: "الإعدادات والمزيد", subtitle: "الفصل والجدول وأدوات النظام", icon: "settings" },
+  "/teacher/values": { title: "السلوك والتحفيز", subtitle: "السلوك والقيم والنجوم والمكافآت", icon: "star" },
+  "/teacher/portfolio": { title: "ملف إنجازي", subtitle: "أعمال المعلم وإنجازاته", icon: "report" },
+  "/teacher/resources": { title: "الموارد", subtitle: "المحتوى والمواد المساندة", icon: "book" },
+  "/teacher/schedule": { title: "الجدول الدراسي", subtitle: "الحصص والأسبوع الدراسي", icon: "calendar" },
+  "/teacher/shakabumbo": { title: "شكابمبو", subtitle: "مساعدك الذكي داخل تعلّمت", icon: "sparkle" },
+  "/teacher/spelling-handwriting": { title: "الإملاء والخط", subtitle: "التدريب والمتابعة الأسبوعية", icon: "pen" },
+  "/teacher/distribution": { title: "توزيع المنهج", subtitle: "الخطة الأسبوعية للمواد", icon: "layers" },
+  "/teacher/data-exchange": { title: "البيانات", subtitle: "الاستيراد والتصدير والنسخ الاحتياطي", icon: "database" },
+  "/teacher/backend": { title: "حالة النظام", subtitle: "الربط والخدمات الخلفية", icon: "database" },
+  "/teacher/auth-secret": { title: "دخول المعلم", subtitle: "إعداد الدخول الآمن", icon: "shield" },
+  "/teacher/firebase-secret": { title: "إعداد الربط", subtitle: "إعدادات الخدمة", icon: "shield" },
 };
 
 function resolvePage(pathname: string): PageMeta {
-  if (pathname.startsWith("/teacher/students/") && pathname.endsWith("/portfolio")) return { title: "ملف إنجاز الطالب", subtitle: "الشواهد والتقدم والمهارات", icon: "★" };
-  if (pathname.startsWith("/teacher/students/")) return { title: "ملف الطالب", subtitle: "التقييم والمتابعة والتواصل", icon: "◉" };
-  if (pathname.startsWith("/teacher/subject/")) return { title: "المادة والمهارات", subtitle: "خطة الأسبوع والتقييم", icon: "▤" };
-  return pages[pathname] ?? { title: "تعلّمت", subtitle: "صفحة المعلم", icon: "✦" };
+  if (pathname.startsWith("/teacher/students/") && pathname.endsWith("/portfolio")) return { title: "ملف إنجاز الطالب", subtitle: "الشواهد والتقدم والمهارات", icon: "star" };
+  if (pathname.startsWith("/teacher/students/")) return { title: "ملف الطالب", subtitle: "التقييم والمتابعة والتواصل", icon: "student" };
+  if (pathname.startsWith("/teacher/subject/")) return { title: "المادة والمهارات", subtitle: "خطة الأسبوع والتقييم", icon: "book" };
+  return pages[pathname] ?? { title: "تعلّمت", subtitle: "صفحة المعلم", icon: "sparkle" };
 }
 
 export function TeacherBrandHeader() {
   return (
-    <>
-      <section className="ta-hero teacher-shared-hero">
-        <div className="ta-brand">
-          <div className="ta-wordmark"><span>★</span><h1>تعلّمت</h1><p>القمة تكفي الجميع</p></div>
-          <div className="ta-profile"><strong>أ. سلطان الصاعدي</strong><span>الصف الثاني / 4</span><small>مدرسة عمرو بن أوس الثقفي</small></div>
-        </div>
-        <Link className="ta-mascot" href="/teacher/shakabumbo" aria-label="فتح مساعد شكابمبو">
-          <Image src="/teacher-icons/shakabumbo-logo.svg" alt="شكابمبو" width={180} height={180} priority />
-          <div><b>المعرفة قوة</b><span>شكابمبو · مساعدك الذكي</span></div>
+    <header className="teacher-app-header">
+      <div className="teacher-header-top">
+        <Link className="teacher-wordmark" href="/" aria-label="تعلّمت - الرئيسية">
+          <span className="teacher-wordmark-mark"><UiIcon name="sparkle" /></span>
+          <div><h1>تعلّمت</h1><p>القمة تكفي الجميع</p></div>
         </Link>
-      </section>
-      <LiveSchoolTime />
-    </>
+
+        <Link className="teacher-mascot-card" href="/teacher/shakabumbo" aria-label="فتح مساعد شكابمبو">
+          <Image src="/teacher-icons/shakabumbo-logo.svg" alt="شكابمبو" width={116} height={116} priority />
+          <span>المعرفة قوة</span>
+        </Link>
+
+        <div className="teacher-header-time"><LiveSchoolTime /></div>
+      </div>
+
+      <div className="teacher-identity-card">
+        <span className="teacher-identity-avatar" aria-hidden="true"><UiIcon name="student" /></span>
+        <div className="teacher-identity-copy">
+          <small>المعلم</small>
+          <strong>أ. سلطان الصاعدي</strong>
+          <span>الصف الثاني / 4 · مدرسة عمرو بن أوس الثقفي</span>
+        </div>
+        <Link className="teacher-identity-settings" href="/teacher/settings" aria-label="إعدادات المعلم"><UiIcon name="settings" /></Link>
+      </div>
+    </header>
   );
 }
 
 export function TeacherNav() {
   const pathname = usePathname();
-  return <nav className="ta-nav" aria-label="التنقل الرئيسي">{items.map((item) => {
-    const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-    return <Link className={active ? "active" : ""} href={item.href} key={item.href}><span aria-hidden="true">{item.icon}</span><b>{item.label}</b></Link>;
-  })}</nav>;
+  return (
+    <nav className="ta-nav teacher-main-nav" aria-label="التنقل الرئيسي">
+      {items.map((item) => {
+        const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        return (
+          <Link className={active ? "active" : ""} href={item.href} key={item.href}>
+            <span className="nav-icon" aria-hidden="true"><UiIcon name={item.icon} /></span>
+            <b>{item.label}</b>
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
 
 export function TeacherFrame({ children }: { children: ReactNode }) {
@@ -83,11 +106,17 @@ export function TeacherFrame({ children }: { children: ReactNode }) {
     <div className="teacher-unified">
       <div className="teacher-unified-shell">
         <TeacherBrandHeader />
-        <section className="teacher-page-banner">
-          <span className="teacher-page-icon" aria-hidden="true">{meta.icon}</span>
-          <div><small>تعلّمت · الصف الثاني / 4</small><h2>{meta.title}</h2><p>{meta.subtitle}</p></div>
-          <Link href="/" className="teacher-page-home">الرئيسية</Link>
+
+        <section className="teacher-page-heading">
+          <span className="teacher-page-heading-icon" aria-hidden="true"><UiIcon name={meta.icon} /></span>
+          <div className="teacher-page-heading-copy">
+            <small>صفحة المعلم</small>
+            <h2>{meta.title}</h2>
+            <p>{meta.subtitle}</p>
+          </div>
+          <Link href="/" className="teacher-page-heading-home"><UiIcon name="home" /><span>الرئيسية</span></Link>
         </section>
+
         {alertMessage && <div className="teacher-inline-alert no-print" role="status"><span>{alertMessage}</span><button type="button" onClick={() => setAlertMessage("")} aria-label="إغلاق التنبيه">×</button></div>}
         <div className="teacher-unified-content">{children}</div>
         <TeacherNav />
@@ -96,6 +125,12 @@ export function TeacherFrame({ children }: { children: ReactNode }) {
   );
 }
 
-export function TeacherBackHeader({ title, subtitle, icon = "ت" }: { title: string; subtitle?: string; icon?: string }) {
-  return <header className="ta-inner-header"><Link href="/" className="ta-logo" aria-label="العودة إلى اليوم">{icon}</Link><div><small>تعلّمت · الصف الثاني / 4</small><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div><Link href="/" className="ta-back">الرئيسية</Link></header>;
+export function TeacherBackHeader({ title, subtitle, icon = "student" }: { title: string; subtitle?: string; icon?: UiIconName }) {
+  return (
+    <header className="ta-inner-header">
+      <Link href="/" className="ta-logo" aria-label="العودة إلى الرئيسية"><UiIcon name={icon} /></Link>
+      <div><small>تعلّمت · الصف الثاني / 4</small><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>
+      <Link href="/" className="ta-back"><UiIcon name="home" /><span>الرئيسية</span></Link>
+    </header>
+  );
 }
