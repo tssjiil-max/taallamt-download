@@ -13,6 +13,7 @@ import "./shell-redesign.css";
 import "./strict-ui-fixes.css";
 import "./strict-last-mile.css";
 import "./teacher-student-parity.css";
+import "./teacher-visual-hotfix.css";
 import { TaallamtProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
