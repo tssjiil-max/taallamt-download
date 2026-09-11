@@ -35,7 +35,10 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
         setShareUrl(result.shareToken ? urlFor(result.shareToken) : "");
       })
       .catch(() => {
-        if (alive) setShareUrl("");
+        if (alive) {
+          setAccessEnabled(false);
+          setShareUrl("");
+        }
       });
     return () => { alive = false; };
   }, [studentId]);
@@ -49,14 +52,22 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
     setStatus("");
     try {
       const code = internalAccessCode();
-      const result = await setGuardianAccessCodeRemote(id, code);
+      const result = await setGuardianAccessCodeRemote(id, code, { name: student.name, className: student.className });
       await store.setGuardianAccessCode(id, code);
+      const url = urlFor(result.shareToken);
       setAccessEnabled(true);
-      setShareUrl(urlFor(result.shareToken));
+      setShareUrl(url);
       setStatus("تم تفعيل رابط خاص بهذا الطالب بدون رقم سري.");
-      return urlFor(result.shareToken);
-    } catch {
-      setStatus("تعذر تفعيل رابط الطالب الآن.");
+      return url;
+    } catch (error) {
+      const info = error as { status?: number; payload?: { error?: string } };
+      setStatus(
+        info.status === 401
+          ? "انتهت جلسة المعلم. سجّل الدخول من الإعدادات ثم أعد التفعيل."
+          : info.payload?.error === "BACKEND_NOT_CONFIGURED"
+            ? "الربط الخلفي غير مفعّل على هذه النسخة."
+            : "تعذر تفعيل رابط الطالب الآن. أعد المحاولة.",
+      );
       return "";
     } finally {
       setBusy(false);
@@ -128,8 +139,8 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
       <div className="kv"><span>طريقة الدخول</span><b>رابط مباشر بدون رقم سري</b></div>
       <div className="kv"><span>الحماية</span><span>الرابط موقّع ومخصص لهذا الطالب</span></div>
       {shareUrl && <div className="direct-student-url" dir="ltr">{shareUrl}</div>}
-      <div className="mini-actions section no-print">
-        {!accessEnabled && <button className="btn" disabled={busy} type="button" onClick={() => void createLink()}>تفعيل الرابط</button>}
+      <div className="guardian-access-actions no-print">
+        {!accessEnabled && <button className="btn" disabled={busy} type="button" onClick={() => void createLink()}>{busy ? "جاري التفعيل…" : "تفعيل الرابط"}</button>}
         <button className="btn" disabled={busy} type="button" onClick={() => void shareLink()}>مشاركة صفحة الطالب</button>
         <button className="btn secondary" disabled={busy} type="button" onClick={() => void copyLink()}>نسخ الرابط</button>
         {accessEnabled && !confirmDisable && <button className="btn danger" disabled={busy} type="button" onClick={() => setConfirmDisable(true)}>تعطيل الرابط</button>}
@@ -138,7 +149,7 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
         <div><b>تعطيل رابط صفحة الطالب؟</b><small>سيتم إلغاء الرابط الحالي والجلسات المفتوحة للعائلة. يمكنك إنشاء رابط جديد لاحقًا.</small></div>
         <div className="mini-actions"><button className="btn danger" disabled={busy} type="button" onClick={() => void disable()}>{busy ? "جاري التعطيل…" : "نعم، تعطيل"}</button><button className="btn secondary" disabled={busy} type="button" onClick={() => setConfirmDisable(false)}>إلغاء</button></div>
       </div>}
-      {status && <div className="notice section" role="status">{status}</div>}
+      {status && <div className="notice guardian-access-status" role="status">{status}</div>}
       <small className="notification-note">الرابط خاص بهذا الطالب؛ لا يحتاج ولي الأمر إلى إدخال رمز أو رقم سري.</small>
     </div>
   );
