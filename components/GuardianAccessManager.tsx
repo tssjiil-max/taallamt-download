@@ -46,13 +46,14 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
   if (!student) return null;
   const id = student.id;
   const studentName = student.name;
+  const studentClassName = student.className;
 
   async function createLink() {
     setBusy(true);
     setStatus("");
     try {
       const code = internalAccessCode();
-      const result = await setGuardianAccessCodeRemote(id, code, { name: student.name, className: student.className });
+      const result = await setGuardianAccessCodeRemote(id, code, { name: studentName, className: studentClassName });
       await store.setGuardianAccessCode(id, code);
       const url = urlFor(result.shareToken);
       setAccessEnabled(true);
