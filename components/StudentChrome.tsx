@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { GuardianHomeBehaviorPanel } from "@/components/GuardianHomeBehaviorPanel";
 
 const navItems = [
   { href: "/guardian", label: "الرئيسية", icon: "⌂" },
@@ -94,12 +95,14 @@ export function StudentBottomNav() {
 }
 
 export function StudentFrame({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   return (
     <div className="student-unified">
       <div className="student-unified-shell">
         <StudentBrandHeader />
         <DirectStudentLink />
         <div className="student-unified-content">{children}</div>
+        {pathname === "/guardian" && <GuardianHomeBehaviorPanel />}
         <StudentBottomNav />
       </div>
     </div>
