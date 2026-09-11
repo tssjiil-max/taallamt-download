@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useTaallamt } from "@/lib/store";
 
@@ -8,24 +7,39 @@ export default function SettingsPage() {
   const store = useTaallamt();
   const [termName, setTermName] = useState("");
   const [year, setYear] = useState("1448هـ");
-  const [profile, setProfile] = useState({teacher:"سلطان الصاعدي",school:"مدرسة عمرو بن أوس الثقفي",className:"الصف الثاني / 4"});
+  const [profile, setProfile] = useState({ teacher: "سلطان الصاعدي", school: "مدرسة عمرو بن أوس الثقفي", className: "الصف الثاني / 4" });
+  const [notice, setNotice] = useState("");
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const activeSubjects = store.subjects.filter((subject) => subject.termId === store.activeTermId);
 
   function addTerm(event: FormEvent) {
     event.preventDefault();
     store.addTerm(termName, year);
     setTermName("");
+    setNotice("تمت إضافة الفصل الدراسي.");
   }
 
-  useEffect(()=>{const saved=localStorage.getItem("taallamt-teacher-profile");if(saved) setProfile(JSON.parse(saved));},[]);
-  function saveProfile(event:FormEvent){event.preventDefault();localStorage.setItem("taallamt-teacher-profile",JSON.stringify(profile));alert("تم حفظ بيانات النسخة");}
+  useEffect(() => {
+    const saved = localStorage.getItem("taallamt-teacher-profile");
+    if (!saved) return;
+    try { setProfile(JSON.parse(saved)); } catch {}
+  }, []);
+
+  function saveProfile(event: FormEvent) {
+    event.preventDefault();
+    localStorage.setItem("taallamt-teacher-profile", JSON.stringify(profile));
+    setNotice("تم حفظ بيانات المعلم والمدرسة.");
+  }
+
+  function resetDemo() {
+    store.resetLocalData();
+    setResetConfirmOpen(false);
+    setNotice("تمت إعادة بيانات النسخة التجريبية إلى حالتها الأولى.");
+  }
 
   return (
     <main className="shell">
-      <header className="topbar">
-        <div className="brand"><div className="logo">⚙️</div><div><h1>إدارة الفصل</h1><p>الفصول والمواد قابلة للتغيير في أي وقت</p></div></div>
-        <Link className="btn secondary no-print" href="/">الرئيسية</Link>
-      </header>
+      {notice && <div className="notice" role="status">{notice}</div>}
 
       <section className="two">
         <div className="card">
@@ -35,7 +49,7 @@ export default function SettingsPage() {
             <div className="toolbar"><input className="field" value={year} onChange={(e) => setYear(e.target.value)} placeholder="العام الدراسي" /><button className="btn" type="submit">+ فصل جديد</button></div>
           </form>
           <div className="list section">
-            {store.terms.map((term) => <div className="row" key={term.id}><div><h4>{term.name}</h4><small>{term.academicYear}</small></div>{term.active ? <span className="badge">الحالي</span> : <button className="btn secondary no-print" onClick={() => store.activateTerm(term.id)}>جعله الحالي</button>}</div>)}
+            {store.terms.map((term) => <div className="row" key={term.id}><div><h4>{term.name}</h4><small>{term.academicYear}</small></div>{term.active ? <span className="badge">الحالي</span> : <button className="btn secondary no-print" type="button" onClick={() => { store.activateTerm(term.id); setNotice(`تم اعتماد ${term.name} كفصل حالي.`); }}>جعله الحالي</button>}</div>)}
           </div>
         </div>
 
@@ -47,12 +61,36 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="section card"><div className="section-head"><h2>بيانات المعلم والمدرسة</h2></div><form className="stack" onSubmit={saveProfile}><input className="field" value={profile.teacher} onChange={e=>setProfile({...profile,teacher:e.target.value})} placeholder="اسم المعلم"/><input className="field" value={profile.school} onChange={e=>setProfile({...profile,school:e.target.value})} placeholder="اسم المدرسة"/><input className="field" value={profile.className} onChange={e=>setProfile({...profile,className:e.target.value})} placeholder="الفصل"/><button className="btn" type="submit">حفظ البيانات</button></form></section>
-      <section className="section card"><h3>نسخة زميل أو فصل آخر</h3><p>البنية جاهزة لنسخة مستقلة ببيانات وصلاحيات منفصلة. لن تُنشأ بيانات افتراضية قبل توفر بيانات النسخة.</p><button className="btn secondary" type="button" disabled>بانتظار بيانات النسخة</button></section>
+      <section className="section card">
+        <div className="section-head"><h2>بيانات المعلم والمدرسة</h2></div>
+        <form className="stack" onSubmit={saveProfile}>
+          <input className="field" value={profile.teacher} onChange={e=>setProfile({...profile,teacher:e.target.value})} placeholder="اسم المعلم" />
+          <input className="field" value={profile.school} onChange={e=>setProfile({...profile,school:e.target.value})} placeholder="اسم المدرسة" />
+          <input className="field" value={profile.className} onChange={e=>setProfile({...profile,className:e.target.value})} placeholder="الفصل" />
+          <button className="btn" type="submit">حفظ البيانات</button>
+        </form>
+      </section>
+
+      <section className="section card">
+        <h3>نسخة زميل أو فصل آخر</h3>
+        <p>البنية جاهزة لنسخة مستقلة ببيانات وصلاحيات منفصلة. لن تُنشأ بيانات افتراضية قبل توفر بيانات النسخة.</p>
+        <button className="btn secondary" type="button" disabled>بانتظار بيانات النسخة</button>
+      </section>
 
       <section className="section two">
         <div className="card"><h3>قاعدة النظام</h3><p>تغيير الفصل لا يمسح الفصل السابق. لكل فصل مواد مستقلة، ويمكن إضافة أو إيقاف أو تغيير المواد لاحقًا بدون إعادة بناء الموقع.</p></div>
-        <div className="card"><h3>بيانات النسخة الحالية</h3><p>التغييرات تحفظ محليًا على هذا الجهاز أثناء مرحلة البناء. قبل الاستخدام الفعلي سننقلها إلى تخزين خلفي آمن وصلاحيات حقيقية.</p><button className="btn danger no-print" style={{marginTop: 12}} onClick={() => { if (confirm("إعادة بيانات النسخة التجريبية إلى حالتها الأولى؟")) store.resetLocalData(); }}>إعادة ضبط التجربة</button></div>
+        <div className="card">
+          <h3>بيانات النسخة الحالية</h3>
+          <p>إعادة الضبط مخصصة للنسخة التجريبية فقط، ولا تُنفذ إلا بعد تأكيدك داخل الصفحة.</p>
+          {!resetConfirmOpen ? (
+            <button className="btn danger no-print" style={{ marginTop: 12 }} type="button" onClick={() => setResetConfirmOpen(true)}>إعادة ضبط التجربة</button>
+          ) : (
+            <div className="inline-confirm no-print" role="dialog" aria-label="تأكيد إعادة ضبط التجربة">
+              <div><b>إعادة بيانات النسخة التجريبية؟</b><small>سيتم إرجاع البيانات المحلية إلى الحالة الأولى.</small></div>
+              <div className="mini-actions"><button className="btn danger" type="button" onClick={resetDemo}>تأكيد إعادة الضبط</button><button className="btn secondary" type="button" onClick={() => setResetConfirmOpen(false)}>إلغاء</button></div>
+            </div>
+          )}
+        </div>
       </section>
     </main>
   );
