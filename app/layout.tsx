@@ -14,9 +14,9 @@ import "./strict-ui-fixes.css";
 import "./strict-last-mile.css";
 import "./teacher-student-parity.css";
 import "./teacher-visual-hotfix.css";
+import "./navigation-cleanup.css";
 import { TaallamtProvider } from "@/lib/store";
 
-// Visual hotfix sync marker: final teacher mobile cleanup is loaded last.
 export const metadata: Metadata = {
   title: "تعلّمت",
   description: "متابعة الطالب والتواصل والتحفيز",
