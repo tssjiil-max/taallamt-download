@@ -18,8 +18,8 @@ const items: NavItem[] = [
 ];
 
 const pages: Record<string, PageMeta> = {
-  "/teacher/assessment": { title: "التقييم السريع", subtitle: "تقييم واضح وسريع أثناء الحصة", icon: "check" },
-  "/teacher/students": { title: "طلاب الفصل", subtitle: "الملفات والتقييم والمتابعة", icon: "users" },
+  "/teacher/assessment": { title: "التقييم الشامل", subtitle: "ملف واحد لكل طالب", icon: "check" },
+  "/teacher/students": { title: "طلاب الفصل", subtitle: "اضغط اسم الطالب لفتح تقييمه الشامل", icon: "users" },
   "/teacher/library": { title: "المكتبة", subtitle: "المصادر والملفات التعليمية", icon: "library" },
   "/teacher/announcements": { title: "الرسائل والتواصل", subtitle: "الرسائل والإعلانات وطلبات أولياء الأمور", icon: "message" },
   "/teacher/reports": { title: "التقارير", subtitle: "ملخصات التقدم والنتائج", icon: "report" },
@@ -38,6 +38,7 @@ const pages: Record<string, PageMeta> = {
 };
 
 function resolvePage(pathname: string): PageMeta {
+  if (pathname.startsWith("/teacher/students/") && pathname.endsWith("/assessment")) return { title: "التقييم الشامل", subtitle: "المواد والسلوك والقيم والمتابعة في صفحة واحدة", icon: "check" };
   if (pathname.startsWith("/teacher/students/") && pathname.endsWith("/portfolio")) return { title: "ملف إنجاز الطالب", subtitle: "الشواهد والتقدم والمهارات", icon: "star" };
   if (pathname.startsWith("/teacher/students/")) return { title: "ملف الطالب", subtitle: "التقييم والمتابعة والتواصل", icon: "student" };
   if (pathname.startsWith("/teacher/subject/")) return { title: "المادة والمهارات", subtitle: "خطة الأسبوع والتقييم", icon: "book" };
@@ -76,10 +77,13 @@ export function TeacherBrandHeader() {
 
 export function TeacherNav() {
   const pathname = usePathname();
+  const comprehensiveAssessment = pathname.startsWith("/teacher/students/") && pathname.endsWith("/assessment");
   return (
     <nav className="ta-nav teacher-main-nav" aria-label="التنقل الرئيسي">
       {items.map((item) => {
-        const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        let active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        if (item.href === "/teacher/assessment" && comprehensiveAssessment) active = true;
+        if (item.href === "/teacher/students" && comprehensiveAssessment) active = false;
         return (
           <Link className={active ? "active" : ""} href={item.href} key={item.href}>
             <span className="nav-icon" aria-hidden="true"><UiIcon name={item.icon} /></span>
