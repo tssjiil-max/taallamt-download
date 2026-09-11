@@ -1,0 +1,226 @@
+/* Shakabumbo artwork supplied for the student page.
+   This layer changes only visual icons; existing links, buttons and data behavior stay intact. */
+
+.g2-login-card > img {
+  display: none !important;
+}
+.g2-login-card::before {
+  content: "";
+  display: block;
+  width: min(190px, 52vw);
+  height: 175px;
+  margin: 0 auto 10px;
+  background: url("/student-icons/reading-help.svg") center / contain no-repeat;
+}
+
+.g2-knowledge-mark .g2-book-star {
+  display: none !important;
+}
+.g2-knowledge-mark::before {
+  content: "";
+  display: block;
+  width: 150px;
+  height: 126px;
+  margin-inline: auto;
+  background: url("/student-icons/reading-help.svg") center / contain no-repeat;
+}
+
+.g2-shak-reward > img {
+  display: none !important;
+}
+.g2-shak-reward::before {
+  content: "";
+  display: block;
+  width: 190px;
+  height: 190px;
+  margin-inline: auto;
+  background: url("/student-icons/achievement-trophy.svg") center / contain no-repeat;
+}
+
+/* Main dashboard row icons */
+.g2-homework-row > div > svg {
+  display: none !important;
+}
+.g2-homework-row > div::before {
+  content: "";
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  background: url("/student-icons/task-checklist.svg") center / contain no-repeat;
+}
+
+.g2-section-title > svg,
+.g2-section-title > img {
+  display: none !important;
+}
+.g2-weekly .g2-section-title::before,
+.g2-progress .g2-section-title::before,
+.g2-portfolio .g2-section-title::before,
+.g2-library .g2-section-title::before,
+.g2-tools .g2-section-title::before,
+.g2-tasks .g2-section-title::before {
+  content: "";
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.g2-weekly .g2-section-title::before,
+.g2-progress .g2-section-title::before {
+  background-image: url("/student-icons/progress.svg");
+}
+.g2-portfolio .g2-section-title::before {
+  background-image: url("/student-icons/achievement-trophy.svg");
+}
+.g2-library .g2-section-title::before {
+  background-image: url("/student-icons/library-reading.svg");
+}
+.g2-tools .g2-section-title::before {
+  background-image: url("/student-icons/communication.svg");
+}
+.g2-tasks .g2-section-title::before {
+  background-image: url("/student-icons/announcement-megaphone.svg");
+}
+
+/* Four subject tiles: لغتي، القرآن، الدراسات الإسلامية، الإملاء والخط */
+.g2-subject-grid > button > img {
+  display: none !important;
+}
+.g2-subject-grid > button::before {
+  content: "";
+  display: block;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 5px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.g2-subject-grid > button:nth-child(1)::before {
+  background-image: url("/student-icons/reading-help.svg");
+}
+.g2-subject-grid > button:nth-child(2)::before {
+  background-image: url("/student-icons/quran.svg");
+}
+.g2-subject-grid > button:nth-child(3)::before {
+  background-image: url("/student-icons/library-reading.svg");
+}
+.g2-subject-grid > button:nth-child(4)::before {
+  background-image: url("/student-icons/writing.svg");
+}
+
+/* Compact weekly/task cards */
+.g2-duo-row > .g2-card > svg {
+  display: none !important;
+}
+.g2-duo-row > .g2-card::before {
+  content: "";
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.g2-duo-row > .g2-card:first-child::before {
+  background-image: url("/student-icons/announcement-card.svg");
+}
+.g2-duo-row > .g2-card:nth-child(2)::before {
+  background-image: url("/student-icons/achievement-trophy.svg");
+}
+
+/* Library resources */
+.g2-library-grid a > img {
+  display: none !important;
+}
+.g2-library-grid a::before {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin-inline: auto;
+  background: url("/student-icons/library-reading.svg") center / contain no-repeat;
+}
+
+/* Parent/student tools and communication */
+.g2-profile-link > svg {
+  display: none !important;
+}
+.g2-profile-link::before {
+  content: "";
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  background: url("/student-icons/communication.svg") center / contain no-repeat;
+}
+.g2-home-behavior::before {
+  content: "";
+  float: inline-start;
+  width: 72px;
+  height: 72px;
+  margin: 0 0 8px 10px;
+  background: url("/student-icons/task-checklist.svg") center / contain no-repeat;
+}
+.g2-contact-box > h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.g2-contact-box > h3::before {
+  content: "";
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  background: url("/student-icons/communication.svg") center / contain no-repeat;
+}
+
+/* Bottom navigation: keep the same anchors and behavior, replace only artwork. */
+.g2-bottom-nav a > svg {
+  display: none !important;
+}
+.g2-bottom-nav a::before {
+  content: "";
+  display: block;
+  width: 38px;
+  height: 38px;
+  margin-inline: auto;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.g2-bottom-nav a:nth-child(1)::before {
+  background-image: url("/student-icons/reading-help.svg");
+}
+.g2-bottom-nav a:nth-child(2)::before {
+  background-image: url("/student-icons/progress.svg");
+}
+.g2-bottom-nav a:nth-child(3)::before {
+  background-image: url("/student-icons/achievement-trophy.svg");
+}
+.g2-bottom-nav a:nth-child(4)::before {
+  background-image: url("/student-icons/library-reading.svg");
+}
+.g2-bottom-nav a:nth-child(5)::before {
+  background-image: url("/student-icons/communication.svg");
+}
+
+@media (max-width: 520px) {
+  .g2-knowledge-mark::before {
+    width: 122px;
+    height: 106px;
+  }
+  .g2-shak-reward::before {
+    width: 155px;
+    height: 155px;
+  }
+  .g2-subject-grid > button::before {
+    width: 54px;
+    height: 54px;
+  }
+  .g2-bottom-nav a::before {
+    width: 32px;
+    height: 32px;
+  }
+}
