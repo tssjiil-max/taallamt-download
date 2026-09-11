@@ -10,6 +10,7 @@ import "./final-unified-ui.css";
 import "./portfolio-polish.css";
 import "./final-feature-polish.css";
 import "./shell-redesign.css";
+import "./strict-ui-fixes.css";
 import { TaallamtProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
