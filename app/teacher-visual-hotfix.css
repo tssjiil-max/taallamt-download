@@ -184,3 +184,5 @@
     display:none!important;
   }
 }
+
+/* Final production trigger: visual layer intentionally loaded after all legacy CSS. */
