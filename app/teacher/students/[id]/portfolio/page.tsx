@@ -18,7 +18,8 @@ export default function TeacherStudentPortfolioPage() {
 
   const subjects = store.subjects.filter((item) => item.enabled && item.termId === store.activeTermId).sort((a, b) => a.order - b.order);
   const skills = store.skills.filter((item) => item.active && item.termId === store.activeTermId);
-  const assessments = store.assessments.filter((item) => item.studentId === student.id && item.termId === store.activeTermId);
+  const activeSkillIds = new Set(skills.map((item) => item.id));
+  const assessments = store.assessments.filter((item) => item.studentId === student.id && activeSkillIds.has(item.skillId));
   const latest = new Map<string, SkillAssessment>();
   assessments.forEach((item) => {
     const old = latest.get(item.skillId);
