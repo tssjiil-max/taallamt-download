@@ -14,7 +14,7 @@ const items: NavItem[] = [
   { href: "/", label: "الرئيسية", icon: "home" },
   { href: "/teacher/assessment", label: "التقييم", icon: "check" },
   { href: "/teacher/students", label: "الطلاب", icon: "users" },
-  { href: "/teacher/values", label: "السلوك", icon: "star" },
+  { href: "/teacher/reports", label: "التقارير", icon: "report" },
 ];
 
 const pages: Record<string, PageMeta> = {
