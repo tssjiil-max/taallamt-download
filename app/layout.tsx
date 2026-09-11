@@ -8,6 +8,7 @@ import "./guardian/guardian-layout-fix.css";
 import "./teacher-unified.css";
 import "./final-unified-ui.css";
 import "./portfolio-polish.css";
+import "./final-feature-polish.css";
 import { TaallamtProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
