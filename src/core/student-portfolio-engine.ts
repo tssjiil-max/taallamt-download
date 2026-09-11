@@ -1,0 +1,2 @@
+import type { EvidenceRef, StudentPortfolioProjection } from './portfolio';
+export function buildStudentPortfolio(items:EvidenceRef[]):StudentPortfolioProjection{return {learningEvidence:items.filter(x=>['assessment','homework','weekly_plan'].includes(x.sourceType)),achievements:items.filter(x=>x.sourceType==='achievement'),remediationProgress:items.filter(x=>x.sourceType==='remediation'),files:items.filter(x=>x.sourceType==='file')}}
