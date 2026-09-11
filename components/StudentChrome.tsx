@@ -22,12 +22,6 @@ function DirectStudentLink() {
     async function openStudent() {
       setMessage("جاري فتح صفحة الطالب مباشرة…");
       try {
-        const current = await fetch("/api/guardian/me", { cache: "no-store" });
-        if (current.ok) {
-          window.history.replaceState({}, "", "/guardian");
-          setMessage("");
-          return;
-        }
         const login = await fetch("/api/guardian/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
