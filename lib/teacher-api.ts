@@ -89,11 +89,17 @@ export async function getTeacherStudentContacts() {
   return readJson<{ contacts: GuardianContact[] }>(await fetch("/api/teacher/student-contacts", { cache: "no-store" }));
 }
 
-export async function saveTeacherStudentContact(studentId: string, guardianName: string, guardianPhone: string) {
+export async function saveTeacherStudentContact(
+  studentId: string,
+  guardianName: string,
+  guardianPhone: string,
+  studentName = "",
+  className = "",
+) {
   return readJson<{ ok: true; contact: GuardianContact }>(await fetch("/api/teacher/student-contacts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentId, guardianName, guardianPhone }),
+    body: JSON.stringify({ studentId, guardianName, guardianPhone, studentName, className }),
   }));
 }
 
@@ -102,11 +108,15 @@ export async function getGuardianShareAccess(studentId: string) {
   return readJson<{ ok: true; enabled: boolean; shareToken: string | null }>(response);
 }
 
-export async function setGuardianAccessCode(studentId: string, code: string) {
+export async function setGuardianAccessCode(
+  studentId: string,
+  code: string,
+  student?: { name?: string; className?: string },
+) {
   const response = await fetch(`/api/teacher/students/${encodeURIComponent(studentId)}/guardian-access`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, studentName: student?.name ?? "", className: student?.className ?? "" }),
   });
   return readJson<{ ok: true; shareToken: string }>(response);
 }
