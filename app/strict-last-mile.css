@@ -198,6 +198,7 @@
 }
 .teacher-unified .summons-paper .kv b{
   min-width:0!important;
+  min-height:1.6em!important;
   color:var(--teacher-ink)!important;
   font-weight:900!important;
   line-height:1.6!important;
@@ -220,6 +221,44 @@
   margin-top:12px!important;
 }
 
+/* Students: the follow-up tab is now a selection workspace and accidental students can be deleted safely. */
+.teacher-unified .student-follow-up-help{
+  margin-top:12px!important;
+  padding:10px 12px!important;
+  background:#fffaf3!important;
+  color:#6f604f!important;
+}
+.teacher-unified .student-summary-card.has-follow-up{
+  background:#fbfdff!important;
+}
+.teacher-unified .student-card-actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+.teacher-unified .student-card-actions :is(a,button){
+  min-width:0!important;
+}
+.teacher-unified .student-follow-up-toggle{
+  color:#167fb8!important;
+}
+.teacher-unified .student-follow-up-toggle.active,
+.teacher-unified .student-follow-up-toggle:disabled{
+  opacity:1!important;
+  background:#eaf7ff!important;
+  color:#0c7fbf!important;
+  border-color:#bfe4f7!important;
+}
+.teacher-unified .student-delete-action{
+  color:#a94c43!important;
+  background:#fff8f6!important;
+  border-color:#efc8c2!important;
+}
+.teacher-unified .student-delete-confirm{
+  grid-column:1/-1!important;
+  margin-top:10px!important;
+}
+
 /* Keep the bottom navigation from covering the final controls in long forms. */
 .teacher-unified-content>main{padding-bottom:44px!important}
 
@@ -239,5 +278,8 @@
   }
   .ta-teacher-home .ta-quick-assessment{
     padding:16px!important;
+  }
+  .teacher-unified .student-card-actions{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
   }
 }
