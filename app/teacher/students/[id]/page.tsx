@@ -36,6 +36,7 @@ export default function StudentPage() {
   const [summonsReason,setSummonsReason]=useState("مناقشة مستوى الطالب");
   const [summonsMode,setSummonsMode]=useState("حضوري");
   const [summonsSent,setSummonsSent]=useState(false);
+  const [shareStatus,setShareStatus]=useState("");
   const plan = useMemo(() => current?.plan?.length ? current.plan : suggestedPlan(category), [current?.plan, category]);
 
   if (!student) return <main className="shell"><div className="notice warn">الطالب غير موجود أو تم حذفه.</div><Link className="btn section" href="/teacher/students">العودة للطلاب</Link></main>;
@@ -66,13 +67,42 @@ export default function StudentPage() {
     setSummonsSent(true);
   }
 
+  async function shareReferral(recipient: "المرشد الطلابي" | "الوكيل") {
+    const progressLabel = status === "improving" ? "يتحسن" : status === "stable" ? "مستقر" : "يحتاج مراجعة";
+    const text = [
+      `إلى ${recipient} المحترم،`,
+      `أرفع لكم ملخص متابعة الطالب: ${student.name}`,
+      `الصف والفصل: ${student.className}`,
+      `نوع المتابعة: ${categoryLabels[category]}`,
+      `حالة التقدم: ${progressLabel}`,
+      impact ? `الأثر على التعلم: ${impact}` : "",
+      goal ? `الهدف الحالي: ${goal}` : "",
+      `موعد المراجعة: ${review || "غير محدد"}`,
+      needsSkills.length ? `عدد المهارات التي تحتاج تدريبًا: ${needsSkills.length}` : "",
+      "يرجى الاطلاع والتوجيه بما ترونه مناسبًا وفق الإجراءات المدرسية.",
+      "المعلم: سلطان الصاعدي",
+      "مدرسة عمرو بن أوس الثقفي",
+    ].filter(Boolean).join("\n");
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `متابعة الطالب ${student.name}`, text });
+        setShareStatus(`تم فتح خيارات الإرسال إلى ${recipient}.`);
+      } else {
+        await navigator.clipboard.writeText(text);
+        setShareStatus(`تم نسخ النص الجاهز لـ${recipient}.`);
+      }
+    } catch {
+      setShareStatus("لم يتم الإرسال. يمكنك المحاولة مرة أخرى دون فقد بيانات المتابعة.");
+    }
+  }
+
   return (
     <main className="shell">
       <header className="topbar"><div className="brand"><div className="logo">🧒</div><div><h1>{student.name}</h1><p>{student.className} · سجل الطالب</p></div></div><div className="mini-actions"><PrintButton label="طباعة سجل الطالب" /><Link className="btn secondary no-print" href="/teacher/students">الطلاب</Link></div></header>
 
       <section className="two">
         <GuardianAccessManager studentId={studentId} />
-        <div className="card"><h3>ملخص المهارات</h3><div className="kv"><span>مقيّمة</span><b>{assessed.length}</b></div><div className="kv"><span>متقنة</span><b>{masteredCount}</b></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsSkills.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div><div className="mini-actions section no-print"><Link className="btn" href="/guardian">فتح بوابة ولي الأمر</Link></div></div>
+        <div className="card"><h3>ملخص المهارات</h3><div className="kv"><span>مقيّمة</span><b>{assessed.length}</b></div><div className="kv"><span>متقنة</span><b>{masteredCount}</b></div><div className="kv"><span>تحتاج تدريبًا</span><b>{needsSkills.length}</b></div><div className="kv"><span>متابعة خاصة</span><span>{student.specialFollowUp ? "مفعلة" : "غير مفعلة"}</span></div><div className="mini-actions section no-print"><Link className="btn" href={`/guardian?student=${encodeURIComponent(studentId)}`}>فتح صفحة الطالب</Link></div></div>
       </section>
 
       <section className="section">
@@ -100,6 +130,11 @@ export default function StudentPage() {
           {status === "needs_review" && <div className="notice warn">إذا لم يظهر تحسن بعد مدة المتابعة، راجع الخطة وغيّر التدخل أو أحل الحالة للمرشد/الجهة المختصة بحسب طبيعتها.</div>}
           <div className="notice warn section">الاقتراحات تعليمية ومدرسية فقط. لا يشخّص النظام حالة صحية ولا يقدم علاجًا طبيًا.</div><button className="btn section no-print" onClick={saveSpecial}>حفظ المتابعة الخاصة</button>
         </div>
+      </section>
+
+      <section className="section no-print staff-referral">
+        <div className="section-head"><div><h2>الإحالة والتنسيق المدرسي</h2><p>نص جاهز من بيانات المتابعة الحالية دون إعادة الكتابة</p></div><span className="badge">مدرسي</span></div>
+        <div className="card"><p>اختر الجهة، وسيجهز النظام ملخص الطالب الحالي ويفتح خيارات المشاركة في الجوال.</p><div className="mini-actions section"><button className="btn" type="button" onClick={() => void shareReferral("المرشد الطلابي")}>إرسال للمرشد الطلابي</button><button className="btn secondary" type="button" onClick={() => void shareReferral("الوكيل")}>إرسال للوكيل</button></div>{shareStatus && <div className="notice section" role="status">{shareStatus}</div>}</div>
       </section>
 
       <section className="section no-print"><div className="section-head"><h2>التواصل مع ولي الأمر</h2><span className="badge">{studentMessages.length} رسالة</span></div><div className="card"><div className="list">{studentMessages.slice(-6).map((message) => <div className="row" key={message.id}><div><h4>{message.author === "teacher" ? "المعلم" : "ولي الأمر"}</h4><small>{message.body}</small></div></div>)}{studentMessages.length === 0 && <div className="notice">لا توجد رسائل بعد.</div>}</div><form className="toolbar section" onSubmit={sendTeacherMessage}><input className="field grow" required value={teacherMessage} onChange={(e) => setTeacherMessage(e.target.value)} placeholder="اكتب ردًا لولي الأمر" /><button className="btn" type="submit">إرسال</button></form></div></section>
