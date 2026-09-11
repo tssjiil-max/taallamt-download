@@ -41,6 +41,7 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
 
   if (!student) return null;
   const id = student.id;
+  const studentName = student.name;
 
   async function createLink() {
     setBusy(true);
@@ -89,10 +90,10 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
   async function shareLink() {
     const url = await ensureLink();
     if (!url) return;
-    const text = `صفحة الطالب ${student.name} في تعلّمت — رابط مباشر دون رقم سري.`;
+    const text = `صفحة الطالب ${studentName} في تعلّمت — رابط مباشر دون رقم سري.`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: `صفحة الطالب - ${student.name}`, text, url });
+        await navigator.share({ title: `صفحة الطالب - ${studentName}`, text, url });
         setStatus("تم فتح خيارات المشاركة.");
       } else {
         await navigator.clipboard.writeText(`${text}\n${url}`);
