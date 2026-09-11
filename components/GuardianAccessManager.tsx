@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useTaallamt } from "@/lib/store";
 import {
   disableGuardianAccess as disableGuardianAccessRemote,
   getGuardianShareAccess,
   setGuardianAccessCode as setGuardianAccessCodeRemote,
+  teacherLogin,
 } from "@/lib/teacher-api";
 
 function internalAccessCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function appOrigin() {
+  if (typeof window === "undefined") return "";
+  if (window.location.hostname.endsWith("vercel.app")) return "https://taallamt-teacher.vercel.app";
+  return window.location.origin;
 }
 
 export function GuardianAccessManager({ studentId }: { studentId: string }) {
@@ -20,10 +27,23 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmDisable, setConfirmDisable] = useState(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
+  const [pin, setPin] = useState("");
 
   function urlFor(token: string) {
-    if (typeof window === "undefined") return "";
-    return `${window.location.origin}/guardian?student=${encodeURIComponent(studentId)}&token=${encodeURIComponent(token)}`;
+    const origin = appOrigin();
+    if (!origin) return "";
+    return `${origin}/guardian?student=${encodeURIComponent(studentId)}&token=${encodeURIComponent(token)}`;
+  }
+
+  function markAuthError(error: unknown) {
+    const info = error as { status?: number; payload?: { error?: string } };
+    if (info.status === 401 || info.payload?.error === "INVALID_SESSION") {
+      setNeedsLogin(true);
+      setStatus("انتهت جلسة المعلم. أدخل رمز المعلم مرة واحدة هنا ثم أكمل التفعيل.");
+      return true;
+    }
+    return false;
   }
 
   useEffect(() => {
@@ -33,12 +53,13 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
         if (!alive) return;
         setAccessEnabled(result.enabled);
         setShareUrl(result.shareToken ? urlFor(result.shareToken) : "");
+        setNeedsLogin(false);
       })
-      .catch(() => {
-        if (alive) {
-          setAccessEnabled(false);
-          setShareUrl("");
-        }
+      .catch((error) => {
+        if (!alive) return;
+        setAccessEnabled(false);
+        setShareUrl("");
+        markAuthError(error);
       });
     return () => { alive = false; };
   }, [studentId]);
@@ -48,28 +69,61 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
   const studentName = student.name;
   const studentClassName = student.className;
 
+  async function activateLink() {
+    const code = internalAccessCode();
+    const result = await setGuardianAccessCodeRemote(id, code, { name: studentName, className: studentClassName });
+    await store.setGuardianAccessCode(id, code);
+    const url = urlFor(result.shareToken);
+    setAccessEnabled(true);
+    setShareUrl(url);
+    setNeedsLogin(false);
+    setStatus("تم تفعيل رابط خاص بهذا الطالب بدون رقم سري.");
+    return url;
+  }
+
   async function createLink() {
     setBusy(true);
     setStatus("");
     try {
-      const code = internalAccessCode();
-      const result = await setGuardianAccessCodeRemote(id, code, { name: studentName, className: studentClassName });
-      await store.setGuardianAccessCode(id, code);
-      const url = urlFor(result.shareToken);
-      setAccessEnabled(true);
-      setShareUrl(url);
-      setStatus("تم تفعيل رابط خاص بهذا الطالب بدون رقم سري.");
-      return url;
+      return await activateLink();
     } catch (error) {
-      const info = error as { status?: number; payload?: { error?: string } };
+      if (markAuthError(error)) return "";
+      const info = error as { payload?: { error?: string } };
       setStatus(
-        info.status === 401
-          ? "انتهت جلسة المعلم. سجّل الدخول من الإعدادات ثم أعد التفعيل."
-          : info.payload?.error === "BACKEND_NOT_CONFIGURED"
-            ? "الربط الخلفي غير مفعّل على هذه النسخة."
-            : "تعذر تفعيل رابط الطالب الآن. أعد المحاولة.",
+        info.payload?.error === "BACKEND_NOT_CONFIGURED"
+          ? "الربط الخلفي غير مفعّل على هذه النسخة."
+          : "تعذر تفعيل رابط الطالب الآن. أعد المحاولة.",
       );
       return "";
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loginAndContinue(event: FormEvent) {
+    event.preventDefault();
+    if (!/^\d{6}$/.test(pin)) {
+      setStatus("أدخل رمز المعلم المكوّن من 6 أرقام.");
+      return;
+    }
+    setBusy(true);
+    setStatus("");
+    try {
+      await teacherLogin(pin);
+      setPin("");
+      setNeedsLogin(false);
+      const current = await getGuardianShareAccess(id);
+      if (current.enabled && current.shareToken) {
+        const url = urlFor(current.shareToken);
+        setAccessEnabled(true);
+        setShareUrl(url);
+        setStatus("تم فتح جلسة المعلم والرابط جاهز.");
+      } else {
+        await activateLink();
+      }
+    } catch {
+      setNeedsLogin(true);
+      setStatus("تعذر فتح جلسة المعلم. تحقق من الرمز ثم أعد المحاولة.");
     } finally {
       setBusy(false);
     }
@@ -83,9 +137,12 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
         const url = urlFor(current.shareToken);
         setAccessEnabled(true);
         setShareUrl(url);
+        setNeedsLogin(false);
         return url;
       }
-    } catch {}
+    } catch (error) {
+      if (markAuthError(error)) return "";
+    }
     return createLink();
   }
 
@@ -134,8 +191,8 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
       setShareUrl("");
       setConfirmDisable(false);
       setStatus("تم تعطيل الرابط وإلغاء جلسات صفحة الطالب.");
-    } catch {
-      setStatus("تعذر تعطيل الرابط الآن.");
+    } catch (error) {
+      if (!markAuthError(error)) setStatus("تعذر تعطيل الرابط الآن.");
     } finally {
       setBusy(false);
     }
@@ -147,6 +204,18 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
       <div className="kv"><span>طريقة الدخول</span><b>رابط مباشر بدون رقم سري</b></div>
       <div className="kv"><span>الحماية</span><span>الرابط موقّع ومخصص لهذا الطالب</span></div>
       {shareUrl && <div className="direct-student-url" dir="ltr">{shareUrl}</div>}
+
+      {needsLogin && (
+        <form className="guardian-inline-login no-print" onSubmit={(event) => void loginAndContinue(event)}>
+          <b>إعادة فتح جلسة المعلم</b>
+          <p>أدخل رمز المعلم مرة واحدة، وبعدها سيعمل التفعيل والفتح والنسخ والمشاركة مباشرة.</p>
+          <div className="guardian-inline-login-row">
+            <input className="field guardian-code" aria-label="رمز المعلم" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} placeholder="6 أرقام" value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))} />
+            <button className="btn" type="submit" disabled={busy || pin.length !== 6}>{busy ? "جاري الدخول…" : "دخول وتفعيل"}</button>
+          </div>
+        </form>
+      )}
+
       <div className="guardian-access-actions no-print">
         {!accessEnabled && <button className="btn" disabled={busy} type="button" onClick={() => void createLink()}>{busy ? "جاري التفعيل…" : "تفعيل الرابط"}</button>}
         <button className="btn secondary" disabled={busy} type="button" onClick={() => void openStudentPage()}>فتح صفحة الطالب</button>
