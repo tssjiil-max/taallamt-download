@@ -9,10 +9,10 @@ import { LiveSchoolTime } from "@/components/LiveSchoolTime";
 type PageMeta = { title: string; subtitle: string; icon: string };
 
 const items = [
-  { href: "/", label: "اليوم", icon: "⌂" },
+  { href: "/", label: "الرئيسية", icon: "⌂" },
+  { href: "/teacher/assessment", label: "التقييم", icon: "✓" },
   { href: "/teacher/students", label: "الطلاب", icon: "◉" },
-  { href: "/teacher/reports", label: "التقارير", icon: "▥" },
-  { href: "/teacher/settings", label: "المزيد", icon: "•••" },
+  { href: "/teacher/values", label: "السلوك", icon: "★" },
 ];
 
 const pages: Record<string, PageMeta> = {
