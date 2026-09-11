@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import { TeacherWhatsAppComposer } from "@/components/TeacherWhatsAppComposer";
 import { getTeacherContactRequests, getTeacherMessages, setTeacherContactRequest, type ContactRequest } from "@/lib/teacher-api";
 import type { Message } from "@/lib/types";
 
@@ -112,6 +113,8 @@ export default function TeacherAnnouncementsPage() {
 
   return (
     <main className="shell">
+      <TeacherWhatsAppComposer />
+
       <section className="section">
         <form className="card stack" onSubmit={submit}>
           <div className="section-head"><div><h2>إعلان جديد</h2><p>إعلان عام يظهر في صفحة الطالب، مستقل عن المحادثات الفردية.</p></div><span className="badge">عام</span></div>
