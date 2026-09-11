@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ReactNode, SVGProps } from "react";
 
 export type UiIconName =
   | "home"
@@ -30,7 +30,7 @@ export function UiIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: UiI
     "aria-hidden": true,
   };
 
-  const paths: Record<UiIconName, React.ReactNode> = {
+  const paths: Record<UiIconName, ReactNode> = {
     home: <><path d="M3.5 10.5 12 3l8.5 7.5"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-6h5v6"/></>,
     check: <><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m8 12 2.6 2.6L16.5 9"/></>,
     users: <><path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3"/><path d="M17 11.5a2.7 2.7 0 1 0 0-5.4"/><path d="M18 15.2a3.3 3.3 0 0 1 2 3V20"/></>,
