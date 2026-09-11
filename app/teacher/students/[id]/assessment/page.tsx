@@ -140,16 +140,19 @@ export default function ComprehensiveStudentAssessmentPage() {
   }
 
   function saveSubjectLevel(subjectId: string, level: MasteryLevel) {
+    if (!student) return;
     store.setMastery(student.id, subjectId, level);
     setNotice("تم حفظ تقييم المادة تلقائيًا.");
   }
 
   function saveBehavior(behaviorId: string, level: BehaviorLevel) {
+    if (!student) return;
     store.setBehaviorEvaluation(student.id, behaviorId, behaviorContext, level);
     setNotice("تم حفظ تقييم السلوك تلقائيًا.");
   }
 
   function toggleFollowUp(action: StudentFollowUpAction) {
+    if (!student) return;
     const current = effectiveFollowUpActions;
     const next = current.includes(action) ? current.filter((item) => item !== action) : [...current, action];
     store.setStudentFollowUp(student.id, next, followUpNote);
@@ -157,16 +160,19 @@ export default function ComprehensiveStudentAssessmentPage() {
   }
 
   function clearFollowUp() {
+    if (!student) return;
     store.setStudentFollowUp(student.id, [], followUpNote);
     setNotice("تم تحديد: لا يحتاج متابعة.");
   }
 
   function saveFollowUpNote() {
+    if (!student) return;
     store.setStudentFollowUp(student.id, effectiveFollowUpActions, followUpNote);
     setNotice("تم حفظ الملاحظة.");
   }
 
   async function addValueStar(valueId: string) {
+    if (!student) return;
     const value = activeValues.find((item) => item.id === valueId);
     if (!value) return;
     setValueBusy(valueId);
@@ -201,6 +207,7 @@ export default function ComprehensiveStudentAssessmentPage() {
   }
 
   async function removeValueStar(valueId: string) {
+    if (!student) return;
     const count = store.valueStars.filter((item) => item.studentId === student.id && item.valueId === valueId).length;
     if (count < 1) return;
     setValueBusy(valueId);
