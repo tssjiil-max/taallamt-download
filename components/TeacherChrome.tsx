@@ -11,7 +11,7 @@ type PageMeta = { title: string; subtitle: string; icon: string };
 const items = [
   { href: "/", label: "اليوم", icon: "⌂" },
   { href: "/teacher/students", label: "الطلاب", icon: "◉" },
-  { href: "/teacher/library", label: "المكتبة", icon: "▤" },
+  { href: "/teacher/reports", label: "التقارير", icon: "▥" },
   { href: "/teacher/settings", label: "المزيد", icon: "•••" },
 ];
 
@@ -21,7 +21,7 @@ const pages: Record<string, PageMeta> = {
   "/teacher/library": { title: "المكتبة", subtitle: "المصادر والملفات التعليمية", icon: "▤" },
   "/teacher/announcements": { title: "التواصل", subtitle: "الإعلانات وطلبات أولياء الأمور", icon: "◌" },
   "/teacher/reports": { title: "التقارير", subtitle: "ملخصات التقدم والنتائج", icon: "▥" },
-  "/teacher/settings": { title: "الإعدادات", subtitle: "الفصل والجدول وإعدادات النظام", icon: "⚙" },
+  "/teacher/settings": { title: "الإعدادات والمزيد", subtitle: "الفصل والجدول وأدوات النظام", icon: "•••" },
   "/teacher/values": { title: "السلوك والتحفيز", subtitle: "تعزيز القيم والسلوك الإيجابي", icon: "★" },
   "/teacher/portfolio": { title: "ملف إنجازي", subtitle: "أعمال المعلم وإنجازاته", icon: "◇" },
   "/teacher/resources": { title: "الموارد", subtitle: "المحتوى والمواد المساندة", icon: "▦" },
@@ -46,12 +46,12 @@ export function TeacherBrandHeader() {
     <>
       <section className="ta-hero teacher-shared-hero">
         <div className="ta-brand">
-          <div className="ta-wordmark"><span>★</span><h1>تعلّمت</h1><p>معًا… برحلة تعليم أجمل</p></div>
+          <div className="ta-wordmark"><span>★</span><h1>تعلّمت</h1><p>القمة تكفي الجميع</p></div>
           <div className="ta-profile"><strong>أ. سلطان الصاعدي</strong><span>الصف الثاني / 4</span><small>مدرسة عمرو بن أوس الثقفي</small></div>
         </div>
-        <Link className="ta-mascot" href="/teacher/shakabumbo">
-          <Image src="/shakabumbo-guardian.webp" alt="شكابمبو" width={720} height={1080} priority />
-          <div><b>شكابمبو</b><span>مساعدك الذكي</span></div>
+        <Link className="ta-mascot" href="/teacher/shakabumbo" aria-label="فتح مساعد شكابمبو">
+          <Image src="/teacher-icons/shakabumbo-logo.svg" alt="شكابمبو" width={180} height={180} priority />
+          <div><b>المعرفة قوة</b><span>شكابمبو · مساعدك الذكي</span></div>
         </Link>
       </section>
       <LiveSchoolTime />
