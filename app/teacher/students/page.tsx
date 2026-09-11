@@ -33,17 +33,8 @@ export default function StudentsPage() {
   }
   return (
     <main className="shell inner-shell">
-      <header className="inner-hero">
-        <div>
-          <span className="inner-kicker">تعلّمت · الصف الثاني / 4</span>
-          <h1>طلاب الفصل</h1>
-          <p>ملخص الطالب أولًا، والتفاصيل عند فتح ملفه.</p>
-        </div>
-        <Link className="inner-home" href="/">
-          الرئيسية
-        </Link>
-      </header>
       <section className="inner-panel no-print">
+        <div className="section-head"><div><h2>إدارة طلاب الفصل</h2><p>الملف والمتابعة وملف الإنجاز من مكان واحد.</p></div><span className="badge">{shown.length} طالب</span></div>
         <form className="student-add" onSubmit={submit}>
           <input
             className="field"
@@ -99,6 +90,9 @@ export default function StudentsPage() {
             <div className="student-card-actions no-print">
               <Link className="student-open" href={`/teacher/students/${s.id}`}>
                 <span aria-hidden="true">⌁</span><span>الملف</span>
+              </Link>
+              <Link className="student-portfolio-link" href={`/teacher/students/${s.id}/portfolio`}>
+                <span aria-hidden="true">★</span><span>الإنجاز</span>
               </Link>
               <button
                 type="button"
