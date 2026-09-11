@@ -88,6 +88,13 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
     return createLink();
   }
 
+  async function openStudentPage() {
+    const url = await ensureLink();
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setStatus("تم فتح صفحة الطالب بالرابط المباشر.");
+  }
+
   async function copyLink() {
     const url = await ensureLink();
     if (!url) return;
@@ -141,6 +148,7 @@ export function GuardianAccessManager({ studentId }: { studentId: string }) {
       {shareUrl && <div className="direct-student-url" dir="ltr">{shareUrl}</div>}
       <div className="guardian-access-actions no-print">
         {!accessEnabled && <button className="btn" disabled={busy} type="button" onClick={() => void createLink()}>{busy ? "جاري التفعيل…" : "تفعيل الرابط"}</button>}
+        <button className="btn secondary" disabled={busy} type="button" onClick={() => void openStudentPage()}>فتح صفحة الطالب</button>
         <button className="btn" disabled={busy} type="button" onClick={() => void shareLink()}>مشاركة صفحة الطالب</button>
         <button className="btn secondary" disabled={busy} type="button" onClick={() => void copyLink()}>نسخ الرابط</button>
         {accessEnabled && !confirmDisable && <button className="btn danger" disabled={busy} type="button" onClick={() => setConfirmDisable(true)}>تعطيل الرابط</button>}
