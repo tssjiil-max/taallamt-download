@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { GuardianHomeBehaviorPanel } from "@/components/GuardianHomeBehaviorPanel";
+import { StudentWeeklyPlan } from "@/components/StudentWeeklyPlan";
 import { UiIcon, type UiIconName } from "@/components/UiIcon";
 
 type StudentNavItem = { href: string; label: string; icon: UiIconName };
@@ -115,6 +116,7 @@ export function StudentFrame({ children }: { children: ReactNode }) {
       <div className="student-unified-shell">
         <StudentBrandHeader />
         <DirectStudentLink />
+        {pathname === "/guardian" && <StudentWeeklyPlan />}
         <div className="student-unified-content">{children}</div>
         {pathname === "/guardian" && <GuardianHomeBehaviorPanel />}
         <StudentBottomNav />
