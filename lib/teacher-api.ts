@@ -1,6 +1,16 @@
 "use client";
 
-import type { TaallamtData } from "./types";
+import type { Message, TaallamtData } from "./types";
+
+export type ContactRequestStatus = "pending" | "approved" | "rejected" | "closed";
+export type ContactRequest = {
+  studentId: string;
+  studentName: string;
+  status: ContactRequestStatus;
+  reason: string;
+  requestedAt: string;
+  updatedAt: string;
+};
 
 async function readJson<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as T;
@@ -43,6 +53,31 @@ export async function teacherSync(data: TaallamtData) {
     body: JSON.stringify(data),
   });
   return readJson<{ ok: true; writes: number }>(response);
+}
+
+export async function getTeacherContactRequests() {
+  return readJson<{ requests: ContactRequest[] }>(await fetch("/api/teacher/contact-requests", { cache: "no-store" }));
+}
+
+export async function setTeacherContactRequest(studentId: string, status: "approved" | "rejected" | "closed") {
+  return readJson<{ ok: true; studentId: string; status: ContactRequestStatus }>(await fetch("/api/teacher/contact-requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId, status }),
+  }));
+}
+
+export async function getTeacherMessages(studentId?: string) {
+  const query = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
+  return readJson<{ messages: Message[] }>(await fetch(`/api/teacher/messages${query}`, { cache: "no-store" }));
+}
+
+export async function teacherSendMessage(studentId: string, body: string) {
+  return readJson<{ ok: true; message: Message }>(await fetch("/api/teacher/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId, body }),
+  }));
 }
 
 export async function getGuardianShareAccess(studentId: string) {
