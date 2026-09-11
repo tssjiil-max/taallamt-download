@@ -102,20 +102,36 @@ export default function BehaviorPage() {
       const response = await fetch("/api/teacher/value-stars", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId: selectedStudent.id, valueId: selectedValue.id, reason: selectedValue.title }),
+        body: JSON.stringify({
+          studentId: selectedStudent.id,
+          studentName: selectedStudent.name,
+          className: selectedStudent.className,
+          valueId: selectedValue.id,
+          valueTitle: selectedValue.title,
+          termId: selectedValue.termId,
+          unitName: selectedValue.unitName,
+          studentText: selectedValue.studentText,
+          homeSuggestion: selectedValue.homeSuggestion,
+          weekFrom: selectedValue.weekFrom,
+          weekTo: selectedValue.weekTo,
+          reason: selectedValue.title,
+        }),
       });
       if (!response.ok) throw new Error("SAVE_FAILED");
       store.awardValueStar(selectedStudent.id, selectedValue.id, selectedValue.title);
       setNotice(`تمت إضافة نجمة لـ${selectedStudent.name} في «${selectedValue.title}».`);
     } catch {
-      setNotice("تعذر حفظ النجمة في الخادم الآن. لم يتم تغيير الرصيد.");
+      setNotice("تعذر حفظ النجمة في الخادم الآن. أعد المحاولة بعد التأكد من جلسة المعلم.");
     } finally {
       setStarBusy(false);
     }
   }
 
   async function removeStar() {
-    if (!selectedStudent || !selectedValue || valueStars < 1) return;
+    if (!selectedStudent || !selectedValue || valueStars < 1) {
+      if (valueStars < 1) setNotice("لا توجد نجمة في هذه القيمة لإنقاصها.");
+      return;
+    }
     setStarBusy(true);
     setNotice("");
     try {
@@ -132,7 +148,7 @@ export default function BehaviorPage() {
   }
 
   return (
-    <main className="shell inner-shell">
+    <main className="shell inner-shell behavior-page">
       <section className="inner-section">
         <div className="picker-block">
           <h2>اختر مكان الملاحظة</h2>
@@ -162,16 +178,16 @@ export default function BehaviorPage() {
           <div><h2>{selected[1]}</h2><span>{context === "classroom" ? "داخل الفصل" : "داخل المدرسة"}</span></div>
           <button className="btn" type="button" onClick={allGood}>تحديد الجميع: جيد ✓</button>
         </div>
-        <div className="clean-eval-list">
+        <div className="clean-eval-list behavior-eval-list">
           {students.map((student, index) => {
             const value = current.get(student.id) ?? "good";
             return (
               <article key={student.id}>
                 <span className="student-number">{index + 1}</span>
                 <div className="eval-name"><h3>{student.name}</h3><small>{labels[value]}</small></div>
-                <div className="eval-choice">
+                <div className="eval-choice behavior-choice">
                   {(["excellent", "good", "needs_follow_up"] as BehaviorLevel[]).map((level) => (
-                    <button className={value === level ? "active" : ""} type="button" key={level} onClick={() => store.setBehaviorEvaluation(student.id, behaviorId, context, level)}>{labels[level]}</button>
+                    <button className={value === level ? "active" : ""} type="button" key={level} onClick={() => { store.setBehaviorEvaluation(student.id, behaviorId, context, level); setNotice(`تم تحديث ${student.name}: ${labels[level]}`); }}>{labels[level]}</button>
                   ))}
                 </div>
               </article>
@@ -187,12 +203,12 @@ export default function BehaviorPage() {
         </div>
         <div className="two reward-selectors">
           <label className="stack">الطالب
-            <select className="field" value={selectedStudentId} onChange={(event) => setSelectedStudentId(event.target.value)}>
+            <select className="field" value={selectedStudentId} onChange={(event) => { setSelectedStudentId(event.target.value); setNotice(""); }}>
               {students.map((student) => <option value={student.id} key={student.id}>{student.name}</option>)}
             </select>
           </label>
           <label className="stack">القيمة
-            <select className="field" value={selectedValueId} onChange={(event) => setSelectedValueId(event.target.value)}>
+            <select className="field" value={selectedValueId} onChange={(event) => { setSelectedValueId(event.target.value); setNotice(""); }}>
               {activeValues.map((value) => <option value={value.id} key={value.id}>{value.title}</option>)}
             </select>
           </label>
@@ -206,9 +222,9 @@ export default function BehaviorPage() {
               <b>{studentStars.length} / {REWARD_TARGET} نجمة</b>
               <span>{selectedValue ? `«${selectedValue.title}»: ${valueStars} نجمة` : ""}</span>
             </div>
-            <div className="mini-actions no-print">
-              <button className="btn" type="button" disabled={starBusy || !selectedStudent || !selectedValue} onClick={() => void addStar()}>+ نجمة</button>
-              <button className="btn secondary" type="button" disabled={starBusy || valueStars < 1} onClick={() => void removeStar()}>− نجمة</button>
+            <div className="reward-actions no-print">
+              <button className="btn reward-add" type="button" disabled={starBusy || !selectedStudent || !selectedValue} onClick={() => void addStar()}>{starBusy ? "جاري الحفظ…" : "+ نجمة"}</button>
+              <button className="btn secondary reward-remove" type="button" disabled={starBusy || valueStars < 1} onClick={() => void removeStar()}>− نجمة</button>
             </div>
           </>
         )}
