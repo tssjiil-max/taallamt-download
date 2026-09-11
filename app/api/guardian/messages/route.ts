@@ -28,6 +28,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "INVALID_MESSAGE" }, { status: 400 });
     }
 
+    const db = getAdminDb();
+    const accessSnap = await db.collection(firestoreCollectionName("contactRequests")).doc(session.studentId).get();
+    const access = accessSnap.exists ? (accessSnap.data() as Record<string, unknown>) : undefined;
+    if (access?.status !== "approved") {
+      return NextResponse.json({ error: "CONTACT_NOT_APPROVED" }, { status: 403 });
+    }
+
     const id = randomUUID();
     const message = {
       id,
@@ -37,7 +44,7 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    await getAdminDb().collection(firestoreCollectionName("messages")).doc(id).set(message);
+    await db.collection(firestoreCollectionName("messages")).doc(id).set(message);
     return NextResponse.json({ ok: true, message }, { status: 201 });
   } catch (error) {
     if (error instanceof GuardianAuthError) return unauthorized();
