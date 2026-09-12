@@ -14,16 +14,36 @@ function ensureInfoCard(container,key,title){
  container.appendChild(card);
  return card;
 }
+function installStrictStudentVisualGuard(){
+ if(document.getElementById('student-visual-guard'))return;
+ const style=document.createElement('style');
+ style.id='student-visual-guard';
+ style.textContent=`
+  .student .studentSubject img,
+  .student .studentSubject svg,
+  .student .studentSubject picture,
+  .student .studentSubject .subjectIcon,
+  .student .starToday img,
+  .student .starToday svg,
+  .student .starToday picture,
+  .student .starToday .starIcon{display:none!important;visibility:hidden!important;width:0!important;height:0!important;margin:0!important;padding:0!important}
+  .student .studentSubject{background-image:none!important}
+  .student .starToday{background-image:none!important}
+ `;
+ document.head.appendChild(style);
+}
+function purgeRequestedIcons(student){
+ student.querySelectorAll('.studentSubject img,.studentSubject svg,.studentSubject picture,.studentSubject .subjectIcon,.starToday img,.starToday svg,.starToday picture,.starToday .starIcon,.scheduleItem .subjectIcon,.taskItem .subjectIcon').forEach(node=>node.remove());
+}
 function applyStudentPatch(){
  if(!location.pathname.startsWith('/student'))return;
+ installStrictStudentVisualGuard();
  const student=document.querySelector('.student');
  if(!student)return;
 
- /* Remove only the student-card title/icon and the old visible identity copy. */
  student.querySelector('.studentProfile>h2')?.remove();
  student.querySelector('.profileText')?.remove();
 
- /* Keep the real/default student image and its edit button; only replace the old CSS avatar. */
  const wrap=student.querySelector('.profileAvatarWrap');
  if(wrap){
   const old=wrap.querySelector('.boyAvatar');
@@ -33,12 +53,9 @@ function applyStudentPatch(){
   if(old)old.remove();
  }
 
- /* نجمة اليوم: correct title, keep live value/progress, remove artwork only. */
  const starTitle=student.querySelector('.starToday b');
  if(starTitle)starTitle.textContent='نجمة اليوم';
- student.querySelector('.starToday .starIcon')?.remove();
 
- /* Student info: preserve existing hobby/achievement values; add empty goals/skills headings only. */
  const info=student.querySelector('.miniCards');
  if(info){
   const existing=[...info.children];
@@ -51,10 +68,8 @@ function applyStudentPatch(){
   if(hobby&&achievement)info.append(hobby,goals,achievement,skills);
  }
 
- /* Remove Shakabumbo/subject artwork only from the four subject cards, schedule and tasks. */
- student.querySelectorAll('.studentSubject .subjectIcon,.scheduleItem .subjectIcon,.taskItem .subjectIcon').forEach(node=>node.remove());
+ purgeRequestedIcons(student);
 
- /* Preserve the real 0..30 value and update every visible progress occurrence. */
  const stars=currentStars();
  const today=student.querySelector('.starToday strong');
  if(today)today.textContent=`${stars} / 30`;
