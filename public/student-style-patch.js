@@ -1,4 +1,4 @@
-const DEFAULT_AVATAR='/student-default-avatar.svg';
+const DEFAULT_AVATAR='https://raw.githubusercontent.com/tssjiil-max/taallamt-download/build/taallamt-flex-v1/public/shakabumbo-guardian.webp';
 const clampStars=(value)=>Math.max(0,Math.min(30,Number.isFinite(Number(value))?Number(value):0));
 function readStudent(){
   try{return JSON.parse(localStorage.getItem('studentProfile')||'{}')||{}}catch{return {}}
