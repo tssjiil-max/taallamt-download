@@ -1,0 +1,16 @@
+/* Student-only patch: intentionally scoped; no teacher/shared layout changes. */
+.student .sHero .studentWelcome>.boyAvatar{display:none}
+.student .sHero .studentWelcome{gap:0;min-width:112px}
+.student .sHero .brand{display:none}
+.student .sHero::after{content:"";position:absolute;z-index:3;left:18px;top:7px;width:78px;height:78px;background:url('/student-shield.svg') center/contain no-repeat;pointer-events:none}
+.student .sHero .mascotBubble{display:none}
+.student .profileAvatarWrap{transform:translateY(2px)}
+.student .profileAvatarWrap .studentProfileAvatar{display:block;width:72px;height:72px;border-radius:50%;object-fit:cover;object-position:center 28%;background:#e8fff0;border:4px solid #fff;box-shadow:0 1px 7px rgba(59,143,72,.14)}
+.student .starIcon,.student .rewardMascot .uiIcon,.student .rewardStars>b .uiIcon,.student .nextReward .uiIcon{color:#EA8A00}
+.student .starGrid{grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(3,auto);column-gap:4px;row-gap:5px;width:100%;align-items:center;justify-items:center;margin-top:5px}
+.student .starGrid span{width:16px;min-width:16px;align-items:center;color:#C8CED6;opacity:1}
+.student .starGrid span.on{color:#EA8A00}
+.student .starGrid .uiIcon{width:16px;height:16px;min-width:16px;min-height:16px}
+.student .starGrid span:not(.on) .uiIcon{fill:transparent;stroke:currentColor;stroke-width:1.5}
+.student .starGrid small{display:none}
+@media(max-width:375px){.student .sHero::after{left:12px;width:72px;height:72px}.student .profileAvatarWrap .studentProfileAvatar{width:66px;height:66px}.student .starGrid{column-gap:3px;row-gap:4px}.student .starGrid span,.student .starGrid .uiIcon{width:15px;height:15px;min-width:15px;min-height:15px}}
