@@ -1,19 +1,13 @@
 /* Student-only visual patch. Strict scope: no teacher page, data, Firebase, APIs or behavior changes. */
-
-/* Keep the separate student hero removed; the student card is the first visual section. */
 .student .sHero{display:none!important}
-
-/* Student card: remove title/icon, center the existing shield, raise the existing avatar. */
 .student .studentProfile{margin-top:10px;height:154px;border:2px solid #EA8A00;box-shadow:0 2px 10px rgba(234,138,0,.10);position:relative;overflow:hidden}
 .student .studentProfile h2{display:none!important}
-.student .studentProfile::before{content:"";position:absolute;z-index:3;left:50%;top:7px;transform:translateX(-50%);width:48px;height:48px;background:url('/student-assets/student-shield.webp') center/contain no-repeat;mask-image:url('/student-assets/student-shield.webp');mask-mode:luminance;mask-repeat:no-repeat;mask-position:center;mask-size:contain;filter:saturate(1.55) contrast(1.18);pointer-events:none}
+.student .studentProfile::before{display:none!important;content:none!important}
 .student .studentProfileMain{height:100%;display:block;position:relative}
 .student .profileIdentity{position:absolute;z-index:2;right:16px;top:10px;width:76px;height:78px;display:block}
 .student .profileText{display:none!important}
-.student .profileAvatarWrap{width:72px;height:72px;transform:none;border-radius:50%;background:#fff;box-shadow:0 1px 7px rgba(59,143,72,.14)}
-.student .profileAvatarWrap .studentProfileAvatar{display:block;width:72px;height:72px;border:0;border-radius:0;object-fit:cover;object-position:center;box-shadow:none;content:url('/student-assets/student-profile.webp');mask-image:url('/student-assets/student-profile.webp');mask-mode:luminance;mask-repeat:no-repeat;mask-position:center;mask-size:100% 100%;filter:saturate(1.45) contrast(1.15)}
-
-/* Star today: text/progress only. No mascot or replacement icon. */
+.student .profileAvatarWrap{width:72px;height:72px;transform:none;border-radius:50%;background:transparent;box-shadow:none}
+.student .profileAvatarWrap .studentProfileAvatar,.student .profileAvatarWrap .boyAvatar{display:none!important}
 .student .profileWidgets{display:block;position:static}
 .student .starToday{position:absolute;z-index:2;left:14px;top:13px;width:122px;height:54px;display:block;padding:7px 9px;background:#fff;border-radius:11px;overflow:hidden;text-align:center}
 .student .starToday .starIcon{display:none!important}
@@ -21,60 +15,36 @@
 .student .starToday b{display:block;font-size:9.5px;color:#285665}
 .student .starToday strong{display:block;font-size:13px;color:#214f5c;margin:2px 0;direction:ltr;unicode-bidi:isolate;text-align:center}
 .student .starToday .miniBar{height:5px}
-
-/* Four compact student-info cards. Existing real hobby/achievement values stay untouched. */
-.student .miniCards{position:absolute;z-index:2;left:14px;right:14px;bottom:8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
-.student .miniCards>div{height:42px;min-width:0;border-radius:10px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:2px 3px}
-.student .miniCards b{display:flex;align-items:center;justify-content:center;gap:3px;font-size:8px;white-space:nowrap;color:#315c64}
-.student .miniCards span{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:6.4px;color:#688181;white-space:nowrap}
+.student .miniCards{position:absolute;z-index:2;left:14px;right:14px;bottom:8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.student .miniCards>div{min-width:0;height:42px;padding:5px 3px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#fff}
+.student .miniCards b{display:flex;align-items:center;justify-content:center;gap:3px;font-size:8.2px;line-height:1.1;color:#285665;white-space:nowrap}
+.student .miniCards small{font-size:6.4px;color:#688181;white-space:nowrap}
 .student .miniCards b .uiIcon{width:15px;height:15px}
-
-/* Four subject cards: remove current artwork only; keep names, percentages and progress colors. */
 .student .studentSubject .subjectIcon{display:none!important}
 .student .studentSubject{justify-content:center;gap:4px}
 .student .studentSubject b{font-size:11.5px;font-weight:800;line-height:1.25}
 .student .studentSubject strong{font-size:17px;line-height:1.05}
-
-/* Schedule and tasks stay text-only; no Shakabumbo/subject artwork. */
 .student .scheduleItem .subjectIcon,.student .taskItem .subjectIcon{display:none!important}
 .student .scheduleItem{grid-template-columns:10px 1fr;gap:6px;padding-inline:7px}
 .student .taskItem{grid-template-columns:18px 1fr;gap:6px;padding-inline:7px}
 .student .dayPanel h3{font-size:15px;font-weight:800}
 .student .scheduleText b,.student .taskText b{font-size:10.5px;line-height:1.25}
 .student .scheduleText span,.student .taskText span{font-size:8px;line-height:1.25}
-
-/* Reward section is intentionally preserved: 30 stars, reward data and one approved mascot. */
-.student .rewardMascot{overflow:hidden}
-.student .rewardMascot img{content:url('/student-assets/student-star-today.webp');width:60px;height:62px;border-radius:0;object-fit:cover;object-position:center top;mask-image:url('/student-assets/student-star-today.webp');mask-mode:luminance;mask-repeat:no-repeat;mask-position:center top;mask-size:100% 100%;clip-path:inset(0 0 18% 0);transform:none;filter:saturate(1.55) contrast(1.18)}
-.student .rewardMascot b{margin-top:-2px}
-.student .rewardMascot .uiIcon,.student .rewardStars>b .uiIcon,.student .nextReward .uiIcon{color:#EA8A00}
-.student .starGrid{grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(3,auto);column-gap:4px;row-gap:5px;width:100%;align-items:center;justify-items:center;margin-top:5px}
-.student .starGrid span{width:16px;min-width:16px;align-items:center;color:#C8CED6;opacity:1}
+/* Rewards: remove the orange gift/reward tile and the mascot; let the 30-star grid use the freed space. */
+.student .rewardMascot,.student .nextReward{display:none!important}
+.student .rewardBox{grid-template-columns:1fr!important}
+.student .rewardStars{grid-column:1/-1!important;width:100%!important;min-width:0!important;padding-inline:14px!important}
+.student .rewardStars>b{justify-content:center!important}
+.student .rewardStars>b .uiIcon{color:#EA8A00}
+.student .starGrid{grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(3,auto);column-gap:8px;row-gap:7px;width:100%;align-items:center;justify-items:center;margin:8px auto 0}
+.student .starGrid span{width:18px;min-width:18px;align-items:center;color:#C8CED6;opacity:1}
 .student .starGrid span.on{color:#EA8A00}
-.student .starGrid .uiIcon{width:16px;height:16px;min-width:16px;min-height:16px}
+.student .starGrid .uiIcon{width:18px;height:18px;min-width:18px;min-height:18px}
 .student .starGrid span:not(.on) .uiIcon{fill:transparent;stroke:currentColor;stroke-width:1.5}
 .student .starGrid small{display:none}
-.student .nextReward strong{direction:ltr;unicode-bidi:isolate;text-align:center}
-
-/* Bottom navigation: preserve the approved original Shakabumbo asset and function. */
 .student .studentNav .mascotNav{transform:none!important}
 .student .studentNav .mascotNav>span{width:36px;height:36px;box-shadow:none;background:transparent;overflow:hidden}
 .student .studentNav .mascotNav span .mascot{display:block!important}
 .student .studentNav>button:nth-child(2) .uiIcon{display:none}
-.student .studentNav>button:nth-child(2)::before{content:"";width:29px;height:29px;display:block;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23355480' stroke-width='1.8' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='15' height='4' rx='1'/%3E%3Crect x='6' y='10' width='14' height='4' rx='1'/%3E%3Crect x='3' y='16' width='16' height='4' rx='1'/%3E%3C/svg%3E")}
-
-@media(max-width:375px){
- .student .studentProfile{margin-left:7px;margin-right:7px}
- .student .studentProfile::before{width:44px;height:44px;top:7px}
- .student .profileIdentity{right:12px}
- .student .profileAvatarWrap,.student .profileAvatarWrap .studentProfileAvatar{width:66px;height:66px}
- .student .starToday{left:11px;width:112px}
- .student .miniCards{left:10px;right:10px;gap:4px}
- .student .miniCards b{font-size:7.4px}
- .student .studentSubject b{font-size:10.5px}
- .student .dayPanel h3{font-size:14px}
- .student .scheduleText b,.student .taskText b{font-size:9.6px}
- .student .scheduleText span,.student .taskText span{font-size:7.5px}
- .student .starGrid{column-gap:3px;row-gap:4px}
- .student .starGrid span,.student .starGrid .uiIcon{width:15px;height:15px;min-width:15px;min-height:15px}
-}
+.student .studentNav>button:nth-child(2)::before{content:"";width:29px;height:29px;display:block;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23355480' stroke-width='1.8' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='15' height='16' rx='2'/%3E%3Cpath d='M8 2v4M15 2v4M7 10h9M7 14h5'/%3E%3C/svg%3E")}
+@media(max-width:375px){.student .profileIdentity{right:12px}.student .profileAvatarWrap{width:66px;height:66px}.student .starToday{left:11px;width:112px}.student .miniCards{left:10px;right:10px;gap:4px}.student .miniCards b{font-size:7.4px}.student .studentSubject b{font-size:10.5px}.student .dayPanel h3{font-size:14px}.student .scheduleText b,.student .taskText b{font-size:9.6px}.student .scheduleText span,.student .taskText span{font-size:7.5px}.student .starGrid{column-gap:5px;row-gap:5px}.student .starGrid span,.student .starGrid .uiIcon{width:16px;height:16px;min-width:16px;min-height:16px}}
