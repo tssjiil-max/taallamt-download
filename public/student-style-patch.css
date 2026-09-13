@@ -4,8 +4,8 @@
 .student .studentProfile h2{display:none!important}
 .student .studentProfile::before{display:none!important;content:none!important}
 .student .studentProfileMain{height:100%;display:block;position:relative}
-/* Supplied site logo: top-center of the student card only. */
-.student .studentProfileMain::before{content:"";position:absolute;z-index:3;top:7px;left:50%;transform:translateX(-50%);width:62px;height:62px;background:url('/student-assets/student-shield.webp') center/contain no-repeat;pointer-events:none}
+/* Supplied transparent logo: top-center of the student card only. */
+.student .studentProfileMain::before{content:"";position:absolute;z-index:3;top:7px;left:50%;transform:translateX(-50%);width:62px;height:62px;background:url('/student-assets/student-center-logo.svg') center/contain no-repeat;pointer-events:none}
 .student .profileIdentity{position:absolute;z-index:2;right:16px;top:10px;width:76px;height:78px;display:block}
 .student .profileText{display:none!important}
 .student .profileAvatarWrap{width:72px;height:72px;transform:none;border-radius:50%;background:transparent;box-shadow:none}
