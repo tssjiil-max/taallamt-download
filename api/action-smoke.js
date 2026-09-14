@@ -27,7 +27,9 @@ export default async function handler(req,res){
     batch.set(evidence,{id:`smoke_homework_${stamp}_${studentId}`,homeworkId:`smoke_homework_${stamp}`,studentId,status:'assigned',assignedAt:t});
     await batch.commit();
     const snaps=await Promise.all(refs.map(r=>r.get()));
-    const checks={star:snaps[0].exists&&snaps[0].data()?.stars===1,rewardEvent:snaps[1].exists,assessment:snaps[2].exists,behavior:snaps[3].exists,communication:snaps[4].exists,homework:snaps[5].exists,homeworkEvidence:snaps[6].exists};
+    const checks={star:snaps[0].exists&&snaps[0].data()?.stars===1,rewardEvent:snaps[1].exists,assessment:snaps[2].exists,behavior:snaps[3].exists,communication:snaps[4].exists,homework:snaps[5].exists,homeworkEvidence:snaps[6].exists&&snaps[6].data()?.status==='assigned'};
+    await evidence.set({status:'completed',completedAt:now(),confirmedBy:'guardian'},{merge:true});
+    const completeSnap=await evidence.get();checks.guardianCompletion=completeSnap.exists&&completeSnap.data()?.status==='completed'&&completeSnap.data()?.confirmedBy==='guardian';
     const cleanup=db.batch();refs.forEach(r=>cleanup.delete(r));await cleanup.commit();
     const deleted=(await Promise.all(refs.map(r=>r.get()))).every(s=>!s.exists);
     return res.status(200).json({ok:Object.values(checks).every(Boolean)&&deleted,environment:process.env.VERCEL_ENV,checks,cleanup:deleted,productionProtected:true});
