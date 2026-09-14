@@ -4,17 +4,17 @@
 .student .studentProfile h2{display:none!important}
 .student .studentProfile::before{display:none!important;content:none!important}
 .student .studentProfileMain{height:100%;display:block;position:relative}
-/* Use the existing local Shakabumbo SVG. Avoid the broken WebP-inside-SVG center asset. */
-.student .studentProfileMain::before{content:"";position:absolute;z-index:3;top:7px;left:50%;transform:translateX(-50%);width:62px;height:62px;background:url('/student-shakabumbo-shield.svg') center/contain no-repeat;pointer-events:none}
+.student .studentProfileMain::before{display:none!important;content:none!important;background:none!important}
+.student .studentMainLogo{display:block!important;position:absolute;z-index:3;top:7px;left:50%;transform:translateX(-50%);width:62px;height:62px;object-fit:contain;object-position:center;background:transparent!important;pointer-events:none}
 .student .profileIdentity{position:absolute;z-index:2;right:16px;top:10px;width:76px;height:78px;display:block}
 .student .profileText{display:none!important}
 .student .profileAvatarWrap{width:72px;height:72px;transform:none;border-radius:50%;background:transparent;box-shadow:none;overflow:visible}
 .student .profileAvatarWrap .boyAvatar{display:none!important}
-.student .profileAvatarWrap .studentProfileAvatar{display:block!important;width:72px;height:72px;object-fit:contain;border-radius:0;background:transparent;box-shadow:none}
+.student .profileAvatarWrap .studentProfileAvatar{display:block!important;width:72px;height:72px;object-fit:contain;object-position:center;border-radius:0;background:transparent;box-shadow:none}
 .student .profileWidgets{display:block;position:static}
 .student .starToday{position:absolute;z-index:2;left:14px;top:13px;width:122px;height:54px;display:block;padding:7px 9px;background:#fff;border-radius:11px;overflow:hidden;text-align:center}
 .student .starToday .starIcon{display:none!important}
-.student .starToday .studentStarMascot{display:block!important;position:absolute;right:3px;bottom:2px;width:34px;height:46px;object-fit:contain;pointer-events:none}
+.student .starToday .studentStarMascot{display:block!important;position:absolute;right:3px;bottom:2px;width:34px;height:46px;object-fit:contain;object-position:center;background:transparent!important;pointer-events:none}
 .student .starToday>div:last-child{min-width:0;width:100%;padding-right:27px}
 .student .starToday b{display:block;font-size:9px;line-height:1.15;margin:0 0 2px}
 .student .starToday strong{display:block;font-size:14px;line-height:1.05;margin:0;direction:ltr;unicode-bidi:isolate;text-align:center}
@@ -24,7 +24,6 @@
 .student .miniCards b{display:flex;align-items:center;justify-content:center;gap:3px;font-size:8.2px;line-height:1.1;color:#285665;white-space:nowrap}
 .student .miniCards small{font-size:6.4px;color:#688181;white-space:nowrap}
 .student .miniCards b .uiIcon{width:15px;height:15px}
-/* Subjects: names/progress only; no character or subject pictures. */
 .student .studentSubject .subjectIcon{display:none!important}
 .student .studentSubject{justify-content:center;gap:4px}
 .student .studentSubject b{font-size:11.5px;font-weight:800;line-height:1.25}
@@ -35,10 +34,9 @@
 .student .dayPanel h3{font-size:15px;font-weight:800}
 .student .scheduleText b,.student .taskText b{font-size:10.5px;line-height:1.25}
 .student .scheduleText span,.student .taskText span{font-size:8px;line-height:1.25}
-/* 30-star area: Shakabumbo is visible only as the small reward character beside the stars. */
 .student .rewards{grid-template-columns:1fr!important}
 .student .rewardMascot{display:flex!important;position:absolute;z-index:2;left:5px;bottom:3px;width:56px;height:82px;align-items:center;justify-content:flex-end}
-.student .rewardMascot img{display:block!important;width:54px!important;height:72px!important;object-fit:contain!important;border-radius:0!important;background:transparent!important}
+.student .rewardMascot img{display:block!important;width:54px!important;height:72px!important;object-fit:contain!important;object-position:center!important;border-radius:0!important;background:transparent!important}
 .student .rewardMascot b{display:none!important}
 .student .nextReward{display:none!important}
 .student .rewardStars{grid-column:1/-1!important;width:100%!important;min-width:0!important;padding-right:14px!important;padding-left:64px!important}
@@ -50,11 +48,10 @@
 .student .starGrid .uiIcon{width:18px;height:18px;min-width:18px;min-height:18px}
 .student .starGrid span:not(.on) .uiIcon{fill:transparent;stroke:currentColor;stroke-width:1.5}
 .student .starGrid small{display:none}
-/* Bottom strip: keep Shakabumbo visible in the center without circular framing. */
 .student .studentNav .mascotNav{transform:none!important}
 .student .studentNav .mascotNav>span{width:36px;height:36px;box-shadow:none!important;background:none!important;overflow:visible;border-radius:0!important;display:grid;place-items:center}
 .student .studentNav .mascotNav span .mascot,.student .studentNav .mascotNav img{display:block!important;width:34px!important;height:34px!important;object-fit:contain!important;background:transparent!important}
 .student .studentNav .mascotNav svg{display:none!important}
 .student .studentNav>button:nth-child(2) .uiIcon{display:none}
 .student .studentNav>button:nth-child(2)::before{content:"";width:29px;height:29px;display:block;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23355480' stroke-width='1.8' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='15' height='16' rx='2'/%3E%3Cpath d='M8 2v4M15 2v4M7 10h9M7 14h5'/%3E%3C/svg%3E")}
-@media(max-width:375px){.student .studentProfile{margin-left:7px;margin-right:7px}.student .studentProfileMain::before{width:56px;height:56px;top:8px}.student .profileIdentity{right:12px}.student .starToday{left:10px;width:116px}.student .miniCards{left:10px;right:10px;gap:4px}.student .miniCards b{font-size:7.4px}.student .studentSubject b{font-size:10.5px}.student .dayPanel h3{font-size:14px}.student .scheduleText b,.student .taskText b{font-size:9.6px}.student .scheduleText span,.student .taskText span{font-size:7.5px}.student .starGrid{column-gap:5px;row-gap:5px}.student .starGrid span,.student .starGrid .uiIcon{width:16px;height:16px;min-width:16px;min-height:16px}.student .rewardStars{padding-left:58px!important}.student .rewardMascot{width:50px}.student .rewardMascot img{width:48px!important;height:66px!important}}
+@media(max-width:375px){.student .studentProfile{margin-left:7px;margin-right:7px}.student .studentMainLogo{width:56px;height:56px;top:8px}.student .profileIdentity{right:12px}.student .starToday{left:10px;width:116px}.student .miniCards{left:10px;right:10px;gap:4px}.student .miniCards b{font-size:7.4px}.student .studentSubject b{font-size:10.5px}.student .dayPanel h3{font-size:14px}.student .scheduleText b,.student .taskText b{font-size:9.6px}.student .scheduleText span,.student .taskText span{font-size:7.5px}.student .starGrid{column-gap:5px;row-gap:5px}.student .starGrid span,.student .starGrid .uiIcon{width:16px;height:16px;min-width:16px;min-height:16px}.student .rewardStars{padding-left:58px!important}.student .rewardMascot{width:50px}.student .rewardMascot img{width:48px!important;height:66px!important}}
