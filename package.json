@@ -3,6 +3,6 @@
   "version":"1.0.0",
   "private":true,
   "scripts":{"dev":"vite","build":"tsc && vite build","test":"vitest run","preview":"vite preview"},
-  "dependencies":{"react":"latest","react-dom":"latest","firebase":"latest"},
+  "dependencies":{"react":"latest","react-dom":"latest","firebase":"latest","firebase-admin":"latest"},
   "devDependencies":{"@vitejs/plugin-react":"latest","vite":"latest","typescript":"latest","vitest":"latest","@types/react":"latest","@types/react-dom":"latest"}
 }
