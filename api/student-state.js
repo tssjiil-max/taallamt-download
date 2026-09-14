@@ -1,5 +1,4 @@
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
-import {FieldValue} from 'firebase-admin/firestore';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 
 const base=()=>`workspaces/${WORKSPACE_ID}`;
@@ -13,7 +12,7 @@ const timeOf=(x)=>String(x.enteredAt||x.createdAt||x.assignedAt||x.startedAt||''
 const desc=(a,b)=>timeOf(b).localeCompare(timeOf(a));
 
 async function studentSnapshot(studentId){
-  const db=adminDb(), student=getStudent(studentId);
+  const db=adminDb(),student=getStudent(studentId);
   if(!student)throw new Error('STUDENT_NOT_FOUND');
   const root=base();
   const ledgerRef=db.doc(`${root}/rewardLedgers/${studentId}_${monthKey()}`);
@@ -30,24 +29,20 @@ async function studentSnapshot(studentId){
   const homeworkDocs=homeworkIds.length?await Promise.all(homeworkIds.map(id=>db.doc(`${root}/homework/${id}`).get())):[];
   const homework=homeworkDocs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()})).sort(desc);
   return {
-    ok:true,
-    student,
-    month:monthKey(),
-    stars:ledger.exists?clampStars(ledger.data()?.stars):0,
+    ok:true,student,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
     assessments:items(assessments).sort(desc).slice(0,30),
     remediation:items(remediation).sort(desc).slice(0,20),
     portfolio:items(portfolio).sort(desc).slice(0,30),
-    homework,
-    homeworkEvidence:evidenceRows.slice(0,30),
+    homework,homeworkEvidence:evidenceRows.slice(0,30),
     communications:items(communications).sort(desc).slice(0,30)
   };
 }
 
 async function addStar(studentId){
   const db=adminDb(),root=base(),month=monthKey();
-  const ledger=db.doc(`${root}/rewardLedgers/${studentId}_${month}`), eventId=uid('manual_star'), event=db.doc(`${root}/rewardEvents/${eventId}`);
+  const ledger=db.doc(`${root}/rewardLedgers/${studentId}_${month}`),eventId=uid('manual_star'),event=db.doc(`${root}/rewardEvents/${eventId}`);
   return db.runTransaction(async tx=>{
-    const snap=await tx.get(ledger), current=snap.exists?clampStars(snap.data()?.stars):0;
+    const snap=await tx.get(ledger),current=snap.exists?clampStars(snap.data()?.stars):0;
     if(current>=30)return {earned:0,stars:30};
     tx.set(ledger,{studentId,month,stars:current+1,updatedAt:now()},{merge:true});
     tx.set(event,{id:eventId,studentId,month,stars:1,kind:'manual',createdAt:now()});
@@ -73,7 +68,7 @@ async function saveBehavior(studentId,body){
 }
 
 async function saveCommunication(studentId,body){
-  const map={followup:'متابعة يومية',student_note:'ملاحظة للطالب',guardian_message:'رسالة لولي الأمر'};
+  const map={followup:'متابعة يومية',student_note:'ملاحظة للطالب',guardian_message:'رسالة لولي الأمر',remediation:'خطة علاجية'};
   const reasonCode=String(body.kind||'guardian_message');
   if(!map[reasonCode])throw new Error('COMMUNICATION_KIND_INVALID');
   const summary=String(body.summary||'').trim();if(!summary)throw new Error('TEXT_REQUIRED');
@@ -106,16 +101,17 @@ async function stagingSmoke(){
 export default async function handler(req,res){
   try{
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke')return res.status(200).json(await stagingSmoke());
-    const studentId=String((req.method==='GET'?req.query?.studentId:jsonBody(req).studentId)||'');
+    const body=req.method==='GET'?{}:jsonBody(req);
+    const studentId=String((req.method==='GET'?req.query?.studentId:body.studentId)||'');
     const student=getStudent(studentId);if(!student)return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
     if(req.method==='GET')return res.status(200).json(await studentSnapshot(studentId));
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
     previewWriteGuard();
-    const body=jsonBody(req),action=String(body.action||'');let result;
+    const action=String(body.action||'');let result;
     if(action==='star')result=await addStar(studentId);
     else if(action==='assessment')result=await saveAssessment(studentId,body);
     else if(action==='behavior')result=await saveBehavior(studentId,body);
-    else if(action==='followup'||action==='student_note'||action==='guardian_message')result=await saveCommunication(studentId,{...body,kind:action});
+    else if(['followup','student_note','guardian_message','remediation'].includes(action))result=await saveCommunication(studentId,{...body,kind:action});
     else if(action==='homework'||action==='training')result=await saveHomework(studentId,{...body,kind:action});
     else return res.status(400).json({ok:false,error:'ACTION_NOT_SUPPORTED'});
     return res.status(200).json({ok:true,...result,state:await studentSnapshot(studentId)});
