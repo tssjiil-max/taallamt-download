@@ -1,5 +1,5 @@
 const clampStars=(value)=>Math.max(0,Math.min(30,Number.isFinite(Number(value))?Number(value):0));
-const SHAKABUMBO_PROFILE='/student-assets/student-profile-sourati.webp';
+const SHAKABUMBO_PROFILE='/student-assets/student-profile.webp';
 const SHAKABUMBO_STAR='/student-assets/student-star-today.webp';
 const SHAKABUMBO_MAIN='/student-assets/student-main-logo.webp';
 const SHAKABUMBO_REWARD='/student-assets/student-reward-star.webp';
