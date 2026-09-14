@@ -1,6 +1,5 @@
 const clampStars=(value)=>Math.max(0,Math.min(30,Number.isFinite(Number(value))?Number(value):0));
 const SHAKABUMBO_PROFILE='/student-assets/student-profile.webp';
-const SHAKABUMBO_STAR='/student-assets/student-star-today.webp';
 const SHAKABUMBO_MAIN='/student-assets/student-main-logo.webp';
 const SHAKABUMBO_REWARD='/student-assets/student-reward-star.webp';
 const SHAKABUMBO_NAV=SHAKABUMBO_MAIN;
@@ -36,12 +35,8 @@ const CLEAN_ASSET_CACHE=new Map();
 function readStudent(){try{return JSON.parse(localStorage.getItem('studentProfile')||'{}')||{}}catch{return {}}}
 function currentStars(){const student=readStudent();const value=student.currentStars??student.stars??student.monthlyStars??localStorage.getItem('studentStars');return clampStars(value)}
 function dailyWisdom(){const now=new Date();const day=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000);return DAILY_WISDOM[((day%DAILY_WISDOM.length)+DAILY_WISDOM.length)%DAILY_WISDOM.length]}
+function studentName(){const s=readStudent();const raw=s.studentName||s.fullName||s.displayName||s.name||localStorage.getItem('studentName')||'';const value=String(raw).trim();return value&&value!=='أحمد'?value:'اسم الطالب'}
 function ensureInfoCard(container,key,title){let card=container.querySelector(`[data-student-info="${key}"]`);if(card)return card;card=document.createElement('div');card.dataset.studentInfo=key;const heading=document.createElement('b');heading.textContent=title;card.appendChild(heading);container.appendChild(card);return card}
-function installDailyWisdom(student){const host=student.querySelector('.studentProfileMain');if(!host)return;let card=host.querySelector('.studentDailyWisdom');if(!card){card=document.createElement('section');card.className='studentDailyWisdom';card.setAttribute('aria-label','حكمة اليوم');const title=document.createElement('b');title.textContent='حكمة اليوم';const text=document.createElement('p');card.append(title,text);host.appendChild(card)}const text=card.querySelector('p');const wisdom=dailyWisdom();if(text&&text.textContent!==wisdom)text.textContent=wisdom}
-function studentIdentitySources(){const sources=[];const push=(value)=>{if(value&&typeof value==='object'&&!Array.isArray(value)&&!sources.includes(value)){sources.push(value);if(value.student&&typeof value.student==='object')push(value.student);if(value.profile&&typeof value.profile==='object')push(value.profile);if(value.data&&typeof value.data==='object')push(value.data)}};push(readStudent());for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i)||'';if(!/(student|profile|learner)/i.test(key))continue;try{push(JSON.parse(localStorage.getItem(key)||'null'))}catch{}}return sources}
-function firstIdentityValue(sources,keys){for(const source of sources){for(const key of keys){const value=source?.[key];if(typeof value==='string'&&value.trim())return value.trim();if(typeof value==='number'&&Number.isFinite(value))return String(value)}}return''}
-function readVisibleStudentIdentity(student){const sources=studentIdentitySources();let name=firstIdentityValue(sources,['studentName','fullName','displayName','name']);if(name==='أحمد')name='';const gradeValue=firstIdentityValue(sources,['gradeLabel','gradeName','grade','className','classroom','classLabel']);const section=firstIdentityValue(sources,['section','sectionName','classSection']);const school=firstIdentityValue(sources,['schoolName','school']);const oldText=(student.querySelector('.profileText')?.innerText||'').split('\n').map(v=>v.trim()).filter(Boolean);const domGrade=oldText.find(v=>/الصف|الثاني|ابتدائي/.test(v))||'';let grade=gradeValue||domGrade;if(section&&grade&&!grade.includes(section))grade=`${grade} / ${section}`;else if(section&&!grade)grade=section;return{name,grade,school}}
-function installStudentProfileDetails(student){const host=student.querySelector('.studentProfileMain');if(!host)return;const info=readVisibleStudentIdentity(student);const rows=[['اسم الطالب',info.name],['الصف',info.grade],['المدرسة',info.school]].filter(([,value],index)=>index===0||Boolean(value));const signature=JSON.stringify(rows);let panel=host.querySelector('.studentProfileDetails');if(!panel){panel=document.createElement('section');panel.className='studentProfileDetails';panel.setAttribute('aria-label','بيانات الطالب');host.appendChild(panel)}if(panel.dataset.signature===signature)return;panel.dataset.signature=signature;panel.replaceChildren();for(const [label,value] of rows){const row=document.createElement('div');row.className='studentDetailRow';const labelEl=document.createElement('span');labelEl.className='studentDetailLabel';labelEl.textContent=`${label}:`;const valueEl=document.createElement('strong');valueEl.className='studentDetailValue';valueEl.textContent=value||'—';row.append(labelEl,valueEl);panel.appendChild(row)}const motto=document.createElement('p');motto.className='studentMotto';motto.textContent='أتعلم وأصنع مستقبلي المشرق!';panel.appendChild(motto)}
 async function cleanAndCropAsset(src){
   if(CLEAN_ASSET_CACHE.has(src))return CLEAN_ASSET_CACHE.get(src);
   const job=(async()=>{
@@ -69,22 +64,52 @@ async function cleanAndCropAsset(src){
   CLEAN_ASSET_CACHE.set(src,job);return job;
 }
 function ensureImg(parent,selector,className,src,alt){if(!parent)return null;let img=parent.querySelector(selector);if(!img){img=document.createElement('img');img.className=className;parent.prepend(img)}img.alt=alt||'';if(img.dataset.cleanSource!==src){img.dataset.cleanSource=src;img.style.opacity='0';cleanAndCropAsset(src).then(clean=>{if(img.isConnected&&img.dataset.cleanSource===src){img.src=clean;img.style.opacity='1'}})}return img}
+function installCleanStudentTop(student){
+  const host=student.querySelector('.studentProfileMain');if(!host)return;
+  host.querySelectorAll('.studentDailyWisdom,.studentProfileDetails').forEach(n=>n.remove());
+  let top=host.querySelector('.studentCleanTop');
+  if(!top){
+    top=document.createElement('section');top.className='studentCleanTop';top.setAttribute('aria-label','بيانات الطالب');
+    const photo=document.createElement('div');photo.className='studentCleanPhoto';
+    const details=document.createElement('section');details.className='studentCleanDetails';
+    const wisdom=document.createElement('section');wisdom.className='studentCleanWisdom';
+    top.append(photo,details,wisdom);host.appendChild(top);
+  }
+  const photo=top.querySelector('.studentCleanPhoto');ensureImg(photo,'.studentCleanPhotoImage','studentCleanPhotoImage',SHAKABUMBO_PROFILE,'صورتي');
+  const details=top.querySelector('.studentCleanDetails');
+  const signature=studentName();
+  if(details.dataset.signature!==signature){
+    details.dataset.signature=signature;details.replaceChildren();
+    const nameRow=document.createElement('div');nameRow.className='studentDetailRow';
+    const nameLabel=document.createElement('span');nameLabel.className='studentDetailLabel';nameLabel.textContent='اسم الطالب:';
+    const nameValue=document.createElement('strong');nameValue.className='studentDetailValue';nameValue.textContent=signature;
+    nameRow.append(nameLabel,nameValue);
+    const gradeRow=document.createElement('div');gradeRow.className='studentDetailRow';
+    const gradeLabel=document.createElement('span');gradeLabel.className='studentDetailLabel';gradeLabel.textContent='الصف:';
+    const gradeValue=document.createElement('strong');gradeValue.className='studentDetailValue';gradeValue.textContent='الثاني / 4';
+    gradeRow.append(gradeLabel,gradeValue);
+    const school=document.createElement('div');school.className='studentSchool';school.textContent='مدرسة عمرو بن أوس الثقفي';
+    const motto=document.createElement('p');motto.className='studentMotto';motto.textContent='أتعلم وأصنع مستقبلي المشرق!';
+    details.append(nameRow,gradeRow,school,motto);
+  }
+  const wisdom=top.querySelector('.studentCleanWisdom');
+  let title=wisdom.querySelector('b');if(!title){title=document.createElement('b');title.textContent='حكمة اليوم';wisdom.appendChild(title)}
+  let text=wisdom.querySelector('p');if(!text){text=document.createElement('p');wisdom.appendChild(text)}
+  const quote=dailyWisdom();if(text.textContent!==quote)text.textContent=quote;
+}
 function installStrictStudentVisualGuard(){if(document.getElementById('student-visual-guard'))return;const style=document.createElement('style');style.id='student-visual-guard';style.textContent=`
 .student .studentSubject svg,.student .studentSubject picture,.student .studentSubject .subjectIcon{display:none!important;visibility:hidden!important;width:0!important;height:0!important;margin:0!important;padding:0!important}
 .student .studentSubject{background-image:none!important}
 .student .studentProfile::before,.student .studentProfileMain::before{display:none!important;content:none!important;background:none!important;mask:none!important}
-.student .profileAvatarWrap .boyAvatar{display:none!important}
-.student .studentMainLogo,.student .starToday{display:none!important}
+.student .profileIdentity,.student .studentMainLogo,.student .starToday{display:none!important}
 .student .nextReward{display:none!important}
-.student .studentProfileAvatar,.student .rewardMascotImage,.student .studentNavMascot,.student .studentSubjectMascot{background:transparent!important}
+.student .studentCleanPhotoImage,.student .rewardMascotImage,.student .studentNavMascot,.student .studentSubjectMascot{background:transparent!important}
 `;document.head.appendChild(style)}
 function purgeRequestedIcons(student){student.querySelectorAll('.studentSubject img:not(.studentSubjectMascot),.studentSubject svg,.studentSubject picture,.studentSubject .subjectIcon,.scheduleItem .subjectIcon,.taskItem .subjectIcon').forEach(node=>node.remove())}
 function removeRenderedSubjectTitle(card,subject){card.querySelectorAll('b,h1,h2,h3,h4,h5,h6,p,span').forEach(el=>{if(el.childElementCount===0&&(el.textContent||'').trim()===subject)el.remove()});[...card.childNodes].forEach(node=>{if(node.nodeType===Node.TEXT_NODE&&node.textContent.trim()===subject)node.remove()})}
 function installSubjectIcons(student){student.querySelectorAll('.studentSubject').forEach(card=>{const subject=card.dataset.subjectName||Object.keys(SUBJECT_ASSETS).find(name=>(card.textContent||'').includes(name));if(!subject)return;card.dataset.subjectName=subject;removeRenderedSubjectTitle(card,subject);ensureImg(card,'.studentSubjectMascot','studentSubjectMascot',SUBJECT_ASSETS[subject],subject)})}
 function installSingleNavMascot(student){const host=student.querySelector('.studentNav .mascotNav>span');if(!host)return;let img=host.querySelector('.studentNavMascot');[...host.children].forEach(child=>{if(child!==img)child.remove()});if(!img){img=document.createElement('img');img.className='studentNavMascot';host.appendChild(img)}ensureImg(host,'.studentNavMascot','studentNavMascot',SHAKABUMBO_NAV,'شكابمبو')}
-function applyStudentPatch(){if(!location.pathname.startsWith('/student'))return;installStrictStudentVisualGuard();const student=document.querySelector('.student');if(!student)return;student.querySelector('.studentProfile>h2')?.remove();student.querySelector('.profileAvatarWrap .boyAvatar')?.remove();student.querySelector('.nextReward')?.remove();student.querySelector('.studentMainLogo')?.remove();student.querySelector('.starToday')?.remove();
-ensureImg(student.querySelector('.profileAvatarWrap'),'.studentProfileAvatar','studentProfileAvatar',SHAKABUMBO_PROFILE,'صورتي');
-installDailyWisdom(student);installStudentProfileDetails(student);
+function applyStudentPatch(){if(!location.pathname.startsWith('/student'))return;installStrictStudentVisualGuard();const student=document.querySelector('.student');if(!student)return;student.querySelector('.studentProfile>h2')?.remove();student.querySelector('.nextReward')?.remove();student.querySelector('.studentMainLogo')?.remove();student.querySelector('.starToday')?.remove();installCleanStudentTop(student);
 const rewardMascot=student.querySelector('.rewardMascot');if(rewardMascot){rewardMascot.querySelectorAll('img:not(.rewardMascotImage),svg').forEach(n=>n.remove());ensureImg(rewardMascot,'.rewardMascotImage','rewardMascotImage',SHAKABUMBO_REWARD,'شكابمبو يرفع النجمة')}
 installSingleNavMascot(student);
 const info=student.querySelector('.miniCards');if(info){const existing=[...info.children];const hobby=existing.find(el=>el.textContent.includes('هواياتي'));const achievement=existing.find(el=>el.textContent.includes('إنجازاتي'));if(hobby)hobby.dataset.studentInfo='hobbies';if(achievement)achievement.dataset.studentInfo='achievements';const goals=ensureInfoCard(info,'goals','أهدافي');const skills=ensureInfoCard(info,'skills','مهاراتي');if(hobby&&achievement)info.append(hobby,goals,achievement,skills)}
