@@ -10,10 +10,35 @@ const SUBJECT_ASSETS={
   'الدراسات الإسلامية':'/student-assets/subject-islamic.webp',
   'الإملاء والخط':'/student-assets/subject-writing.webp'
 };
+const DAILY_WISDOM=[
+  'أنت قادر على التعلّم والنجاح.',
+  'كل يوم فرصة لتتعلم شيئًا جديدًا.',
+  'خطوة صغيرة اليوم تصنع نجاحًا كبيرًا.',
+  'اسأل وجرّب وتعلّم.',
+  'الخطأ فرصة للتعلّم.',
+  'بالمثابرة أصل إلى هدفي.',
+  'أنا أستطيع عندما أحاول.',
+  'القراءة تفتح أبواب المعرفة.',
+  'تركيزي اليوم يقربني من هدفي.',
+  'أتعلم بهدوء وأتقدم بثقة.',
+  'كل مهارة تبدأ بالتدريب.',
+  'نجاحي يكبر مع كل محاولة.',
+  'أنا مسؤول عن تعلّمي.',
+  'أفرح بتقدمي وأواصل.',
+  'الصبر والتدريب يصنعان الإتقان.',
+  'أبدأ الآن وأنجز مهمتي.',
+  'العلم يزيدني قوة وثقة.',
+  'أحترم نفسي وأحترم الآخرين.',
+  'أنظم وقتي وأنجز أعمالي.',
+  'المحاولة اليوم تقرّبني من النجاح.'
+];
 const CLEAN_ASSET_CACHE=new Map();
 function readStudent(){try{return JSON.parse(localStorage.getItem('studentProfile')||'{}')||{}}catch{return {}}}
 function currentStars(){const student=readStudent();const value=student.currentStars??student.stars??student.monthlyStars??localStorage.getItem('studentStars');return clampStars(value)}
+function dailyWisdom(){const now=new Date();const day=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000);return DAILY_WISDOM[((day%DAILY_WISDOM.length)+DAILY_WISDOM.length)%DAILY_WISDOM.length]}
 function ensureInfoCard(container,key,title){let card=container.querySelector(`[data-student-info="${key}"]`);if(card)return card;card=document.createElement('div');card.dataset.studentInfo=key;const heading=document.createElement('b');heading.textContent=title;card.appendChild(heading);container.appendChild(card);return card}
+function installDailyWisdom(student){const host=student.querySelector('.studentProfileMain');if(!host)return;let card=host.querySelector('.studentDailyWisdom');if(!card){card=document.createElement('section');card.className='studentDailyWisdom';card.setAttribute('aria-label','حكمة اليوم');const title=document.createElement('b');title.textContent='حكمة اليوم';const text=document.createElement('p');card.append(title,text);host.appendChild(card)}const text=card.querySelector('p');if(text)text.textContent=dailyWisdom()}
+function removePlaceholderAhmed(student){const root=student.querySelector('.profileIdentity');if(!root)return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const matches=[];while(walker.nextNode()){if((walker.currentNode.nodeValue||'').trim()==='أحمد')matches.push(walker.currentNode)}matches.forEach(node=>{const parent=node.parentElement;if(parent&&parent.childNodes.length===1)parent.remove();else node.nodeValue=''})}
 async function cleanAndCropAsset(src){
   if(CLEAN_ASSET_CACHE.has(src))return CLEAN_ASSET_CACHE.get(src);
   const job=(async()=>{
@@ -56,6 +81,7 @@ function installSubjectIcons(student){student.querySelectorAll('.studentSubject'
 function installSingleNavMascot(student){const host=student.querySelector('.studentNav .mascotNav>span');if(!host)return;let img=host.querySelector('.studentNavMascot');[...host.children].forEach(child=>{if(child!==img)child.remove()});if(!img){img=document.createElement('img');img.className='studentNavMascot';host.appendChild(img)}ensureImg(host,'.studentNavMascot','studentNavMascot',SHAKABUMBO_NAV,'شكابمبو')}
 function applyStudentPatch(){if(!location.pathname.startsWith('/student'))return;installStrictStudentVisualGuard();const student=document.querySelector('.student');if(!student)return;student.querySelector('.studentProfile>h2')?.remove();student.querySelector('.profileAvatarWrap .boyAvatar')?.remove();student.querySelector('.nextReward')?.remove();student.querySelector('.studentMainLogo')?.remove();student.querySelector('.starToday')?.remove();
 ensureImg(student.querySelector('.profileAvatarWrap'),'.studentProfileAvatar','studentProfileAvatar',SHAKABUMBO_PROFILE,'صورتي');
+removePlaceholderAhmed(student);installDailyWisdom(student);
 const rewardMascot=student.querySelector('.rewardMascot');if(rewardMascot){rewardMascot.querySelectorAll('img:not(.rewardMascotImage),svg').forEach(n=>n.remove());ensureImg(rewardMascot,'.rewardMascotImage','rewardMascotImage',SHAKABUMBO_REWARD,'شكابمبو يرفع النجمة')}
 installSingleNavMascot(student);
 const info=student.querySelector('.miniCards');if(info){const existing=[...info.children];const hobby=existing.find(el=>el.textContent.includes('هواياتي'));const achievement=existing.find(el=>el.textContent.includes('إنجازاتي'));if(hobby)hobby.dataset.studentInfo='hobbies';if(achievement)achievement.dataset.studentInfo='achievements';const goals=ensureInfoCard(info,'goals','أهدافي');const skills=ensureInfoCard(info,'skills','مهاراتي');if(hobby&&achievement)info.append(hobby,goals,achievement,skills)}
