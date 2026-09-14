@@ -1,11 +1,11 @@
 /* Strict student top-card refinement only. No changes outside the orange student profile panel. */
-.student .studentProfile{height:176px!important}
+.student .studentProfile{height:176px!important;background-color:#FFF8E8!important}
 .student .studentCleanTop{top:7px!important;right:14px!important;left:14px!important;height:98px!important;grid-template-columns:102px minmax(0,1fr) 98px!important;gap:12px!important;align-items:start!important}
 .student .studentCleanPhoto{height:98px!important;border-radius:15px!important}
 .student .studentCleanDetails,.student .studentCleanWisdom{height:84px!important;border-radius:15px!important;align-self:start!important}
 .student .studentCleanPhoto{overflow:visible!important}
 .student .studentCleanPhoto img{width:100px!important;height:96px!important;object-fit:contain!important;object-position:center!important}
-.student .studentCleanDetails{padding:6px 10px 5px!important;justify-content:flex-start!important;gap:1px!important;text-align:right!important;overflow:hidden!important}
+.student .studentCleanDetails{padding:6px 10px 5px!important;justify-content:flex-start!important;gap:1px!important;text-align:right!important;overflow:hidden!important;border-inline-start:1px solid rgba(121,104,73,.24)!important;border-inline-end:1px solid rgba(121,104,73,.24)!important}
 .student .studentCleanDetails .studentDetailRow{min-height:14px!important;line-height:1.12!important;align-items:center!important;gap:5px!important}
 .student .studentCleanDetails .studentDetailLabel{font-size:10.5px!important;font-weight:700!important;line-height:1.1!important}
 .student .studentCleanDetails .studentDetailValue{font-size:13.5px!important;line-height:1.12!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
@@ -19,15 +19,16 @@
 .student .studentCleanWisdom{padding:7px 8px!important;justify-content:center!important;overflow:hidden!important}
 .student .studentCleanWisdom b{font-size:11.5px!important;font-weight:800!important;line-height:1.12!important;margin-bottom:4px!important}
 .student .studentCleanWisdom p{font-size:12.3px!important;font-weight:700!important;line-height:1.3!important;-webkit-line-clamp:3!important}
-.student .miniCards{left:16px!important;right:16px!important;bottom:9px!important;gap:8px!important}
-.student .miniCards>div{height:42px!important;border-radius:11px!important;padding:5px 4px!important;overflow:hidden!important}
+.student .miniCards{left:16px!important;right:16px!important;bottom:9px!important;gap:8px!important;border-top:1px solid rgba(121,104,73,.24)!important;padding-top:5px!important}
+.student .miniCards>div{height:42px!important;border-radius:0!important;padding:5px 4px!important;overflow:hidden!important;border:none!important;box-shadow:none!important}
+.student .miniCards>div+div{border-inline-start:1px solid rgba(121,104,73,.24)!important}
 .student .miniCards b{font-size:10.8px!important;font-weight:800!important;line-height:1.08!important}
 .student .miniCards small,.student .miniCards span{font-size:8.2px!important;font-weight:600!important;line-height:1.08!important}
 .student .scheduleText b,.student .taskText b{font-size:11.2px!important;font-weight:600!important;line-height:1.3!important}
 .student .scheduleText span,.student .taskText span{font-size:8.5px!important;font-weight:500!important;line-height:1.3!important}
-.student .studentCleanDetails,.student .studentCleanWisdom,.student .miniCards>div{background-color:#FFF8E8!important}
+.student .studentCleanDetails,.student .studentCleanWisdom,.student .miniCards>div{background:transparent!important;box-shadow:none!important}
 @media(max-width:375px){
-  .student .studentProfile{height:174px!important}
+  .student .studentProfile{height:174px!important;background-color:#FFF8E8!important}
   .student .studentCleanTop{top:7px!important;right:10px!important;left:10px!important;height:96px!important;grid-template-columns:86px minmax(0,1fr) 84px!important;gap:8px!important;align-items:start!important}
   .student .studentCleanPhoto{height:96px!important}
   .student .studentCleanDetails,.student .studentCleanWisdom{height:80px!important;align-self:start!important}
@@ -44,7 +45,7 @@
   .student .studentCleanWisdom{padding:5px 5px!important}
   .student .studentCleanWisdom b{font-size:10.5px!important;font-weight:800!important;line-height:1.08!important;margin-bottom:3px!important}
   .student .studentCleanWisdom p{font-size:11.3px!important;font-weight:700!important;line-height:1.28!important}
-  .student .miniCards{left:11px!important;right:11px!important;bottom:9px!important;gap:6px!important}
+  .student .miniCards{left:11px!important;right:11px!important;bottom:9px!important;gap:6px!important;padding-top:4px!important}
   .student .miniCards b{font-size:9.8px!important;font-weight:800!important;line-height:1.06!important}
   .student .miniCards small,.student .miniCards span{font-size:7.5px!important;font-weight:600!important;line-height:1.06!important}
   .student .scheduleText b,.student .taskText b{font-size:10.2px!important;font-weight:600!important;line-height:1.28!important}
