@@ -1,0 +1,15 @@
+(()=>{
+  if(!location.pathname.startsWith('/student'))return;
+  const studentId=new URLSearchParams(location.search).get('studentId');if(!studentId)return;
+  const targetByTitle={'لغتي':'subject:arabic','القرآن الكريم':'subject:quran','الدراسات الإسلامية':'subject:islamic','الإملاء والخط':'subject:spelling_handwriting'};
+  const label=v=>v==='mastered'?'أتقن ✅':v==='needs_practice'?'يحتاج تدريب':'لم يسجل تقييم بعد';
+  const fetchState=async()=>{const r=await fetch(`/api/student-state?studentId=${encodeURIComponent(studentId)}`,{cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'تعذر التحميل');return d};
+  function popup(title,lines){document.querySelector('.studentLivePopup')?.remove();const wrap=document.createElement('div');wrap.className='studentLivePopup';Object.assign(wrap.style,{position:'fixed',inset:'0',zIndex:'10020',background:'rgba(0,0,0,.36)',display:'grid',placeItems:'center',padding:'18px'});const box=document.createElement('section');Object.assign(box.style,{width:'min(390px,94vw)',background:'#fff',borderRadius:'18px',padding:'17px',color:'#244c75',boxShadow:'0 12px 38px rgba(0,0,0,.22)'});const h=document.createElement('h3');h.textContent=title;Object.assign(h.style,{margin:'0 0 10px',color:'#0b62bc'});box.appendChild(h);lines.forEach(x=>{const p=document.createElement('p');p.textContent=x;Object.assign(p.style,{margin:'7px 0',lineHeight:'1.55',fontSize:'13px'});box.appendChild(p)});const close=document.createElement('button');close.textContent='إغلاق';Object.assign(close.style,{width:'100%',height:'42px',marginTop:'12px',border:'0',borderRadius:'11px',background:'#168fe6',color:'#fff',fontWeight:'800'});close.onclick=()=>wrap.remove();box.appendChild(close);wrap.appendChild(box);wrap.onclick=e=>{if(e.target===wrap)wrap.remove()};document.body.appendChild(wrap)}
+  document.addEventListener('click',async e=>{
+    const target=e.target;
+    if(!(target instanceof Element))return;
+    const subject=target.closest('.studentSubject');
+    if(subject){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();const title=subject.dataset.subjectName||Object.keys(targetByTitle).find(x=>(subject.textContent||'').includes(x))||'المادة';try{const state=await fetchState(),key=targetByTitle[title],row=state.assessments.flatMap(a=>a.academic||[]).find(x=>x.targetId===key);popup(title,[`آخر تقييم: ${label(row?.result)}`,`رصيد النجوم: ${state.stars} / 30`])}catch(err){popup(title,[err instanceof Error?err.message:'تعذر التحميل'])}return}
+    const nav=target.closest('.studentNav button');if(!nav)return;const text=(nav.querySelector('b')?.textContent||'').trim();if(text!=='المزيد')return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();try{const s=await fetchState();const latest=s.communications?.[0];popup('ملخصي',[`النجوم: ${s.stars} / 30`,`الواجبات والتدريبات المرسلة: ${s.homework?.length||0}`,latest?`آخر تحديث من المعلم: ${latest.summary}`:'لا توجد رسالة جديدة من المعلم'])}catch(err){popup('ملخصي',[err instanceof Error?err.message:'تعذر التحميل'])}
+  },true);
+})();
