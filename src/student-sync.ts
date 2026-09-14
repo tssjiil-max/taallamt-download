@@ -64,8 +64,7 @@ async function addManualStar(studentId:string){
  if(!isFirebaseConfigured())throw new Error('Firebase غير مهيأ في هذه النسخة');
  const repo=new FirestoreRewardRepository(WORKSPACE_ID);
  const eventId=`manual-star:${studentId}:${Date.now()}`;
- const earned=await repo.applyAssessmentStars(studentId,month(),eventId,1);
- return earned;
+ return repo.applyAssessmentStars(studentId,month(),eventId,1);
 }
 
 function selectedAcademic(panel:Element){
@@ -83,16 +82,7 @@ async function saveAssessment(studentId:string,panel:Element){
  const academic=selectedAcademic(panel);
  if(!academic.length)throw new Error('اختر نتيجة لمادة واحدة على الأقل');
  const now=new Date().toISOString();
- const assessment:ComprehensiveAssessment={
-  id:`teacher:${studentId}:${Date.now()}`,
-  studentId,
-  classSessionId:`manual:${today()}`,
-  sessionDate:today(),
-  enteredAt:now,
-  track:'general',
-  academic,
-  behavior:[]
- };
+ const assessment:ComprehensiveAssessment={id:`teacher:${studentId}:${Date.now()}`,studentId,classSessionId:`manual:${today()}`,sessionDate:today(),enteredAt:now,track:'general',academic,behavior:[]};
  const learning=new FirestoreLearningRepository(WORKSPACE_ID);
  const rewards=new FirestoreRewardRepository(WORKSPACE_ID);
  return saveComprehensiveAssessment(assessment,{learning,rewards});
@@ -123,6 +113,7 @@ function installTeacherSync(){
 
  document.addEventListener('click',async event=>{
   if(teacherStudentId()!==studentId)return;
+  const currentRoot=document.querySelector('.teacherStudentAdmin');
   const button=(event.target as Element)?.closest<HTMLButtonElement>('button');if(!button)return;
   const text=(button.textContent||'').trim();
   if(text==='إضافة نجمة'){
@@ -136,7 +127,7 @@ function installTeacherSync(){
   }else if(text==='يحتاج متابعة'){
    event.preventDefault();button.disabled=true;try{await saveBehavior(studentId,'needs_followup','يحتاج متابعة','needs_attention');announce('تم حفظ: يحتاج متابعة','ok')}catch(e){announce(e instanceof Error?e.message:'تعذر الحفظ','error')}finally{button.disabled=false}
   }else if(text==='إعادة تقييم'){
-   event.preventDefault();(root.querySelector<HTMLButtonElement>('.tsaTabs [data-tab="assessment"]'))?.click();announce('اختر التقييم الجديد ثم اضغط حفظ التقييم','info');
+   event.preventDefault();currentRoot?.querySelector<HTMLButtonElement>('.tsaTabs [data-tab="assessment"]')?.click();announce('اختر التقييم الجديد ثم اضغط حفظ التقييم','info');
   }else if(['إضافة للمتابعة اليومية','خطة علاجية','ملاحظة للطالب','إرسال واجب','إرسال تدريب منزلي','رسالة لولي الأمر','عرض سجل التواصل'].includes(text)){
    event.preventDefault();announce('هذا الإجراء يحتاج شاشة إدخال تفاصيل قبل الحفظ، ولم أربطه بحفظ وهمي.','info');
   }
