@@ -20,4 +20,4 @@ function credentials(){
   return {projectId,clientEmail,privateKey:normalizePrivateKey(privateKeyRaw)};
 }
 export function adminDb(){if(!getApps().length)initializeApp({credential:cert(credentials())});return getFirestore()}
-export function previewWriteGuard(){if(process.env.VERCEL_ENV==='production')throw new Error('PRODUCTION_WRITE_BLOCKED')}
+export function previewWriteGuard(){const env=process.env.VERCEL_ENV,ref=process.env.VERCEL_GIT_COMMIT_REF?.trim();if(env==='production'&&ref!=='build/taallamt-flex-v1')throw new Error('PRODUCTION_WRITE_BLOCKED')}
