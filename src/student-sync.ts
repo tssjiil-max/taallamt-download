@@ -3,10 +3,12 @@ type AcademicResult='mastered'|'needs_practice';
 type StudentState={
  ok:boolean;
  student:{id:string;number:number;name:string;fullName:string;grade:string;className:string};
+ profile?:{photoDataUrl?:string}|null;
  stars:number;
  assessments:Array<{id:string;enteredAt?:string;academic?:Array<{targetId:string;result:AcademicResult}>;behavior?:Array<{code:string;label:string;tone:string}>}>;
  remediation:Array<Record<string,unknown>>;
  homework:Array<{id:string;title:string;instructions?:string;subject?:string;kind?:string;assignedAt?:string}>;
+ homeworkEvidence:Array<{homeworkId:string;status?:string;completedAt?:string}>;
  communications:Array<{id:string;reason?:string;reasonCode?:string;summary:string;createdAt?:string}>;
 };
 
@@ -80,16 +82,27 @@ function renderSubjectProgress(state:StudentState){
  for(const [targetId,result] of latest){const title=TARGET_TITLES[targetId];if(!title)continue;const card=[...document.querySelectorAll<HTMLElement>('.student .studentSubject')].find(c=>c.dataset.subjectName===title||(c.textContent||'').includes(title));if(!card)continue;const bar=card.querySelector<HTMLElement>('.subjectBar i');if(bar)bar.style.width=result==='mastered'?'100%':'55%';card.dataset.liveResult=result;card.setAttribute('aria-label',`${title}: ${result==='mastered'?'أتقن':'يحتاج تدريب'}`)}
 }
 function renderServerTasks(state:StudentState){
- const panels=[...document.querySelectorAll<HTMLElement>('.student .dayPanel')];const tasks=panels.find(p=>(p.querySelector('h3')?.textContent||'').includes('مهامي اليوم'));if(!tasks)return;
- tasks.querySelectorAll('.serverTask').forEach(n=>n.remove());
- state.homework.slice(0,4).reverse().forEach(item=>{const button=document.createElement('button');button.type='button';button.className='taskItem serverTask';const circle=document.createElement('span');circle.className='taskCircle';const text=document.createElement('div');text.className='taskText';const b=document.createElement('b');b.textContent=item.title;const s=document.createElement('span');s.textContent=item.kind==='training'?'تدريب منزلي من المعلم':'واجب من المعلم';text.append(b,s);button.append(circle,text);button.addEventListener('click',()=>button.classList.toggle('done'));tasks.insertBefore(button,tasks.children[1]||null)});
+  const panels=[...document.querySelectorAll<HTMLElement>('.student .dayPanel')];const tasks=panels.find(p=>(p.querySelector('h3')?.textContent||'').includes('مهامي اليوم'));if(!tasks)return;
+  tasks.querySelectorAll('.serverTask').forEach(n=>n.remove());
+  state.homework.slice(0,4).reverse().forEach(item=>{const isDone=state.homeworkEvidence.some(e=>e.homeworkId===item.id&&e.status==='completed');const button=document.createElement('button');button.type='button';button.className=`taskItem serverTask ${isDone?'done':''}`;const circle=document.createElement('span');circle.className='taskCircle';circle.textContent=isDone?'✓':'';const text=document.createElement('div');text.className='taskText';const b=document.createElement('b');b.textContent=item.title;const s=document.createElement('span');s.textContent=`${item.subject||'المادة'} · ${item.kind==='training'?'تدريب منزلي من المعلم':'واجب من المعلم'}`;text.append(b,s);button.append(circle,text);button.addEventListener('click',async()=>{try{const r=await fetch('/api/homework-complete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:state.student.id,homeworkId:item.id})});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'REQUEST_FAILED');button.classList.add('done');circle.textContent='✓';toast('تم تأكيد تنفيذ المهمة ✓','ok')}catch(e){toast(readableError(e),'error')}});tasks.insertBefore(button,tasks.children[1]||null)});
+}
+function renderWeeklyPanel(state:StudentState){
+  const panels=[...document.querySelectorAll<HTMLElement>('.student .dayPanel')];const weekly=panels.find(p=>(p.querySelector('h3')?.textContent||'').includes('هذا الأسبوع'));if(!weekly)return;
+  weekly.querySelectorAll('.liveWeekly').forEach(n=>n.remove());weekly.querySelectorAll('.scheduleItem').forEach(n=>n.remove());
+  const rows=[
+    ...state.homework.slice(0,4).map(item=>`${item.kind==='training'?'تدريب منزلي':'واجب'}: ${item.title}`),
+    ...state.assessments.slice(0,3).map(item=>`تقييم مسجل: ${item.academic?.length||0} مادة`),
+    ...state.communications.slice(0,3).map(item=>`${item.reason||'ملاحظة'}: ${item.summary}`)
+  ];
+  if(!rows.length)rows.push('لا توجد بيانات متاحة حاليًا');
+  rows.slice(0,6).forEach(text=>{const item=document.createElement('div');item.className='scheduleItem liveWeekly info';const dot=document.createElement('span');dot.className='scheduleDot';const body=document.createElement('div');body.className='scheduleText';const b=document.createElement('b');b.textContent=text;const s=document.createElement('span');s.textContent='هذا الأسبوع';body.append(b,s);item.append(dot,body);weekly.appendChild(item)});
 }
 function renderTeacherUpdates(state:StudentState){
  const student=document.querySelector('.student');const rewards=student?.querySelector('.rewards');if(!student||!rewards)return;
  let box=student.querySelector<HTMLElement>('.studentTeacherUpdates');if(!state.communications.length){box?.remove();return}if(!box){box=document.createElement('section');box.className='studentTeacherUpdates';rewards.parentElement?.insertBefore(box,rewards)}box.replaceChildren();const h=document.createElement('h3');h.textContent='تحديثات المعلم';box.appendChild(h);
  state.communications.slice(0,3).forEach(item=>{const a=document.createElement('article'),b=document.createElement('b'),p=document.createElement('p');b.textContent=item.reason||'تحديث';p.textContent=item.summary;a.append(b,p);box?.appendChild(a)});
 }
-function applyStudentState(state:StudentState){saveIdentity(state);requestAnimationFrame(()=>{renderSubjectProgress(state);renderServerTasks(state);renderTeacherUpdates(state)});window.setTimeout(()=>{renderSubjectProgress(state);renderServerTasks(state);renderTeacherUpdates(state)},250)}
+function applyStudentState(state:StudentState){saveIdentity(state);if(state.profile?.photoDataUrl){const img=document.querySelector<HTMLImageElement>('.studentCleanPhotoImage');if(img)img.src=state.profile.photoDataUrl}requestAnimationFrame(()=>{renderSubjectProgress(state);renderWeeklyPanel(state);renderServerTasks(state);renderTeacherUpdates(state)});window.setTimeout(()=>{renderSubjectProgress(state);renderWeeklyPanel(state);renderServerTasks(state);renderTeacherUpdates(state)},250)}
 
 function installStudentLive(){
  if(!location.pathname.startsWith('/student'))return;const studentId=publicStudentId();if(!studentId)return;
