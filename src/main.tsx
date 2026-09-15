@@ -67,6 +67,8 @@ function App(){
  if(location.pathname==='/teacher/students')return <TeacherStudents/>;
  if(location.pathname==='/teacher/library')return <TeacherLibrary/>;
  if(location.pathname==='/teacher/settings')return <TeacherSettings/>;
+ if(location.pathname==='/teacher/announcements')return <TeacherAnnouncements/>;
+ if(location.pathname==='/teacher/tasks')return <TeacherTasks/>;
  return <Teacher/>;
 }
 
@@ -127,16 +129,19 @@ function Teacher(){
       <StatusLine tone="gold" label="لم يتم تقييمهم" value="4"/>
       <StatusLine tone="gray" label="ملاحظات سلوكية" value="2"/>
     </Panel>
-    <Panel title="مهامي اليوم" icon="tasks" action="عرض الكل">
+    <Panel title="مهامي اليوم" icon="tasks" action="عرض الكل" onAction={()=>go('/teacher/tasks')}>
       <ChecklistItem text="إدخال تقييم لغتي - الوحدة 2"/><ChecklistItem text="مراجعة خطط علاجية (3 طلاب)"/><ChecklistItem text="إرسال واجبات الدراسات"/>
     </Panel>
-    <Panel title="الإعلانات" icon="megaphone" action="عرض الكل">
+    <Panel title="الإعلانات" icon="megaphone" action="عرض الكل" onAction={()=>go('/teacher/announcements')}>
       <div className="announcement"><span className="announcementDot"/><div><b>اجتماع أولياء الأمور يوم الأحد</b><small>2026 - 09 - 05</small></div></div>
     </Panel>
   </section>
   <TeacherNav/>
  </main>
 }
+
+function TeacherAnnouncements(){const [items,setItems]=React.useState(()=>{try{return JSON.parse(localStorage.getItem('teacherAnnouncements')||'null')||[{id:'a1',title:'اجتماع أولياء الأمور يوم الأحد',body:'',date:'2026-09-05',status:'published'}]}catch{return []}});const [form,setForm]=React.useState<any>(null);const save=(n:any[])=>{setItems(n);localStorage.setItem('teacherAnnouncements',JSON.stringify(n))};const submit=()=>{if(!form?.title?.trim())return;save(items.some((x:any)=>x.id===form.id)?items.map((x:any)=>x.id===form.id?form:x):[form,...items]);setForm(null)};return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>الإعلانات</h1><p>إنشاء ومراجعة إعلانات الفصل</p></div></header><section className="settingsCard"><button className="primaryAction" onClick={()=>setForm({id:'a'+Date.now(),title:'',body:'',date:new Date().toISOString().slice(0,10),status:'draft'})}>+ إعلان جديد</button>{form&&<div className="inlineForm"><label>عنوان الإعلان<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>نص الإعلان<textarea value={form.body} onChange={e=>setForm({...form,body:e.target.value})}/></label><label>تاريخ النشر<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></label><div className="formActions"><button onClick={()=>{setForm({...form,status:'draft'});setTimeout(submit,0)}}>حفظ كمسودة</button><button onClick={()=>{const n={...form,status:'published'};save(items.some((x:any)=>x.id===n.id)?items.map((x:any)=>x.id===n.id?n:x):[n,...items]);setForm(null)}}>نشر</button><button onClick={()=>setForm(null)}>إلغاء</button></div></div>}<div className="announcementList">{items.filter((x:any)=>x.status!=='archived').map((a:any)=><article key={a.id}><div><b>{a.title}</b><p>{a.body||'بدون نص إضافي'}</p><small>{a.date} · {a.status==='published'?'منشور':'مسودة'}</small></div><div><button onClick={()=>setForm(a)}>تعديل</button><button onClick={()=>save(items.map((x:any)=>x.id===a.id?{...x,status:'archived'}:x))}>أرشفة</button></div></article>)}</div></section><TeacherNav/></main>}
+function TeacherTasks(){const tasks=[['إدخال تقييم لغتي - الوحدة 2','تقييمات لم تكتمل','/teacher/students'],['مراجعة خطط علاجية (3 طلاب)','خطط علاجية','/teacher/library'],['إرسال واجبات الدراسات','واجبات وأعمال اليوم','/teacher/students']];return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>مهامي اليوم</h1><p>المهام الظاهرة حاليًا في لوحة المعلم</p></div></header><section className="settingsCard"><div className="taskFullList">{tasks.map((t,i)=><button key={t[0]} onClick={()=>go(t[2])}><span>{i+1}</span><div><b>{t[0]}</b><small>{t[1]}</small></div><UiIcon name="chevron" size={18}/></button>)}</div><p className="dataNote">لم تتم إضافة بيانات وهمية أو تغيير مخطط البيانات.</p></section><TeacherNav/></main>}
 
 function TeacherLibrary(){
  const resources=[
@@ -146,18 +151,12 @@ function TeacherLibrary(){
   {icon:'calendar' as const,title:'الخطط الأسبوعية',subtitle:'خطط مرتبطة بالتوزيع وجدول الحصص'},
   {icon:'assessment' as const,title:'نماذج التقييم',subtitle:'نماذج قصيرة للتقييم وإعادة التقييم'},
   {icon:'edit' as const,title:'الإملاء والخط',subtitle:'تدريبات ومواد جاهزة للطباعة'},
+  {icon:'books' as const,title:'مواد تعليمية جاهزة للطباعة',subtitle:'لا توجد مواد مضافة بعد'},
  ];
  return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')} aria-label="العودة">‹</button><div><h1>الكتب والمكتبة</h1><p>مكتبة المعلم التعليمية</p></div></header><section className="libraryGrid">{resources.map(x=><button key={x.title} className="libraryCard"><UiIcon name={x.icon} size={28}/><span><b>{x.title}</b><small>{x.subtitle}</small></span><UiIcon name="chevron" size={18}/></button>)}</section><TeacherNav/></main>
 }
 
-function TeacherSettings(){
- const [students,setStudents]=React.useState(()=>{try{const saved=JSON.parse(localStorage.getItem('teacherStudents')||'null');return Array.isArray(saved)&&saved.length?saved:CLASS_STUDENTS}catch{return CLASS_STUDENTS}});
- const [name,setName]=React.useState('');
- const save=(next:any[])=>{setStudents(next);try{localStorage.setItem('teacherStudents',JSON.stringify(next))}catch{}};
- const add=()=>{const n=name.trim();if(!n)return;const next=[...students,{id:`s2-4-${Date.now()}`,number:students.length+1,name:n,grade:'الثاني',className:'4'}];save(next);setName('')};
- const rename=(i:number)=>{const n=prompt('اكتب اسم الطالب:',students[i].name)?.trim();if(!n)return;const next=[...students];next[i]={...next[i],name:n};save(next)};
- return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')} aria-label="العودة">‹</button><div><h1>الإعدادات</h1><p>إدارة بيانات الفصل دون تغيير مسار التقييم</p></div></header><section className="settingsCard"><h2>إدارة الطلاب</h2><div className="addStudent"><input value={name} onChange={e=>setName(e.target.value)} placeholder="اسم الطالب الثلاثي"/><button onClick={add}>إضافة طالب</button></div><div className="settingsStudents">{students.map((s:any,i:number)=><div key={s.id}><span>{i+1}</span><b>{s.name}</b><button onClick={()=>rename(i)}><UiIcon name="edit" size={17}/>تعديل الاسم</button></div>)}</div></section><section className="settingsCard compact"><h2>إعدادات الفصل</h2><p>الصف الثاني / 4 · مدرسة عمرو بن أوس الثقفي</p><small>تم إبقاء إعدادات المواد والتقييم والبيانات الحالية كما هي دون تغيير.</small></section><TeacherNav/></main>
-}
+function TeacherSettings(){const [students,setStudents]=React.useState<any[]>(()=>{try{const s=JSON.parse(localStorage.getItem('teacherStudents')||'null');return Array.isArray(s)&&s.length?s:CLASS_STUDENTS}catch{return CLASS_STUDENTS}});const [form,setForm]=React.useState<any>(null);const save=(n:any[])=>{setStudents(n);localStorage.setItem('teacherStudents',JSON.stringify(n))};const submit=()=>{if(!form)return;if(form.mode==='add'&&form.name.trim())save([...students,{id:'s'+Date.now(),number:students.length+1,name:form.name.trim(),grade:'الثاني',className:'4'}]);if(form.mode==='edit'&&form.name.trim()){const n=[...students];n[form.i]={...n[form.i],name:form.name.trim()};save(n)}if(form.mode==='archive'){const n=[...students];n[form.i]={...n[form.i],archived:true};save(n)}setForm(null)};return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>الإعدادات</h1><p>إعدادات موقع المعلم والفصل</p></div></header><section className="settingsCard"><h2>إدارة الطلاب</h2><button className="primaryAction" onClick={()=>setForm({mode:'add',name:''})}>+ إضافة طالب</button>{form&&<div className="inlineForm"><h3>{form.mode==='add'?'إضافة طالب':form.mode==='edit'?'تعديل اسم الطالب':'تأكيد أرشفة الطالب'}</h3>{form.mode!=='archive'&&<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="اسم الطالب الثلاثي"/>}<div className="formActions"><button onClick={submit}>{form.mode==='archive'?'تأكيد الأرشفة':'حفظ'}</button><button onClick={()=>setForm(null)}>إلغاء</button></div></div>}<div className="settingsStudents">{students.filter((s:any)=>!s.archived).map((s:any)=><div key={s.id}><span>{s.number}</span><b>{s.name}</b><div className="studentRowActions"><button onClick={()=>setForm({mode:'edit',i:students.indexOf(s),name:s.name})}>تعديل</button><button onClick={()=>setForm({mode:'archive',i:students.indexOf(s),name:s.name})}>أرشفة</button></div></div>)}</div></section><section className="settingsMenu">{[['بيانات الفصل','الصف والمدرسة وبيانات المعلم'],['إعداد المواد','مواد الصف الثاني / 4'],['أوقات اليوم الدراسي','العادي والشتوي ورمضان والمخصص'],['إدارة الإعلانات','إنشاء ومراجعة الإعلانات'],['إدارة المكتبة','الكتب وأوراق العمل والخطط العلاجية']].map(([t,s])=><button key={t} onClick={()=>t==='إدارة الإعلانات'?go('/teacher/announcements'):t==='إدارة المكتبة'?go('/teacher/library'):undefined}><span><b>{t}</b><small>{s}</small></span><UiIcon name="chevron" size={18}/></button>)}</section><TeacherNav/></main>}
 
 function Student(){
  const name=studentName();
@@ -214,7 +213,7 @@ function Student(){
 
 function TeacherStat({tone,icon,title,value}:{tone:string;icon:IconName;title:string;value:string}){return <article className={`teacherStat ${tone}`}><UiIcon name={icon} size={32}/><b>{title}</b><strong>{value}</strong></article>}
 function Quick({icon,title,subtitle,onClick}:{icon:IconName;title:string;subtitle:string;onClick:()=>void}){return <button onClick={onClick}><UiIcon name={icon} size={35}/><b>{title}</b><span>{subtitle}</span></button>}
-function Panel({title,icon,action,children}:{title:string;icon:IconName;action:string;children:React.ReactNode}){return <section className="panel"><header><h3><UiIcon name={icon} size={22}/>{title}</h3><button>{action}</button></header>{children}</section>}
+function Panel({title,icon,action,children,onAction}:{title:string;icon:IconName;action:string;children:React.ReactNode;onAction?:()=>void}){return <section className="panel"><header><h3><UiIcon name={icon} size={22}/>{title}</h3><button onClick={onAction}>{action}</button></header><div onClick={onAction}>{children}</div></section>}
 function CourseProgress({k,t,p}:{k:'quran'|'islamic'|'lughati'|'writing';t:string;p:number}){return <div className="courseProgress"><SubjectIcon kind={k}/><div><b>{t}</b><div className="courseBar"><i style={{width:p+'%'}}/></div></div><span>{p}%</span></div>}
 function StatusLine({tone,label,value}:{tone:string;label:string;value:string}){return <div className="statusLine"><span className={`statusDot ${tone}`}/><b>{label}</b><strong>{value}</strong></div>}
 function ChecklistItem({text}:{text:string}){return <button className="checkItem"><span className="checkBox"/><b>{text}</b><UiIcon name="chevron" size={18}/></button>}
