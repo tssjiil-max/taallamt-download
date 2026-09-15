@@ -25,7 +25,7 @@ const TIMETABLE_MISSING_LABEL = "جدول الحصص";
 
 export const EMPTY_CLASS_TIMETABLE: ClassTimetable = Object.fromEntries(
   SCHOOL_DAYS.map((day) => [day, []]),
-) as ClassTimetable;
+) as unknown as ClassTimetable;
 
 export type PersistedDailyTask = DailyAssignment & { completedStudentIds: string[] };
 
@@ -184,7 +184,7 @@ function parseTimetable(raw: unknown) {
         .filter((slot): slot is TimetableSlot => Boolean(slot))
         .sort((a, b) => a.period - b.period),
     ]),
-  ) as ClassTimetable;
+  ) as unknown as ClassTimetable;
   return { timetable, configured: true };
 }
 
