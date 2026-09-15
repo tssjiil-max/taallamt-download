@@ -10,7 +10,7 @@ const CLASS_STUDENTS=[
 ].map((name,index)=>({id:`s2-4-${String(index+1).padStart(2,'0')}`,number:index+1,name,grade:'الثاني',className:'4'}));
 
 const studentName=()=>{try{const p=JSON.parse(localStorage.getItem('studentProfile')||'{}');return p.name||localStorage.getItem('studentName')||'أحمد'}catch{return localStorage.getItem('studentName')||'أحمد'}};
-const go=(p:string)=>{history.pushState({},'',p);location.reload()};
+const go=(p:string)=>{location.assign(p)};
 const scrollToId=(id:string)=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
 const openStudent=(student:(typeof CLASS_STUDENTS)[number])=>{try{localStorage.setItem('studentProfile',JSON.stringify(student));localStorage.setItem('studentName',student.name);localStorage.setItem('activeStudentId',student.id)}catch{}go(`/student?studentId=${encodeURIComponent(student.id)}`)};
 
