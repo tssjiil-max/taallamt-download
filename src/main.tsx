@@ -173,11 +173,11 @@ function Student(){
   </section>
 
   <section className="studentDay">
-    <DayPanel title="جدولي اليوم" icon="calendar">
-      <Schedule tone="green" kind="quran" title="القرآن الكريم" time="8:00 - 8:40"/>
-      <Schedule tone="blue" kind="lughati" title="لغتي" time="8:50 - 9:30"/>
-      <Schedule tone="gold" kind="islamic" title="الدراسات الإسلامية" time="10:00 - 10:40"/>
-      <Schedule tone="purple" kind="writing" title="الإملاء والخط" time="11:00 - 11:40"/>
+    <DayPanel title="هذا الأسبوع" icon="calendar">
+      <Schedule tone="green" kind="quran" title="القرآن الكريم" time="لا توجد تحديثات لهذا الأسبوع"/>
+      <Schedule tone="blue" kind="lughati" title="لغتي" time="لا توجد تحديثات لهذا الأسبوع"/>
+      <Schedule tone="gold" kind="islamic" title="الدراسات الإسلامية" time="لا توجد تحديثات لهذا الأسبوع"/>
+      <Schedule tone="purple" kind="writing" title="الإملاء والخط" time="لا توجد تحديثات لهذا الأسبوع"/>
     </DayPanel>
     <DayPanel title="مهامي اليوم" icon="tasks">
       <Task kind="quran" title="مراجعة سورة الكوثر" subtitle="القرآن الكريم"/>
@@ -203,12 +203,12 @@ function CourseProgress({k,t,p}:{k:'quran'|'islamic'|'lughati'|'writing';t:strin
 function StatusLine({tone,label,value}:{tone:string;label:string;value:string}){return <div className="statusLine"><span className={`statusDot ${tone}`}/><b>{label}</b><strong>{value}</strong></div>}
 function ChecklistItem({text}:{text:string}){return <button className="checkItem"><span className="checkBox"/><b>{text}</b><UiIcon name="chevron" size={18}/></button>}
 
-function StudentSubject({kind,title,value}:{kind:'quran'|'islamic'|'lughati'|'writing';title:string;value:number}){return <button className={`studentSubject ${kind}`} onClick={()=>alert(title)}><SubjectIcon kind={kind}/><b>{title}</b><strong>{value}%</strong><div className="subjectBar"><i style={{width:value+'%'}}/></div></button>}
+function StudentSubject({kind,title,value}:{kind:'quran'|'islamic'|'lughati'|'writing';title:string;value:number}){return <button className={`studentSubject ${kind}`} data-subject-name={title} onClick={()=>window.dispatchEvent(new CustomEvent('taallamt:student-panel',{detail:{panel:'subject',subject:title}}))}><SubjectIcon kind={kind}/><b>{title}</b><strong>{value}%</strong><div className="subjectBar"><i style={{width:value+'%'}}/></div></button>}
 function DayPanel({title,icon,children}:{title:string;icon:IconName;children:React.ReactNode}){return <section className="dayPanel"><h3><UiIcon name={icon} size={21}/>{title}</h3>{children}</section>}
 function Schedule({tone,kind,title,time}:{tone:string;kind:'quran'|'islamic'|'lughati'|'writing';title:string;time:string}){return <div className={`scheduleItem ${tone}`}><span className="scheduleDot"/><div className="scheduleText"><b>{title}</b><span>{time}</span></div><SubjectIcon kind={kind}/></div>}
-function Task({kind,title,subtitle}:{kind:'quran'|'islamic'|'lughati'|'writing';title:string;subtitle:string}){const [done,setDone]=React.useState(false);return <button className={`taskItem ${done?'done':''}`} onClick={()=>setDone(!done)}><span className="taskCircle">{done&&<UiIcon name="check" size={14}/>}</span><div className="taskText"><b>{title}</b><span>{subtitle}</span></div><SubjectIcon kind={kind}/></button>}
+function Task({kind,title,subtitle}:{kind:'quran'|'islamic'|'lughati'|'writing';title:string;subtitle:string}){const [done,setDone]=React.useState(false);return <button className={`taskItem ${done?'done':''}`} data-title={title} data-subject={subtitle} onClick={()=>setDone(!done)}><span className="taskCircle">{done&&<UiIcon name="check" size={14}/>}</span><div className="taskText"><b>{title}</b><span>{subtitle}</span></div><SubjectIcon kind={kind}/></button>}
 
 function TeacherNav(){return <nav className="bottomNav teacherNav"><button className="active" onClick={()=>scrollTo({top:0,behavior:'smooth'})}><UiIcon name="home" size={28}/><b>الرئيسية</b></button><button onClick={()=>go('/teacher/students')}><UiIcon name="people" size={29}/><b>الطلاب</b></button><button className="mascotNav" onClick={()=>go('/student')}><span><Mascot/></span><b>شكابمبو</b></button><button onClick={()=>scrollToId('teacher-actions')}><UiIcon name="books" size={29}/><b>الكتب</b></button><button onClick={()=>alert('المزيد')}><UiIcon name="more" size={29}/><b>المزيد</b></button></nav>}
-function StudentNav(){return <nav className="bottomNav studentNav"><button className="active" onClick={()=>scrollTo({top:0,behavior:'smooth'})}><UiIcon name="home" size={28}/><b>الرئيسية</b></button><button onClick={()=>scrollToId('subjects')}><UiIcon name="books" size={29}/><b>المواد</b></button><button className="mascotNav" onClick={()=>scrollTo({top:0,behavior:'smooth'})}><span><Mascot/></span><b>شكابمبو</b></button><button onClick={()=>scrollToId('subjects')}><UiIcon name="books" size={29}/><b>الكتب</b></button><button onClick={()=>alert('المزيد')}><UiIcon name="more" size={29}/><b>المزيد</b></button></nav>}
+function StudentNav(){return <nav className="bottomNav studentNav"><button className="active" onClick={()=>scrollTo({top:0,behavior:'smooth'})}><UiIcon name="home" size={28}/><b>الرئيسية</b></button><button onClick={()=>scrollToId('subjects')}><UiIcon name="books" size={29}/><b>المواد</b></button><button className="mascotNav" onClick={()=>window.dispatchEvent(new CustomEvent('taallamt:student-panel',{detail:{panel:'shakabumbo'}}))}><span><Mascot/></span><b>شكابمبو</b></button><button onClick={()=>window.dispatchEvent(new CustomEvent('taallamt:student-panel',{detail:{panel:'books'}}))}><UiIcon name="books" size={29}/><b>الكتب</b></button><button onClick={()=>window.dispatchEvent(new CustomEvent('taallamt:student-panel',{detail:{panel:'more'}}))}><UiIcon name="more" size={29}/><b>المزيد</b></button></nav>}
 
 createRoot(document.getElementById('root')!).render(<App/>);
