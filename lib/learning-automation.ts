@@ -33,6 +33,7 @@ export type TimetableSlot = {
   period: number;
   from?: string;
   to?: string;
+  includedSubjectIds?: string[];
 };
 export type ClassTimetable = Record<SchoolDay, TimetableSlot[]>;
 
@@ -346,15 +347,22 @@ function taskForItem(input: AutomationInput, item: WeeklySubjectItem): DailyAssi
   };
 }
 
-function uniqueSlots(slots: TimetableSlot[]) {
-  const seen = new Set<string>();
+function expandIncludedSlots(slots: TimetableSlot[]) {
   return [...slots]
     .sort((a, b) => a.period - b.period)
-    .filter((slot) => {
-      if (seen.has(slot.subjectId)) return false;
-      seen.add(slot.subjectId);
-      return true;
+    .flatMap((slot) => {
+      const subjectIds = slot.includedSubjectIds?.length ? slot.includedSubjectIds : [slot.subjectId];
+      return subjectIds.map((subjectId) => ({ ...slot, subjectId, includedSubjectIds: undefined }));
     });
+}
+
+function uniqueSlots(slots: TimetableSlot[]) {
+  const seen = new Set<string>();
+  return expandIncludedSlots(slots).filter((slot) => {
+    if (seen.has(slot.subjectId)) return false;
+    seen.add(slot.subjectId);
+    return true;
+  });
 }
 
 export function getTeachingContextForDate(input: AutomationInput, dateKey: string) {
