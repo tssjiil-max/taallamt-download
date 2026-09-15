@@ -6,7 +6,7 @@ const displayNames: Record<string, string> = {
   lughati: "لغتي",
   quran: "القرآن الكريم",
   islamic: "الدراسات الإسلامية",
-  spelling: "الإملاء وفن الخط",
+  spelling: "الإملاء والخط",
 };
 
 export type WeeklyLearningItem = {
