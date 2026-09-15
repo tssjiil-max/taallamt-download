@@ -65,6 +65,8 @@ function Mascot({className=''}:{className?:string}){return <img className={`masc
 function App(){
  if(location.pathname.startsWith('/student'))return <Student/>;
  if(location.pathname==='/teacher/students')return <TeacherStudents/>;
+ if(location.pathname==='/teacher/library')return <TeacherLibrary/>;
+ if(location.pathname==='/teacher/settings')return <TeacherSettings/>;
  return <Teacher/>;
 }
 
@@ -115,13 +117,6 @@ function Teacher(){
     </div>
   </section>
 
-  <section className="tQuick" id="teacher-actions">
-    <Quick icon="curriculum" title="المناهج" subtitle="الوحدات والدروس" onClick={()=>alert('المناهج')}/>
-    <Quick icon="people" title="الطلاب" subtitle="إدارة بيانات الطلاب" onClick={()=>go('/teacher/students')}/>
-    <Quick icon="assessment" title="التقييم الشامل" subtitle="أكاديمي وسلوك" onClick={()=>alert('التقييم الشامل')}/>
-    <Quick icon="chat" title="التواصل" subtitle="رسائل أولياء الأمور" onClick={()=>alert('التواصل')}/>
-  </section>
-
   <section className="teacherPanels">
     <Panel title="تقدم المنهج" icon="chart" action="عرض الكل">
       <div className="overallProgress"><div className="ring"><span>28%</span><small>من الفصل الأول</small></div><div className="courseList">{subjects.map(s=><CourseProgress key={s.t} {...s}/>)}</div></div>
@@ -141,6 +136,27 @@ function Teacher(){
   </section>
   <TeacherNav/>
  </main>
+}
+
+function TeacherLibrary(){
+ const resources=[
+  {icon:'books' as const,title:'الكتب والأدلة',subtitle:'كتب المواد والأدلة المعتمدة'},
+  {icon:'tasks' as const,title:'أوراق العمل',subtitle:'أوراق تدريب جاهزة حسب المادة والمهارة'},
+  {icon:'target' as const,title:'الخطط العلاجية',subtitle:'خطط جاهزة للمهارات التي تحتاج تدريبًا'},
+  {icon:'calendar' as const,title:'الخطط الأسبوعية',subtitle:'خطط مرتبطة بالتوزيع وجدول الحصص'},
+  {icon:'assessment' as const,title:'نماذج التقييم',subtitle:'نماذج قصيرة للتقييم وإعادة التقييم'},
+  {icon:'edit' as const,title:'الإملاء والخط',subtitle:'تدريبات ومواد جاهزة للطباعة'},
+ ];
+ return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')} aria-label="العودة">‹</button><div><h1>الكتب والمكتبة</h1><p>مكتبة المعلم التعليمية</p></div></header><section className="libraryGrid">{resources.map(x=><button key={x.title} className="libraryCard"><UiIcon name={x.icon} size={28}/><span><b>{x.title}</b><small>{x.subtitle}</small></span><UiIcon name="chevron" size={18}/></button>)}</section><TeacherNav/></main>
+}
+
+function TeacherSettings(){
+ const [students,setStudents]=React.useState(()=>{try{const saved=JSON.parse(localStorage.getItem('teacherStudents')||'null');return Array.isArray(saved)&&saved.length?saved:CLASS_STUDENTS}catch{return CLASS_STUDENTS}});
+ const [name,setName]=React.useState('');
+ const save=(next:any[])=>{setStudents(next);try{localStorage.setItem('teacherStudents',JSON.stringify(next))}catch{}};
+ const add=()=>{const n=name.trim();if(!n)return;const next=[...students,{id:`s2-4-${Date.now()}`,number:students.length+1,name:n,grade:'الثاني',className:'4'}];save(next);setName('')};
+ const rename=(i:number)=>{const n=prompt('اكتب اسم الطالب:',students[i].name)?.trim();if(!n)return;const next=[...students];next[i]={...next[i],name:n};save(next)};
+ return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')} aria-label="العودة">‹</button><div><h1>الإعدادات</h1><p>إدارة بيانات الفصل دون تغيير مسار التقييم</p></div></header><section className="settingsCard"><h2>إدارة الطلاب</h2><div className="addStudent"><input value={name} onChange={e=>setName(e.target.value)} placeholder="اسم الطالب الثلاثي"/><button onClick={add}>إضافة طالب</button></div><div className="settingsStudents">{students.map((s:any,i:number)=><div key={s.id}><span>{i+1}</span><b>{s.name}</b><button onClick={()=>rename(i)}><UiIcon name="edit" size={17}/>تعديل الاسم</button></div>)}</div></section><section className="settingsCard compact"><h2>إعدادات الفصل</h2><p>الصف الثاني / 4 · مدرسة عمرو بن أوس الثقفي</p><small>تم إبقاء إعدادات المواد والتقييم والبيانات الحالية كما هي دون تغيير.</small></section><TeacherNav/></main>
 }
 
 function Student(){
@@ -208,7 +224,7 @@ function DayPanel({title,icon,children}:{title:string;icon:IconName;children:Rea
 function Schedule({tone,kind,title,time}:{tone:string;kind:'quran'|'islamic'|'lughati'|'writing';title:string;time:string}){return <div className={`scheduleItem ${tone}`}><span className="scheduleDot"/><div className="scheduleText"><b>{title}</b><span>{time}</span></div><SubjectIcon kind={kind}/></div>}
 function Task({kind,title,subtitle}:{kind:'quran'|'islamic'|'lughati'|'writing';title:string;subtitle:string}){const [done,setDone]=React.useState(false);return <button className={`taskItem ${done?'done':''}`} data-title={title} data-subject={subtitle} onClick={()=>setDone(!done)}><span className="taskCircle">{done&&<UiIcon name="check" size={14}/>}</span><div className="taskText"><b>{title}</b><span>{subtitle}</span></div><SubjectIcon kind={kind}/></button>}
 
-function TeacherNav(){return <nav className="bottomNav teacherNav"><button className="active" onClick={()=>scrollTo({top:0,behavior:'smooth'})}><UiIcon name="home" size={28}/><b>الرئيسية</b></button><button onClick={()=>go('/teacher/students')}><UiIcon name="people" size={29}/><b>الطلاب</b></button><button className="mascotNav" onClick={()=>go('/student')}><span><Mascot/></span><b>شكابمبو</b></button><button onClick={()=>scrollToId('teacher-actions')}><UiIcon name="books" size={29}/><b>الكتب</b></button><button onClick={()=>alert('المزيد')}><UiIcon name="more" size={29}/><b>المزيد</b></button></nav>}
+function TeacherNav(){const p=location.pathname;return <nav className="bottomNav teacherNav"><button className={p==='/teacher'||p==='/'?'active':''} onClick={()=>go('/teacher')}><UiIcon name="home" size={28}/><b>الرئيسية</b></button><button className={p==='/teacher/students'?'active':''} onClick={()=>go('/teacher/students')}><UiIcon name="people" size={29}/><b>الطلاب</b></button><button className="mascotNav" onClick={()=>go('/student')}><span><Mascot/></span><b>شكابمبو</b></button><button className={p==='/teacher/library'?'active':''} onClick={()=>go('/teacher/library')}><UiIcon name="books" size={29}/><b>الكتب</b></button><button className={p==='/teacher/settings'?'active':''} onClick={()=>go('/teacher/settings')}><UiIcon name="more" size={29}/><b>المزيد</b></button></nav>}
 function StudentNav(){return <nav className="bottomNav studentNav"><button className="active" onClick={()=>scrollTo({top:0,behavior:'smooth'})}><UiIcon name="home" size={28}/><b>الرئيسية</b></button><button onClick={()=>scrollToId('subjects')}><UiIcon name="books" size={29}/><b>المواد</b></button><button className="mascotNav" onClick={()=>window.dispatchEvent(new CustomEvent('taallamt:student-panel',{detail:{panel:'shakabumbo'}}))}><span><Mascot/></span><b>شكابمبو</b></button><button onClick={()=>window.dispatchEvent(new CustomEvent('taallamt:student-panel',{detail:{panel:'books'}}))}><UiIcon name="books" size={29}/><b>الكتب</b></button><button onClick={()=>window.dispatchEvent(new CustomEvent('taallamt:student-panel',{detail:{panel:'more'}}))}><UiIcon name="more" size={29}/><b>المزيد</b></button></nav>}
 
 createRoot(document.getElementById('root')!).render(<App/>);
