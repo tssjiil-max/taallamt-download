@@ -6,6 +6,8 @@
   const esc=(value)=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const findStudent=(id)=>STUDENTS.find(s=>s.id===id)||null;
   const detailMatch=()=>location.pathname.match(/^\/teacher\/student\/(s2-4-\d{2})\/?$/);
+  const actionToTab=(action)=>({assessment:'assessment',followup:'followup',behavior:'behavior',homework:'homework',communication:'homework'}[action]||null);
+  const query=()=>new URLSearchParams(location.search);
 
   function remember(student){
     try{localStorage.setItem('teacherActiveStudent',JSON.stringify(student));}catch{}
@@ -22,7 +24,12 @@
     event.stopPropagation();
     event.stopImmediatePropagation();
     remember(student);
-    location.href=`/teacher/student/${student.id}`;
+    const source=query();
+    const target=new URLSearchParams();
+    const tab=actionToTab(source.get('action'));
+    if(tab)target.set('tab',tab);
+    ['subject','mode','filter'].forEach(key=>{const value=source.get(key);if(value)target.set(key,value);});
+    location.href=`/teacher/student/${student.id}${target.toString()?`?${target}`:''}`;
   }
 
   function renderTeacherStudent(){
@@ -82,15 +89,28 @@
         </section>
       </main>`;
 
-    root.querySelector('.tsaBack')?.addEventListener('click',()=>{location.href='/teacher/students';});
-    root.querySelectorAll('.tsaTabs button').forEach(btn=>btn.addEventListener('click',()=>{
-      root.querySelectorAll('.tsaTabs button').forEach(b=>b.classList.toggle('active',b===btn));
-      root.querySelectorAll('.tsaPanel').forEach(panel=>{panel.hidden=panel.dataset.panel!==btn.dataset.tab;});
-    }));
+    const selectTab=(tab)=>{
+      const safe=['assessment','followup','behavior','homework'].includes(tab)?tab:'assessment';
+      root.querySelectorAll('.tsaTabs button').forEach(button=>button.classList.toggle('active',button.dataset.tab===safe));
+      root.querySelectorAll('.tsaPanel').forEach(panel=>{panel.hidden=panel.dataset.panel!==safe;});
+    };
+
+    root.querySelector('.tsaBack')?.addEventListener('click',()=>{history.back();});
+    root.querySelectorAll('.tsaTabs button').forEach(btn=>btn.addEventListener('click',()=>selectTab(btn.dataset.tab)));
     root.querySelectorAll('.tsaSubjectRow .tsaChoices button').forEach(btn=>btn.addEventListener('click',()=>{
       const row=btn.closest('.tsaSubjectRow');
       row?.querySelectorAll('.tsaChoices button').forEach(b=>b.classList.toggle('selected',b===btn));
     }));
+
+    const params=query();
+    selectTab(params.get('tab')||'assessment');
+    const subject=params.get('subject');
+    if(subject){
+      requestAnimationFrame(()=>{
+        const row=[...root.querySelectorAll('.tsaSubjectRow')].find(item=>item.querySelector('b')?.textContent?.trim()===subject);
+        row?.scrollIntoView({behavior:'smooth',block:'center'});
+      });
+    }
   }
 
   document.addEventListener('click',interceptStudentRow,true);
