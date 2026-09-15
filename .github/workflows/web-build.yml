@@ -27,5 +27,8 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Test learning automation
+        run: npm run test:automation
+
       - name: Build Next.js app
         run: npm run build
