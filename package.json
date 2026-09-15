@@ -6,7 +6,7 @@
     "dev": "node scripts/dev-server.mjs",
     "build": "next build",
     "start": "next start",
-    "test:automation": "tsx --test tests/learning-automation.test.ts",
+    "test:automation": "tsx --test tests/*.test.ts",
     "seed:firestore": "tsx scripts/seed-firestore.ts",
     "hash:teacher-pin": "node scripts/hash-teacher-pin.mjs"
   },
