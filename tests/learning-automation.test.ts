@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildDailyAssignments,
   buildWeeklyPlan,
+  getTeachingContextForDate,
   getWeekStartSunday,
   parseCurriculumContent,
   type AutomationInput,
@@ -116,4 +117,22 @@ test("spelling and handwriting stay one subject and one task candidate", () => {
   assert.equal(tasks[0].taskType, "SPELLING");
   assert.match(tasks[0].skill ?? "", /الإملاء/);
   assert.match(tasks[0].skill ?? "", /الخط/);
+});
+
+test("umbrella timetable slots expose their approved included curriculum subjects", () => {
+  const grouped = {
+    ...input,
+    timetable: {
+      الأحد: [
+        { subjectId: "lughati", period: 2, includedSubjectIds: ["lughati", "spelling"] },
+        { subjectId: "islamic", period: 7, includedSubjectIds: ["quran", "islamic"] },
+      ],
+      الاثنين: [],
+      الثلاثاء: [],
+      الأربعاء: [],
+      الخميس: [],
+    } as AutomationInput["timetable"],
+  };
+  const context = getTeachingContextForDate(grouped, "2026-09-13");
+  assert.deepEqual(context?.subjects.map((item) => item.subjectId), ["lughati", "spelling", "quran", "islamic"]);
 });
