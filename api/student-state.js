@@ -16,8 +16,9 @@ async function studentSnapshot(studentId){
   if(!student)throw new Error('STUDENT_NOT_FOUND');
   const root=base();
   const ledgerRef=db.doc(`${root}/rewardLedgers/${studentId}_${monthKey()}`);
-  const [ledger,assessments,remediation,portfolio,evidence,communications]=await Promise.all([
+  const [ledger,profile,assessments,remediation,portfolio,evidence,communications]=await Promise.all([
     ledgerRef.get(),
+    db.doc(`${root}/studentProfiles/${studentId}`).get(),
     db.collection(`${root}/assessments`).where('studentId','==',studentId).get(),
     db.collection(`${root}/remediationPlans`).where('studentId','==',studentId).get(),
     db.collection(`${root}/portfolioEvents`).where('studentId','==',studentId).get(),
@@ -29,7 +30,7 @@ async function studentSnapshot(studentId){
   const homeworkDocs=homeworkIds.length?await Promise.all(homeworkIds.map(id=>db.doc(`${root}/homework/${id}`).get())):[];
   const homework=homeworkDocs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()})).sort(desc);
   return {
-    ok:true,student,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
+    ok:true,student,profile:profile.exists?profile.data():null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
     assessments:items(assessments).sort(desc).slice(0,30),
     remediation:items(remediation).sort(desc).slice(0,20),
     portfolio:items(portfolio).sort(desc).slice(0,30),
@@ -91,6 +92,17 @@ async function saveHomework(studentId,body){
   return {saved:true,id,record};
 }
 
+async function saveStudentProfile(studentId,body){
+  const photoDataUrl=String(body.photoDataUrl||'').trim();
+  if(photoDataUrl&&!/^data:image\/(png|jpeg|webp);base64,/.test(photoDataUrl))throw new Error('PHOTO_INVALID');
+  if(photoDataUrl.length>280000)throw new Error('PHOTO_TOO_LARGE');
+  const db=adminDb(),root=base();
+  const patch={studentId,updatedAt:now()};
+  if(photoDataUrl)patch.photoDataUrl=photoDataUrl;
+  await db.doc(`${root}/studentProfiles/${studentId}`).set(patch,{merge:true});
+  return {saved:true};
+}
+
 async function stagingSmoke(){
   previewWriteGuard();
   const db=adminDb(),root=base(),id=uid('__staging_smoke__'),ref=db.doc(`${root}/communications/${id}`),value={id,studentId:'__staging_test__',recipient:'guardian',reasonCode:'smoke',summary:'staging smoke',createdAt:now(),status:'recorded'};
@@ -113,6 +125,7 @@ export default async function handler(req,res){
     else if(action==='behavior')result=await saveBehavior(studentId,body);
     else if(['followup','student_note','guardian_message','remediation'].includes(action))result=await saveCommunication(studentId,{...body,kind:action});
     else if(action==='homework'||action==='training')result=await saveHomework(studentId,{...body,kind:action});
+    else if(action==='student_profile')result=await saveStudentProfile(studentId,body);
     else return res.status(400).json({ok:false,error:'ACTION_NOT_SUPPORTED'});
     return res.status(200).json({ok:true,...result,state:await studentSnapshot(studentId)});
   }catch(error){
