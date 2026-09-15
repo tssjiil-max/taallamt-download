@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { DateBar } from "@/components/DateBar";
 import { useTaallamt } from "@/lib/store";
-import { academicWeek, dailyBreakdown, plansForWeek, tomorrowAnnouncement } from "@/lib/schedule";
+import { academicWeek, plansForWeek } from "@/lib/schedule";
 import { useEffect, useState } from "react";
 
 const defaultTimes = ["٧:٠٠–٧:١٥ الطابور","٧:١٥–٨:٠٠ الأولى","٨:٠٠–٨:٤٥ الثانية","٨:٤٥–٩:٣٠ الثالثة","٩:٣٠–٩:٥٠ الفسحة","٩:٥٠–١٠:٣٠ الرابعة","١٠:٣٠–١١:١٠ الخامسة","١١:١٠–١١:٥٠ السادسة","١١:٥٠–١٢:٣٠ السابعة","١٢:٣٠–١٢:٥٠ الصلاة"];
@@ -12,7 +12,6 @@ export default function SchedulePage() {
   const store = useTaallamt();
   const week = academicWeek();
   const plans = plansForWeek(store.weeklyPlans, week);
-  const tomorrow = tomorrowAnnouncement(store.weeklyPlans, store.subjects);
   const [times,setTimes]=useState(defaultTimes);
   useEffect(()=>{const saved=localStorage.getItem("taallamt-school-times");if(saved)setTimes(JSON.parse(saved));},[]);
   function saveTimes(){localStorage.setItem("taallamt-school-times",JSON.stringify(times));alert("تم حفظ أوقات الدوام");}
@@ -20,14 +19,14 @@ export default function SchedulePage() {
   return (
     <main className="shell">
       <header className="topbar">
-        <div className="brand"><div className="logo">🗓️</div><div><h1>الخطة والنشر الآلي</h1><p>خطة أسبوعية لولي الأمر + إعلان يومي عن الغد</p></div></div>
+        <div className="brand"><div className="logo">🗓️</div><div><h1>الخطة والنشر الآلي</h1><p>التوزيع المعتمد ومصدر الأتمتة الذي يظهر في صفحة الطالب</p></div></div>
         <Link className="btn secondary no-print" href="/">لوحة المعلم</Link>
       </header>
       <DateBar />
 
       <section className="hero section">
-        <div><h2>الأسبوع {week}</h2><p>تظهر خطة الأسبوع تلقائيًا لولي الأمر من بداية يوم السبت، ويتغير إعلان «ماذا لدينا غدًا؟» يوميًا حسب تاريخ المدينة المنورة/الرياض.</p></div>
-        <div className="hero-stats"><div className="stat"><b>السبت</b><span>فتح الخطة الأسبوعية</span></div><div className="stat"><b>{tomorrow.tomorrow}</b><span>إعلان الغد</span></div><div className="stat"><b>{plans.length}</b><span>مواد هذا الأسبوع</span></div><div className="stat"><b>تلقائي</b><span>التحديث حسب التاريخ</span></div></div>
+        <div><h2>الأسبوع {week}</h2><p>يستمد محرك الأتمتة الخطة والواجبات من التوزيع والمهارات وجدول الحصص، ولا ينشئ محتوى بديلًا عند نقص البيانات.</p></div>
+        <div className="hero-stats"><div className="stat"><b>{plans.length}</b><span>مواد لها توزيع</span></div><div className="stat"><b>3</b><span>حد الواجب اليومي</span></div><div className="stat"><b>الرياض</b><span>التوقيت المعتمد</span></div><div className="stat"><b>تلقائي</b><span>النشر من الخادم</span></div></div>
       </section>
 
       <section className="section">
@@ -36,7 +35,7 @@ export default function SchedulePage() {
       </section>
 
       <section className="section">
-        <div className="section-head"><h2>خطة الأسبوع</h2></div>
+        <div className="section-head"><h2>توزيع الأسبوع</h2></div>
         <div className="grid">
           {plans.map((plan) => {
             const subject = store.subjects.find((s) => s.id === plan.subjectId);
@@ -45,22 +44,7 @@ export default function SchedulePage() {
         </div>
       </section>
 
-      <section className="section">
-        <div className="section-head"><h2>التقسيم اليومي</h2></div>
-        <div className="list">
-          {plans.filter((p) => ["quran", "lughati"].includes(p.subjectId)).flatMap((plan) => dailyBreakdown(plan).map((item) => (
-            <div className="row" key={`${plan.id}-${item.day}`}><div><h4>{item.day}</h4><small>{item.title}</small></div></div>
-          )))}
-        </div>
-        <div className="notice warn section">تقسيم القرآن يُشتق من مقطع الآيات الأسبوعي. تقسيم لغتي الحالي قالب تشغيلي مبدئي قابل للتعديل عند إدخال التوزيع اليومي الرسمي أو جدول الحصص.</div>
-      </section>
-
-      <section className="section">
-        <div className="section-head"><h2>معاينة إعلان الغد</h2></div>
-        <div className="card"><h3>غدًا {tomorrow.tomorrow}</h3>{tomorrow.items.length ? <ul>{tomorrow.items.map((item) => <li key={item}>{item}</li>)}</ul> : <p>لا يوجد تفصيل يومي محفوظ للغد بعد.</p>}{tomorrow.weeklyOnly.length > 0 && <><h3 className="section">مواد بخطة أسبوعية فقط</h3><ul>{tomorrow.weeklyOnly.map((item) => <li key={item}>{item}</li>)}</ul></>}</div>
-      </section>
-
-      <section className="section"><div className="notice">تمت إضافة مركز إشعارات للمعلم وولي الأمر مع إذن إشعارات الجهاز وService Worker جاهز لاستقبال Web Push. الإرسال التلقائي عندما يكون الموقع مغلقًا يحتاج فقط ربط خدمة Push الخلفية ومفاتيحها عند النشر النهائي.</div></section>
+      <section className="section"><div className="notice">التقسيم اليومي، الحفظ، المهارات وواجبات الطالب تُحسب في محرك الأتمتة المركزي وتظهر في قسم «الخطة والواجبات» في الصفحة الرئيسية للمعلم، وفي «مهامي اليوم» داخل صفحة الطالب.</div></section>
     </main>
   );
 }
