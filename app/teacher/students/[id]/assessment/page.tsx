@@ -46,7 +46,7 @@ export default function ComprehensiveStudentAssessmentPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const store = useTaallamt();
-  const student = store.students.find((item) => item.id === params.id);
+  const student = store.students.find((item) => item.id === params.id)!;
   const activeStudents = useMemo(() => store.students.filter((item) => item.active), [store.students]);
   const currentIndex = activeStudents.findIndex((item) => item.id === params.id);
   const previousStudent = currentIndex > 0 ? activeStudents[currentIndex - 1] : undefined;
