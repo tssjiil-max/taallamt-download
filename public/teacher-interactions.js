@@ -59,9 +59,9 @@
     const stat=target.closest('.teacherStat');
     if(stat){
       const label=stat.querySelector('b')?.textContent?.trim();
-      if(label==='رسائل جديدة'){stop(event);toStudents('homework',{mode:'messages'});return;}
-      if(label==='يحتاجون متابعة'){stop(event);toStudents('followup',{filter:'needs-followup'});return;}
-      if(label==='تم تقييم اليوم'){stop(event);toStudents('assessment',{filter:'evaluated'});return;}
+      if(label==='رسائل جديدة'){stop(event);go('/teacher/messages');return;}
+      if(label==='يحتاجون متابعة'){stop(event);go('/teacher/followup');return;}
+      if(label==='تم تقييم اليوم'){stop(event);go('/teacher/stars');return;}
       if(label==='عدد الطلاب'){stop(event);toStudents();return;}
     }
 
