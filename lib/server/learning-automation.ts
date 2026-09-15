@@ -1,6 +1,5 @@
 import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
 import {
-  DEFAULT_AUTOMATION_SETTINGS,
   SCHOOL_DAYS,
   addDays,
   buildDailyAssignments,
@@ -13,6 +12,7 @@ import {
   type ClassTimetable,
   type DailyAssignment,
   type SchoolDay,
+  type TimetableSlot,
   type WeeklyPlanSnapshot,
 } from "../learning-automation";
 import { academicWeek, RIYADH_TZ } from "../schedule";
@@ -21,16 +21,10 @@ import { firestoreCollectionName, getAdminDb } from "./firebase-admin";
 
 const CORE_SUBJECT_IDS = new Set(["lughati", "quran", "islamic", "spelling"]);
 const AUTOMATION_COLLECTION = "learningAutomation";
+const TIMETABLE_MISSING_LABEL = "جدول الحصص";
 
-const EXISTING_DAY_SLOTS = [
-  { subjectId: "quran", period: 1, from: "08:00", to: "08:40" },
-  { subjectId: "lughati", period: 2, from: "08:50", to: "09:30" },
-  { subjectId: "islamic", period: 3, from: "10:00", to: "10:40" },
-  { subjectId: "spelling", period: 4, from: "11:00", to: "11:40" },
-];
-
-export const EXISTING_CLASS_TIMETABLE: ClassTimetable = Object.fromEntries(
-  SCHOOL_DAYS.map((day) => [day, EXISTING_DAY_SLOTS.map((slot) => ({ ...slot }))]),
+export const EMPTY_CLASS_TIMETABLE: ClassTimetable = Object.fromEntries(
+  SCHOOL_DAYS.map((day) => [day, []]),
 ) as ClassTimetable;
 
 export type PersistedDailyTask = DailyAssignment & { completedStudentIds: string[] };
@@ -67,9 +61,16 @@ type SourceBundle = {
   studentNames: Map<string, string>;
   settings: AutomationSettings;
   weekStart: string;
+  timetableConfigured: boolean;
 };
 
 type LooseDoc = { id: string } & Record<string, unknown>;
+
+type AutomationConfig = {
+  settings: AutomationSettings;
+  timetable: ClassTimetable;
+  timetableConfigured: boolean;
+};
 
 function docsWithIds(docs: QueryDocumentSnapshot[]): LooseDoc[] {
   return docs.map((doc) => ({ id: doc.id, ...(doc.data() as Record<string, unknown>) }));
@@ -157,16 +158,51 @@ function asSkill(doc: LooseDoc): Skill | null {
   return { id: doc.id, termId, subjectId, week, category, title, active: doc.active !== false, source };
 }
 
-async function readSettings(classKey: string) {
+function asTimetableSlot(value: unknown): TimetableSlot | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const subjectId = String(raw.subjectId ?? "");
+  const period = Number(raw.period);
+  if (!CORE_SUBJECT_IDS.has(subjectId) || !Number.isInteger(period) || period < 1 || period > 7) return null;
+  const from = typeof raw.from === "string" && /^\d{2}:\d{2}$/.test(raw.from) ? raw.from : undefined;
+  const to = typeof raw.to === "string" && /^\d{2}:\d{2}$/.test(raw.to) ? raw.to : undefined;
+  return { subjectId, period, ...(from ? { from } : {}), ...(to ? { to } : {}) };
+}
+
+function parseTimetable(raw: unknown) {
+  if (!raw || typeof raw !== "object") {
+    return { timetable: EMPTY_CLASS_TIMETABLE, configured: false };
+  }
+  const object = raw as Record<string, unknown>;
+  const configured = SCHOOL_DAYS.every((day) => Array.isArray(object[day]));
+  if (!configured) return { timetable: EMPTY_CLASS_TIMETABLE, configured: false };
+  const timetable = Object.fromEntries(
+    SCHOOL_DAYS.map((day) => [
+      day,
+      (object[day] as unknown[])
+        .map(asTimetableSlot)
+        .filter((slot): slot is TimetableSlot => Boolean(slot))
+        .sort((a, b) => a.period - b.period),
+    ]),
+  ) as ClassTimetable;
+  return { timetable, configured: true };
+}
+
+async function readAutomationConfig(classKey: string): Promise<AutomationConfig> {
   const db = getAdminDb();
   const snap = await db.collection(firestoreCollectionName(AUTOMATION_COLLECTION)).doc(settingsDocId(classKey)).get();
-  const raw = snap.exists ? (snap.data() as Partial<AutomationSettings>) : {};
+  const raw = snap.exists ? (snap.data() as Record<string, unknown>) : {};
+  const parsed = parseTimetable(raw.timetable);
   return {
-    autoWeeklyPlan: raw.autoWeeklyPlan !== false,
-    autoDailyAssignments: raw.autoDailyAssignments !== false,
-    includeQuran: raw.includeQuran !== false,
-    includeSkillPractice: raw.includeSkillPractice !== false,
-  } satisfies AutomationSettings;
+    settings: {
+      autoWeeklyPlan: raw.autoWeeklyPlan !== false,
+      autoDailyAssignments: raw.autoDailyAssignments !== false,
+      includeQuran: raw.includeQuran !== false,
+      includeSkillPractice: raw.includeSkillPractice !== false,
+    },
+    timetable: parsed.timetable,
+    timetableConfigured: parsed.configured,
+  };
 }
 
 async function loadSource(dateKey: string, upcomingIfSaturday = true): Promise<SourceBundle> {
@@ -194,11 +230,11 @@ async function loadSource(dateKey: string, upcomingIfSaturday = true): Promise<S
     return docsWithIds(snap.docs);
   }
 
-  const [subjectDocs, planDocs, skillDocs, settings] = await Promise.all([
+  const [subjectDocs, planDocs, skillDocs, config] = await Promise.all([
     byTerm("subjects"),
     byTerm("weeklyPlans"),
     byTerm("skills"),
-    readSettings(classKey),
+    readAutomationConfig(classKey),
   ]);
   const subjects = subjectDocs.map(asSubject).filter((item): item is Subject => Boolean(item));
   const weeklyPlans = planDocs.map(asWeeklyPlan).filter((item): item is WeeklyPlan => Boolean(item));
@@ -212,20 +248,21 @@ async function loadSource(dateKey: string, upcomingIfSaturday = true): Promise<S
       subjects,
       weeklyPlans,
       skills,
-      timetable: EXISTING_CLASS_TIMETABLE,
-      settings,
+      timetable: config.timetable,
+      settings: config.settings,
     },
     className,
     classKey,
     studentIds,
     studentNames,
-    settings,
+    settings: config.settings,
     weekStart,
+    timetableConfigured: config.timetableConfigured,
   };
 }
 
 async function ensureWeekly(source: SourceBundle) {
-  if (!source.settings.autoWeeklyPlan) return null;
+  if (!source.settings.autoWeeklyPlan || !source.timetableConfigured) return null;
   const db = getAdminDb();
   const ref = db.collection(firestoreCollectionName(AUTOMATION_COLLECTION)).doc(weeklyDocId(source.classKey, source.weekStart));
   const generated = buildWeeklyPlan(source.input, source.weekStart);
@@ -247,7 +284,7 @@ async function ensureWeekly(source: SourceBundle) {
 }
 
 async function ensureDaily(source: SourceBundle, dateKey: string) {
-  if (!source.settings.autoDailyAssignments) return null;
+  if (!source.settings.autoDailyAssignments || !source.timetableConfigured) return null;
   const dayName = dayNameForDateKey(dateKey);
   if (!SCHOOL_DAYS.includes(dayName as SchoolDay)) return null;
   const db = getAdminDb();
@@ -285,6 +322,18 @@ export async function syncPublishedLearningContentForDateKey(dateKey: string) {
     return { date: dateKey, schoolDay: false, weeklyPlan: null, dailyAssignments: null, skipped: "NON_SCHOOL_DAY" as const };
   }
   const source = await loadSource(dateKey, true);
+  if (!source.timetableConfigured) {
+    return {
+      date: dateKey,
+      schoolDay: SCHOOL_DAYS.includes(dayName as SchoolDay),
+      classId: source.classKey,
+      className: source.className,
+      weekStart: source.weekStart,
+      weeklyPlan: null,
+      dailyAssignments: null,
+      skipped: "TIMETABLE_INCOMPLETE" as const,
+    };
+  }
   const weeklyPlan = await ensureWeekly(source);
   const dailyAssignments = SCHOOL_DAYS.includes(dayName as SchoolDay) ? await ensureDaily(source, dateKey) : null;
   return {
@@ -322,6 +371,7 @@ export async function editDailyTask(dateKey: string, taskId: string, taskText: s
   const cleanText = taskText.trim();
   if (!cleanText) throw new Error("INVALID_TASK_TEXT");
   const source = await loadSource(dateKey, false);
+  if (!source.timetableConfigured) throw new Error("CONTENT_INCOMPLETE:TIMETABLE");
   await ensureDaily(source, dateKey);
   const db = getAdminDb();
   const ref = db.collection(firestoreCollectionName(AUTOMATION_COLLECTION)).doc(dailyDocId(source.classKey, dateKey));
@@ -346,6 +396,7 @@ export async function editWeeklyItem(weekStart: string, itemId: string, expected
   const cleanText = expectedTask.trim();
   if (!cleanText) throw new Error("INVALID_TASK_TEXT");
   const source = await loadSource(weekStart, false);
+  if (!source.timetableConfigured) throw new Error("CONTENT_INCOMPLETE:TIMETABLE");
   const db = getAdminDb();
   const ref = db.collection(firestoreCollectionName(AUTOMATION_COLLECTION)).doc(weeklyDocId(source.classKey, weekStart));
   await ensureWeekly({ ...source, weekStart });
@@ -373,6 +424,7 @@ export async function toggleStudentTaskCompletion(studentId: string, taskId: str
   if (dateKey !== riyadhDateKey()) throw new Error("ONLY_TODAY_CAN_BE_TOGGLED");
   const source = await loadSource(dateKey, false);
   if (!source.studentIds.includes(studentId)) throw new Error("STUDENT_NOT_IN_CLASS");
+  if (!source.timetableConfigured) throw new Error("CONTENT_INCOMPLETE:TIMETABLE");
   await ensureDaily(source, dateKey);
   const db = getAdminDb();
   const ref = db.collection(firestoreCollectionName(AUTOMATION_COLLECTION)).doc(dailyDocId(source.classKey, dateKey));
@@ -431,16 +483,16 @@ export async function getTeacherLearningDashboard(dateKey = riyadhDateKey()) {
     classId: source.classKey,
     settings: source.settings,
     status: {
-      weeklyPlan: weekly?.published ? "PUBLISHED" : "NOT_PUBLISHED",
-      dailyAssignments: daily?.published ? "PUBLISHED" : "NOT_PUBLISHED",
+      weeklyPlan: weekly?.published && source.timetableConfigured ? "PUBLISHED" : "NOT_PUBLISHED",
+      dailyAssignments: daily?.published && source.timetableConfigured ? "PUBLISHED" : "NOT_PUBLISHED",
       lastUpdated: lastUpdated(weekly?.updatedAt, daily?.updatedAt),
     },
     today: {
-      published: Boolean(daily?.published),
-      tasks,
-      incompleteSubjects: daily?.incompleteSubjects ?? [],
+      published: Boolean(daily?.published && source.timetableConfigured),
+      tasks: source.timetableConfigured ? tasks : [],
+      incompleteSubjects: source.timetableConfigured ? (daily?.incompleteSubjects ?? []) : [TIMETABLE_MISSING_LABEL],
     },
-    week: weekly,
+    week: source.timetableConfigured ? weekly : null,
     sync,
   };
 }
@@ -469,12 +521,14 @@ export async function getStudentLearningBundle(studentId: string, dateKey = riya
   const student = studentSnap.data() as Record<string, unknown>;
   const daily = dailySnap.exists ? (dailySnap.data() as PersistedDaily) : null;
   const weekly = weeklySnap.exists ? (weeklySnap.data() as PersistedWeekly) : null;
-  const tasks = (daily?.tasks ?? []).map(({ completedStudentIds, ...task }) => ({
-    ...task,
-    status: (completedStudentIds ?? []).includes(studentId) ? "COMPLETED" as const : "PENDING" as const,
-  }));
+  const tasks = source.timetableConfigured
+    ? (daily?.tasks ?? []).map(({ completedStudentIds, ...task }) => ({
+        ...task,
+        status: (completedStudentIds ?? []).includes(studentId) ? "COMPLETED" as const : "PENDING" as const,
+      }))
+    : [];
   const dayName = dayNameForDateKey(dateKey);
-  const schedule = SCHOOL_DAYS.includes(dayName as SchoolDay)
+  const schedule = source.timetableConfigured && SCHOOL_DAYS.includes(dayName as SchoolDay)
     ? (source.input.timetable[dayName as SchoolDay] ?? []).map((slot) => ({
         ...slot,
         subject: source.input.subjects.find((subject) => subject.id === slot.subjectId)?.name ?? slot.subjectId,
@@ -489,8 +543,8 @@ export async function getStudentLearningBundle(studentId: string, dateKey = riya
       day: dayName,
       tasks,
       schedule,
-      incompleteSubjects: daily?.incompleteSubjects ?? [],
+      incompleteSubjects: source.timetableConfigured ? (daily?.incompleteSubjects ?? []) : [TIMETABLE_MISSING_LABEL],
     },
-    week: weekly ? { week: weekly.week, weekStart: weekly.weekStart, days: weekly.days } : null,
+    week: source.timetableConfigured && weekly ? { week: weekly.week, weekStart: weekly.weekStart, days: weekly.days } : null,
   };
 }
