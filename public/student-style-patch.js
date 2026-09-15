@@ -9,33 +9,11 @@ const SUBJECT_ASSETS={
   'الدراسات الإسلامية':'/student-assets/subject-islamic.webp',
   'الإملاء والخط':'/student-assets/subject-writing.webp'
 };
-const DAILY_WISDOM=[
-  'أنت قادر على التعلّم والنجاح.',
-  'كل يوم فرصة لتتعلم شيئًا جديدًا.',
-  'خطوة صغيرة اليوم تصنع نجاحًا كبيرًا.',
-  'اسأل وجرّب وتعلّم.',
-  'الخطأ فرصة للتعلّم.',
-  'بالمثابرة أصل إلى هدفي.',
-  'أنا أستطيع عندما أحاول.',
-  'القراءة تفتح أبواب المعرفة.',
-  'تركيزي اليوم يقربني من هدفي.',
-  'أتعلم بهدوء وأتقدم بثقة.',
-  'كل مهارة تبدأ بالتدريب.',
-  'نجاحي يكبر مع كل محاولة.',
-  'أنا مسؤول عن تعلّمي.',
-  'أفرح بتقدمي وأواصل.',
-  'الصبر والتدريب يصنعان الإتقان.',
-  'أبدأ الآن وأنجز مهمتي.',
-  'العلم يزيدني قوة وثقة.',
-  'أحترم نفسي وأحترم الآخرين.',
-  'أنظم وقتي وأنجز أعمالي.',
-  'المحاولة اليوم تقرّبني من النجاح.'
-];
 const CLEAN_ASSET_CACHE=new Map();
 function readStudent(){try{return JSON.parse(localStorage.getItem('studentProfile')||'{}')||{}}catch{return {}}}
 function currentStars(){const student=readStudent();const value=student.currentStars??student.stars??student.monthlyStars??localStorage.getItem('studentStars');return clampStars(value)}
-function dailyWisdom(){const now=new Date();const day=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/86400000);return DAILY_WISDOM[((day%DAILY_WISDOM.length)+DAILY_WISDOM.length)%DAILY_WISDOM.length]}
 function studentName(){const s=readStudent();const raw=s.studentName||s.fullName||s.displayName||s.name||localStorage.getItem('studentName')||'';const value=String(raw).trim();return value&&value!=='أحمد'?value:'اسم الطالب'}
+function studentId(){return new URLSearchParams(location.search).get('studentId')||readStudent().id||localStorage.getItem('activeStudentId')||''}
 function ensureInfoCard(container,key,title){let card=container.querySelector(`[data-student-info="${key}"]`);if(card)return card;card=document.createElement('div');card.dataset.studentInfo=key;const heading=document.createElement('b');heading.textContent=title;card.appendChild(heading);container.appendChild(card);return card}
 async function cleanAndCropAsset(src){
   if(CLEAN_ASSET_CACHE.has(src))return CLEAN_ASSET_CACHE.get(src);
@@ -72,10 +50,10 @@ function installCleanStudentTop(student){
     top=document.createElement('section');top.className='studentCleanTop';top.setAttribute('aria-label','بيانات الطالب');
     const photo=document.createElement('div');photo.className='studentCleanPhoto';
     const details=document.createElement('section');details.className='studentCleanDetails';
-    const wisdom=document.createElement('section');wisdom.className='studentCleanWisdom';
-    top.append(photo,details,wisdom);host.appendChild(top);
+    top.append(photo,details);host.appendChild(top);
   }
   const photo=top.querySelector('.studentCleanPhoto');ensureImg(photo,'.studentCleanPhotoImage','studentCleanPhotoImage',SHAKABUMBO_PROFILE,'صورتي');
+  photo?.addEventListener('click',()=>openStudentPanel('photo'),{once:true});
   const details=top.querySelector('.studentCleanDetails');
   const signature=studentName();
   if(details.dataset.signature!==signature){
@@ -92,10 +70,6 @@ function installCleanStudentTop(student){
     const motto=document.createElement('p');motto.className='studentMotto';motto.textContent='أتعلم وأصنع مستقبلي المشرق!';
     details.append(nameRow,gradeRow,school,motto);
   }
-  const wisdom=top.querySelector('.studentCleanWisdom');
-  let title=wisdom.querySelector('b');if(!title){title=document.createElement('b');title.textContent='حكمة اليوم';wisdom.appendChild(title)}
-  let text=wisdom.querySelector('p');if(!text){text=document.createElement('p');wisdom.appendChild(text)}
-  const quote=dailyWisdom();if(text.textContent!==quote)text.textContent=quote;
 }
 function installStrictStudentVisualGuard(){if(document.getElementById('student-visual-guard'))return;const style=document.createElement('style');style.id='student-visual-guard';style.textContent=`
 .student .studentSubject svg,.student .studentSubject picture,.student .studentSubject .subjectIcon{display:none!important;visibility:hidden!important;width:0!important;height:0!important;margin:0!important;padding:0!important}
@@ -109,9 +83,22 @@ function purgeRequestedIcons(student){student.querySelectorAll('.studentSubject 
 function removeRenderedSubjectTitle(card,subject){card.querySelectorAll('b,h1,h2,h3,h4,h5,h6,p,span').forEach(el=>{if(el.childElementCount===0&&(el.textContent||'').trim()===subject)el.remove()});[...card.childNodes].forEach(node=>{if(node.nodeType===Node.TEXT_NODE&&node.textContent.trim()===subject)node.remove()})}
 function installSubjectIcons(student){student.querySelectorAll('.studentSubject').forEach(card=>{const subject=card.dataset.subjectName||Object.keys(SUBJECT_ASSETS).find(name=>(card.textContent||'').includes(name));if(!subject)return;card.dataset.subjectName=subject;removeRenderedSubjectTitle(card,subject);ensureImg(card,'.studentSubjectMascot','studentSubjectMascot',SUBJECT_ASSETS[subject],subject)})}
 function installSingleNavMascot(student){const host=student.querySelector('.studentNav .mascotNav>span');if(!host)return;let img=host.querySelector('.studentNavMascot');[...host.children].forEach(child=>{if(child!==img)child.remove()});if(!img){img=document.createElement('img');img.className='studentNavMascot';host.appendChild(img)}ensureImg(host,'.studentNavMascot','studentNavMascot',SHAKABUMBO_NAV,'شكابمبو')}
+function toast(message){let box=document.querySelector('.studentPatchToast');if(!box){box=document.createElement('div');box.className='studentPatchToast';document.body.appendChild(box)}box.textContent=message;setTimeout(()=>box?.remove(),2600)}
+function panel(title,body){document.querySelector('.studentPatchModal')?.remove();const wrap=document.createElement('div');wrap.className='studentPatchModal';const card=document.createElement('section');const close=document.createElement('button');close.className='studentPatchClose';close.type='button';close.textContent='×';close.addEventListener('click',()=>wrap.remove());const h=document.createElement('h3');h.textContent=title;card.append(close,h,body);wrap.appendChild(card);wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove()});document.body.appendChild(wrap)}
+async function loadState(){const id=studentId();if(!id)return null;try{const r=await fetch(`/api/student-state?studentId=${encodeURIComponent(id)}`,{cache:'no-store'});const data=await r.json();return data?.ok?data:null}catch{return null}}
+function rows(items){const box=document.createElement('div');box.className='studentPatchRows';(items.length?items:['لا توجد بيانات متاحة حاليًا']).forEach(text=>{const article=document.createElement('article');article.textContent=text;box.appendChild(article)});return box}
+async function savePhoto(file){if(!file||!file.type.startsWith('image/')){toast('اختر صورة فقط.');return}const reader=new FileReader();reader.onload=async()=>{try{const photoDataUrl=String(reader.result);const id=studentId();if(!id)throw new Error('NO_STUDENT');const response=await fetch('/api/student-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:id,action:'student_profile',photoDataUrl})});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||'REQUEST_FAILED');const profile=readStudent();profile.photoDataUrl=photoDataUrl;localStorage.setItem('studentProfile',JSON.stringify(profile));const img=document.querySelector('.studentCleanPhotoImage');if(img)img.src=photoDataUrl;toast('تم حفظ صورة الطالب.');}catch(error){toast(error.message==='PHOTO_TOO_LARGE'?'الصورة كبيرة. اختر صورة أصغر.':'تعذر حفظ الصورة، ولم يتم استبدالها.')}};reader.onerror=()=>toast('تعذر قراءة الصورة.');reader.readAsDataURL(file)}
+async function openStudentPanel(kind,subject){
+  if(kind==='photo'){const body=document.createElement('div');body.className='studentPhotoPanel';const img=document.createElement('img');img.src=readStudent().photoDataUrl||SHAKABUMBO_PROFILE;const input=document.createElement('input');input.type='file';input.accept='image/*';input.addEventListener('change',()=>savePhoto(input.files?.[0]));body.append(img,input);panel('صورتي',body);return}
+  if(kind==='subject'){const state=await loadState();const subjectHomework=(state?.homework||[]).filter(x=>!subject||x.subject===subject||x.title?.includes(subject));const assessments=(state?.assessments||[]).flatMap(a=>a.academic||[]);panel(subject||'المادة',rows([...(subjectHomework.map(x=>`${x.title}${x.instructions?` — ${x.instructions}`:''}`)),...(assessments.length?[`آخر التقييمات المسجلة: ${assessments.length}`]:[])]));return}
+  if(kind==='books'){const state=await loadState();panel('الكتب',rows((state?.homework||[]).map(x=>x.title)));return}
+  if(kind==='shakabumbo'){const state=await loadState();const done=[...document.querySelectorAll('.taskItem.done')].length;panel('لوحة شكابمبو',rows([`عدد النجوم الحالي: ${state?.stars??currentStars()} من 30`,`مهام اليوم المكتملة: ${done}`,`أقرب مكافأة: ${(30-(state?.stars??currentStars()))>0?`باقي ${30-(state?.stars??currentStars())} نجمة`:'مكافأتك جاهزة'}`,'استمر يا بطل، كل محاولة تقربك من هدفك.']));return}
+  if(kind==='more'){const body=document.createElement('div');body.className='studentMorePanel';['صورتي','هواياتي','أهدافي','الإعدادات'].forEach(label=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',()=>label==='صورتي'?openStudentPanel('photo'):toast('لا توجد بيانات متاحة حاليًا'));body.appendChild(b)});panel('المزيد',body)}
+}
 function applyStudentPatch(){if(!location.pathname.startsWith('/student'))return;installStrictStudentVisualGuard();const student=document.querySelector('.student');if(!student)return;student.querySelector('.studentProfile>h2')?.remove();student.querySelector('.nextReward')?.remove();student.querySelector('.studentMainLogo')?.remove();student.querySelector('.starToday')?.remove();installCleanStudentTop(student);
 const rewardMascot=student.querySelector('.rewardMascot');if(rewardMascot){rewardMascot.querySelectorAll('img:not(.rewardMascotImage),svg').forEach(n=>n.remove());ensureImg(rewardMascot,'.rewardMascotImage','rewardMascotImage',SHAKABUMBO_REWARD,'شكابمبو يرفع النجمة')}
 installSingleNavMascot(student);
 const info=student.querySelector('.miniCards');if(info){const existing=[...info.children];const hobby=existing.find(el=>el.textContent.includes('هواياتي'));const achievement=existing.find(el=>el.textContent.includes('إنجازاتي'));if(hobby)hobby.dataset.studentInfo='hobbies';if(achievement)achievement.dataset.studentInfo='achievements';const goals=ensureInfoCard(info,'goals','أهدافي');const skills=ensureInfoCard(info,'skills','مهاراتي');if(hobby&&achievement)info.append(hobby,goals,achievement,skills)}
 purgeRequestedIcons(student);installSubjectIcons(student);const stars=currentStars();const grid=student.querySelector('.starGrid');if(grid){[...grid.children].forEach((node,index)=>node.classList.toggle('on',index<stars));grid.setAttribute('aria-label',`${stars} من 30 نجمة`)}}
+window.addEventListener('taallamt:student-panel',event=>openStudentPanel(event.detail?.panel,event.detail?.subject));
 requestAnimationFrame(applyStudentPatch);window.addEventListener('storage',applyStudentPatch);new MutationObserver(()=>requestAnimationFrame(applyStudentPatch)).observe(document.getElementById('root'),{childList:true,subtree:true});
