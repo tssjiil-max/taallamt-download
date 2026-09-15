@@ -27,6 +27,22 @@ export const EMPTY_CLASS_TIMETABLE: ClassTimetable = Object.fromEntries(
   SCHOOL_DAYS.map((day) => [day, []]),
 ) as unknown as ClassTimetable;
 
+function lughatiSlot(period: number): TimetableSlot {
+  return { subjectId: "lughati", period, includedSubjectIds: ["lughati", "spelling"] };
+}
+
+function deenSlot(period: number): TimetableSlot {
+  return { subjectId: "islamic", period, includedSubjectIds: ["quran", "islamic"] };
+}
+
+export const APPROVED_CLASS_TIMETABLE: ClassTimetable = {
+  الأحد: [lughatiSlot(2), lughatiSlot(3), deenSlot(7)],
+  الاثنين: [lughatiSlot(1), deenSlot(7)],
+  الثلاثاء: [deenSlot(1), lughatiSlot(4), lughatiSlot(5)],
+  الأربعاء: [lughatiSlot(1), deenSlot(2)],
+  الخميس: [lughatiSlot(1), deenSlot(4)],
+};
+
 export type PersistedDailyTask = DailyAssignment & { completedStudentIds: string[] };
 
 type PersistedWeekly = WeeklyPlanSnapshot & {
@@ -166,7 +182,16 @@ function asTimetableSlot(value: unknown): TimetableSlot | null {
   if (!CORE_SUBJECT_IDS.has(subjectId) || !Number.isInteger(period) || period < 1 || period > 7) return null;
   const from = typeof raw.from === "string" && /^\d{2}:\d{2}$/.test(raw.from) ? raw.from : undefined;
   const to = typeof raw.to === "string" && /^\d{2}:\d{2}$/.test(raw.to) ? raw.to : undefined;
-  return { subjectId, period, ...(from ? { from } : {}), ...(to ? { to } : {}) };
+  const includedSubjectIds = Array.isArray(raw.includedSubjectIds)
+    ? raw.includedSubjectIds.map((value) => String(value)).filter((value) => CORE_SUBJECT_IDS.has(value))
+    : [];
+  return {
+    subjectId,
+    period,
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
+    ...(includedSubjectIds.length ? { includedSubjectIds } : {}),
+  };
 }
 
 function parseTimetable(raw: unknown) {
@@ -200,8 +225,8 @@ async function readAutomationConfig(classKey: string): Promise<AutomationConfig>
       includeQuran: raw.includeQuran !== false,
       includeSkillPractice: raw.includeSkillPractice !== false,
     },
-    timetable: parsed.timetable,
-    timetableConfigured: parsed.configured,
+    timetable: parsed.configured ? parsed.timetable : APPROVED_CLASS_TIMETABLE,
+    timetableConfigured: true,
   };
 }
 
