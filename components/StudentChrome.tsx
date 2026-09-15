@@ -1,20 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { GuardianHomeBehaviorPanel } from "@/components/GuardianHomeBehaviorPanel";
-import { StudentWeeklyPlan } from "@/components/StudentWeeklyPlan";
-import { UiIcon, type UiIconName } from "@/components/UiIcon";
-
-type StudentNavItem = { href: string; label: string; icon: UiIconName };
-
-const navItems: StudentNavItem[] = [
-  { href: "/guardian", label: "الرئيسية", icon: "home" },
-  { href: "/guardian#follow", label: "متابعة", icon: "check" },
-  { href: "/guardian#library", label: "المكتبة", icon: "library" },
-  { href: "/guardian/profile", label: "المزيد", icon: "more" },
-];
+import { UiIcon } from "@/components/UiIcon";
 
 function DirectStudentLink() {
   const [message, setMessage] = useState("");
@@ -41,7 +29,7 @@ function DirectStudentLink() {
           else setMessage("تعذر فتح رابط صفحة الطالب. تأكد أن الرابط كامل وحديث.");
           return;
         }
-        window.location.replace("/guardian");
+        window.location.replace("/student");
       } catch {
         if (alive) setMessage("تعذر فتح رابط صفحة الطالب الآن.");
       }
@@ -72,7 +60,7 @@ export function StudentBrandHeader() {
   return (
     <header className="student-app-header">
       <div className="student-header-top">
-        <Link className="student-wordmark" href="/guardian" aria-label="تعلّمت - الرئيسية">
+        <Link className="student-wordmark" href="/student" aria-label="تعلّمت - صفحة الطالب">
           <span className="student-wordmark-mark"><UiIcon name="sparkle" /></span>
           <div><h1>تعلّمت</h1><p>القمة تكفي الجميع</p></div>
         </Link>
@@ -92,34 +80,13 @@ export function StudentBrandHeader() {
   );
 }
 
-export function StudentBottomNav() {
-  const pathname = usePathname();
-  return (
-    <nav className="student-bottom-nav" aria-label="تنقل صفحة الطالب">
-      {navItems.map((item) => {
-        const active = item.href === "/guardian" ? pathname === "/guardian" : pathname === item.href;
-        return (
-          <Link className={active ? "active" : ""} href={item.href} key={item.href}>
-            <span className="nav-icon" aria-hidden="true"><UiIcon name={item.icon} /></span>
-            <b>{item.label}</b>
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
 export function StudentFrame({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   return (
     <div className="student-unified">
       <div className="student-unified-shell">
         <StudentBrandHeader />
         <DirectStudentLink />
-        {pathname === "/guardian" && <StudentWeeklyPlan />}
         <div className="student-unified-content">{children}</div>
-        {pathname === "/guardian" && <GuardianHomeBehaviorPanel />}
-        <StudentBottomNav />
       </div>
     </div>
   );
