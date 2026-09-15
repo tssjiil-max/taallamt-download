@@ -16,7 +16,6 @@ import "./teacher-student-parity.css";
 import "./teacher-visual-hotfix.css";
 import "./navigation-cleanup.css";
 import "./reference-pages.css";
-import "./teacher-roster-reference.css";
 import { TaallamtProvider } from "@/lib/store";
 
 export const metadata: Metadata = { title: "تعلّمت", description: "متابعة الطالب والتواصل والتحفيز", manifest: "/manifest.webmanifest", applicationName: "تعلّمت", appleWebApp: { capable: true, statusBarStyle: "default", title: "تعلّمت" } };
