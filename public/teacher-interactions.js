@@ -79,8 +79,8 @@
       const title=panelAction.closest('.panel')?.querySelector('h3')?.textContent?.trim();
       if(title==='تقدم المنهج'){stop(event);go('/teacher?section=curriculum');return;}
       if(title==='متابعة اليوم'){stop(event);toStudents('followup');return;}
-      if(title==='مهامي اليوم'){stop(event);go('/teacher?section=tasks');return;}
-      if(title==='الإعلانات'){stop(event);go('/teacher?section=announcements');return;}
+      if(title==='مهامي اليوم'){stop(event);go('/teacher/tasks');return;}
+      if(title==='الإعلانات'){stop(event);go('/teacher/announcements');return;}
     }
 
     const status=target.closest('.teacher .statusLine');
@@ -103,8 +103,8 @@
     const nav=target.closest('.teacher .teacherNav button');
     if(nav){
       const title=nav.querySelector('b')?.textContent?.trim();
-      if(title==='الكتب'){stop(event);go('/teacher?section=curriculum');return;}
-      if(title==='المزيد'){stop(event);go('/teacher?section=more');return;}
+      if(title==='الكتب'){stop(event);go('/teacher/library');return;}
+      if(title==='المزيد'){stop(event);go('/teacher/settings');return;}
     }
   },true);
 
