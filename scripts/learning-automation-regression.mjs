@@ -31,7 +31,7 @@ const checks=[
   ['automation preview survives timetable read failure with verified fallback',automationApi.includes('fallbackSchedule')&&automationApi.includes('catch')&&automationApi.includes('scheduleSource')],
   ['Quran automation distinguishes memorization or review work',automationApi.includes("taskType:'quran'")||automationApi.includes("taskType:subject==='quran'")],
   ['student bridge reads both automation preview and student state',bridge.includes('/api/learning-automation?action=preview')&&bridge.includes('/api/student-state?studentId=')],
-  ['student bridge replaces placeholders only for a selected student',bridge.includes('studentId()')&&bridge.includes('placeholder')&&bridge.includes('مهامي اليوم')],
+  ['student bridge replaces static task rows only for a selected student',bridge.includes("const id=studentId();if(!id)return false")&&bridge.includes("panel.querySelectorAll('.taskItem,.automationTaskEmpty')")&&bridge.includes('مهامي اليوم')],
   ['student bridge filters today tasks by Saudi automation date',bridge.includes('scheduledDate')&&bridge.includes('preview.localDate')],
   ['student bridge merges materialized and preview tasks by deterministic id',bridge.includes('materialized')&&bridge.includes('preview.homework')&&bridge.includes('new Map')],
   ['materialized student tasks remain completable through existing endpoint',bridge.includes('/api/homework-complete')&&bridge.includes('homeworkId')],
