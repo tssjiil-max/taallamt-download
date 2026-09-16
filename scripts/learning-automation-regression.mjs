@@ -8,6 +8,7 @@ const index=readFileSync('index.html','utf8');
 const library=readFileSync('public/teacher-library-automation.js','utf8');
 const libraryDelegation=readFileSync('public/teacher-library-delegation.js','utf8');
 const nativeLibrary=existsSync('public/teacher-library-native.js')?readFileSync('public/teacher-library-native.js','utf8'):'';
+const professionalPortfolio=existsSync('public/teacher-portfolio-professional.js')?readFileSync('public/teacher-portfolio-professional.js','utf8'):'';
 const portfolioApi=readFileSync('api/teacher-portfolio.js','utf8');
 const student=readFileSync('public/student-learning-automation.js','utf8');
 const forms=readFileSync('public/teacher-action-forms.js','utf8');
@@ -27,12 +28,14 @@ const checks=[
   ['native library converts cards to real href navigation',nativeLibrary.includes('replaceWith(link)')&&nativeLibrary.includes('/teacher/library?section=')],
   ['native library supports all seven sections', ['books','worksheets','remediation','weekly','assessments','spelling','general'].every(key=>nativeLibrary.includes(`'${key}'`))],
   ['native library preserves upload and public/private/teacher access',nativeLibrary.includes('/api/library-files')&&nativeLibrary.includes('public')&&nativeLibrary.includes('private')&&nativeLibrary.includes('teacher')],
-  ['teacher portfolio remains available from the native library',nativeLibrary.includes('/api/teacher-portfolio')&&nativeLibrary.includes('ملف إنجاز المعلم')],
-  ['professional portfolio has the agreed structured sections',professionalSections.every(section=>portfolioApi.includes(section)||nativeLibrary.includes(section))],
+  ['professional portfolio is loaded after native library navigation',index.includes('<script src="/teacher-portfolio-professional.js"></script>')&&index.includes('/teacher-portfolio-professional.css')],
+  ['professional portfolio has the agreed structured sections',professionalSections.every(section=>portfolioApi.includes(section)&&professionalPortfolio.includes(section))],
   ['professional portfolio calculates learning impact metrics from live system data',portfolioApi.includes('masteryRate')&&portfolioApi.includes('studentsAssessed')&&portfolioApi.includes('remediationResolvedRate')&&portfolioApi.includes('impactSummary')],
   ['professional portfolio generates measurable professional goals',portfolioApi.includes('professionalGoals')&&portfolioApi.includes('target')&&portfolioApi.includes('current')],
-  ['portfolio accepts phone evidence into a selected professional section',nativeLibrary.includes('portfolioSection')&&nativeLibrary.includes("category:'teacher-portfolio'")&&nativeLibrary.includes('شاهد من الجوال')],
-  ['portfolio supports print/download and share actions',nativeLibrary.includes('تحميل نسخة')&&nativeLibrary.includes('navigator.share')&&nativeLibrary.includes('window.print')],
+  ['portfolio accepts phone evidence into a selected professional section',professionalPortfolio.includes('portfolioSection')&&professionalPortfolio.includes("category:'teacher-portfolio'")&&professionalPortfolio.includes('إضافة شاهد من الجوال')],
+  ['portfolio keeps manually uploaded evidence teacher-only',professionalPortfolio.includes("visibility:'teacher'")&&professionalPortfolio.includes('يبقى شاهد ملف الإنجاز خاصًا بالمعلم')],
+  ['portfolio supports print/download and share actions',professionalPortfolio.includes('تحميل نسخة')&&professionalPortfolio.includes('navigator.share')&&professionalPortfolio.includes('window.print')],
+  ['portfolio compresses large phone images before upload',professionalPortfolio.includes('canvas.toBlob')&&professionalPortfolio.includes('1600')],
   ['student weekly plan is hydrated from learning automation',student.includes('/api/learning-automation?action=preview')&&student.includes('خطتي لهذا الأسبوع')],
   ['teacher student actions no longer need browser prompt',!forms.includes('window.prompt')&&!forms.includes('prompt(')&&forms.includes('/api/student-state')],
   ['legacy delegated library files stay available only as rollback references',library.includes('/api/teacher-portfolio')&&libraryDelegation.includes('.libraryCard')],
