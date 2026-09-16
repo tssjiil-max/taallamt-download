@@ -28,6 +28,12 @@ const checks=[
   ['vector swap script loads after the existing student visual patch',index.includes('/student-vector-assets.js')&&index.indexOf('/student-vector-assets.js')>index.indexOf('/student-style-patch.js')],
   ['shared React mascot source remains unchanged for teacher page safety',main.includes("src={asset('student-assets/student-main-logo.webp')}")],
   ...assets.map(src=>[`vector file exists: ${src}`,existsSync(`public${src}`)]),
+  ...assets.map(src=>{
+    const path=`public${src}`;
+    if(!existsSync(path))return [`vector file is clean path-only SVG: ${src}`,false];
+    const svg=readFileSync(path,'utf8').trim();
+    return [`vector file is clean path-only SVG: ${src}`,svg.startsWith('<?xml')&&svg.includes('<svg')&&svg.endsWith('</svg>')&&!svg.includes('<image')&&!svg.includes('@@END@@')];
+  }),
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
