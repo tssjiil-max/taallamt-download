@@ -17,14 +17,16 @@ async function studentSnapshot(studentId){
   if(!student)throw new Error('STUDENT_NOT_FOUND');
   const root=base();
   const ledgerRef=db.doc(`${root}/rewardLedgers/${studentId}_${monthKey()}`);
-  const [ledger,profile,assessments,remediation,portfolio,evidence,communications]=await Promise.all([
+  const [ledger,profile,assessments,remediation,portfolio,evidence,communications,curriculum,weeklyPlan]=await Promise.all([
     ledgerRef.get(),
     db.doc(`${root}/studentProfiles/${studentId}`).get(),
     db.collection(`${root}/assessments`).where('studentId','==',studentId).get(),
     db.collection(`${root}/remediationPlans`).where('studentId','==',studentId).get(),
     db.collection(`${root}/portfolioEvents`).where('studentId','==',studentId).get(),
     db.collection(`${root}/homeworkEvidence`).where('studentId','==',studentId).get(),
-    db.collection(`${root}/communications`).where('studentId','==',studentId).get()
+    db.collection(`${root}/communications`).where('studentId','==',studentId).get(),
+    db.collection(`${root}/curriculumTargets`).get(),
+    db.collection(`${root}/weeklyPlans`).where('publishStatus','==','published').get()
   ]);
   const assessmentRows=items(assessments).sort(desc);
   const needsFollowupCount=assessmentRows.reduce((total,row)=>total+(row.behavior||[]).filter(item=>item?.code==='needs_followup').length,0);
@@ -32,6 +34,10 @@ async function studentSnapshot(studentId){
   const homeworkIds=[...new Set(evidenceRows.map(x=>x.homeworkId).filter(Boolean))];
   const homeworkDocs=homeworkIds.length?await Promise.all(homeworkIds.map(id=>db.doc(`${root}/homework/${id}`).get())):[];
   const homework=homeworkDocs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()})).sort(desc);
+  const curriculumRows=items(curriculum);
+  const weeklyPlanAll=items(weeklyPlan).filter(x=>x.publishStatus==='published').sort((a,b)=>String(b.weekKey||'').localeCompare(String(a.weekKey||'')));
+  const latestWeekKey=weeklyPlanAll[0]?.weekKey;
+  const weeklyPlanRows=latestWeekKey?weeklyPlanAll.filter(x=>x.weekKey===latestWeekKey):[];
   return {
     ok:true,student,profile:profile.exists?profile.data():null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
     needsFollowupCount,
@@ -39,7 +45,9 @@ async function studentSnapshot(studentId){
     remediation:items(remediation).sort(desc).slice(0,20),
     portfolio:items(portfolio).sort(desc).slice(0,30),
     homework,homeworkEvidence:evidenceRows.slice(0,30),
-    communications:items(communications).sort(desc).slice(0,30)
+    communications:items(communications).sort(desc).slice(0,30),
+    curriculum:curriculumRows,
+    weeklyPlan:weeklyPlanRows
   };
 }
 
@@ -125,6 +133,12 @@ async function saveStudentProfile(studentId,body){
   const db=adminDb(),root=base();
   const patch={studentId,updatedAt:now()};
   if(photoDataUrl)patch.photoDataUrl=photoDataUrl;
+  if(body.hobbies!==undefined){
+    if(!Array.isArray(body.hobbies))throw new Error('HOBBIES_INVALID');
+    const hobbies=[...new Set(body.hobbies.map(x=>String(x||'').trim()).filter(Boolean))].slice(0,12);
+    if(hobbies.some(x=>x.length>40))throw new Error('HOBBIES_INVALID');
+    patch.hobbies=hobbies;
+  }
   await db.doc(`${root}/studentProfiles/${studentId}`).set(patch,{merge:true});
   return {saved:true};
 }
