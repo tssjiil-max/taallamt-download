@@ -3,10 +3,18 @@ import {join} from 'node:path';
 import {gunzipSync} from 'node:zlib';
 
 const partsDir='scripts/student-vector-bundle';
+const correctedParts=new Map([
+  ['vector.part02',['vector.fix02a','vector.fix02b','vector.fix02c']],
+  ['vector.part06',['vector.fix06a','vector.fix06bc']],
+]);
 const encoded=readdirSync(partsDir)
   .filter(name=>name.startsWith('vector.part'))
   .sort()
-  .map(name=>readFileSync(join(partsDir,name),'utf8').trim())
+  .map(name=>{
+    const replacement=correctedParts.get(name);
+    if(replacement)return replacement.map(part=>readFileSync(join(partsDir,part),'utf8').trim()).join('');
+    return readFileSync(join(partsDir,name),'utf8').trim();
+  })
   .join('');
 
 if(!encoded)throw new Error('STUDENT_VECTOR_BUNDLE_MISSING');
