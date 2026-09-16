@@ -6,10 +6,18 @@ import {effectiveAssessmentGroup} from '/assessment-group-policy.js';
   ];
 
   const roster=STUDENTS.map((name,index)=>({id:`s2-4-${String(index+1).padStart(2,'0')}`,number:index+1,name,grade:'الثاني',className:'4'}));
+  const QUICK_MASTER_ACADEMIC=[
+    {targetId:'subject:arabic',result:'mastered'},
+    {targetId:'subject:quran',result:'mastered'},
+    {targetId:'subject:islamic',result:'mastered'},
+    {targetId:'subject:spelling_handwriting',result:'mastered'}
+  ];
   try{localStorage.setItem('taallamtStudentRoster',JSON.stringify(roster));}catch{}
 
   const esc=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const apiGet=async student=>{const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(student.id)}`,{cache:'no-store'});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);return {...data,student:{...student,...data.student}};};
+  const apiQuickMaster=async student=>{const response=await fetch('/api/student-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:student.id,action:'quick_assessment',academic:QUICK_MASTER_ACADEMIC,behaviorCode:'distinguished'})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);return data;};
+  const canBulkMasterGroup=group=>{const safe=group==='focused'?'focused':'followup';if(safe==='followup')return true;return false;};
 
   function setTeacherCount(){
     if(location.pathname.startsWith('/student'))return;
@@ -39,6 +47,24 @@ import {effectiveAssessmentGroup} from '/assessment-group-policy.js';
     return groups;
   }
 
+  async function bulkMasterFollowup(rows,button){
+    if(!canBulkMasterGroup('followup')||!rows.length)return;
+    button.disabled=true;
+    const original=button.textContent;
+    button.textContent=`جارٍ تقييم ${rows.length} طالب...`;
+    const settled=await Promise.allSettled(rows.map(({student})=>apiQuickMaster(student)));
+    const failed=settled.filter(item=>item.status==='rejected').length;
+    const saved=rows.length-failed;
+    if(failed){
+      button.disabled=false;
+      button.textContent=`تم ${saved} · تعذر ${failed} · حاول مرة أخرى`;
+      return;
+    }
+    button.textContent=`تم إتقان الجميع ✓ (${saved})`;
+    button.dataset.completed='true';
+    if(!original)button.textContent='تم إتقان الجميع ✓';
+  }
+
   function renderAssessmentChooser(root){
     const signature='assessment-home';
     if(root.dataset.teacherStudentsPatch===signature&&root.querySelector(`[data-patch-signature="${signature}"]`))return;
@@ -48,6 +74,7 @@ import {effectiveAssessmentGroup} from '/assessment-group-policy.js';
         <header class="teacherStudentsHeader"><button class="teacherStudentsBack" type="button" aria-label="العودة">‹</button><div><h1>التقييم السريع</h1><p>اختر مجموعة الطلاب</p></div></header>
         <section class="teacherStudentsList teacherAssessmentGroups">
           <button class="teacherAssessmentGroupCard" type="button" data-assessment-group="followup"><span class="teacherStudentNumber">1</span><span class="teacherStudentName"><b>المتابعة</b><small>التقييم السريع للطلاب المعتادين · <strong data-group-count="followup">...</strong></small></span><span class="teacherStudentChevron">‹</span></button>
+          <button class="teacherAssessmentBulkMaster" type="button" data-bulk-master-followup hidden>أتقن الجميع</button>
           <button class="teacherAssessmentGroupCard" type="button" data-assessment-group="focused"><span class="teacherStudentNumber">2</span><span class="teacherStudentName"><b>المتابعة المركزة</b><small>النقل اليدوي أو بعد أكثر من 3 مرات «يحتاج متابعة» · <strong data-group-count="focused">...</strong></small></span><span class="teacherStudentChevron">‹</span></button>
         </section>
         <div class="teacherAssessmentLoading" data-assessment-loading>جارٍ تحديث المجموعتين...</div>
@@ -58,6 +85,12 @@ import {effectiveAssessmentGroup} from '/assessment-group-policy.js';
       const follow=root.querySelector('[data-group-count="followup"]'),focused=root.querySelector('[data-group-count="focused"]');
       if(follow)follow.textContent=`${groups.followup.length} طالب`;
       if(focused)focused.textContent=`${groups.focused.length} طالب`;
+      const bulk=root.querySelector('[data-bulk-master-followup]');
+      if(bulk&&canBulkMasterGroup('followup')&&groups.followup.length){
+        bulk.hidden=false;
+        bulk.textContent=`أتقن الجميع (${groups.followup.length} طالب)`;
+        bulk.addEventListener('click',()=>{void bulkMasterFollowup(groups.followup,bulk);},{once:true});
+      }
       root.querySelector('[data-assessment-loading]')?.remove();
     }).catch(()=>{const loading=root.querySelector('[data-assessment-loading]');if(loading)loading.textContent='تعذر تحديث المجموعتين الآن.';});
   }
