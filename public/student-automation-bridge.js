@@ -14,8 +14,8 @@
 
   function notify(message){let box=document.querySelector('.studentPatchToast');if(!box){box=document.createElement('div');box.className='studentPatchToast';document.body.appendChild(box)}box.textContent=message;setTimeout(()=>box?.remove(),2600)}
 
-  async function fetchPreview(){return api('/api/learning-automation?action=preview')}
-  async function fetchState(id){return api(`/api/student-state?studentId=${encodeURIComponent(id)}`)}
+  async function fetchPreview(){return typeof window.__taallamtLearningPreview==='function'?window.__taallamtLearningPreview():api('/api/learning-automation?action=preview')}
+  async function fetchState(id){return typeof window.__taallamtStudentStateViewFetch==='function'?window.__taallamtStudentStateViewFetch('activity',id,{ttl:30000}):api(`/api/student-state?studentId=${encodeURIComponent(id)}&view=activity`)}
 
   function todayMaterialized(state,preview){
     return (state?.homework||[]).filter(item=>{
@@ -49,6 +49,7 @@
     try{
       const response=await fetch('/api/homework-complete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:id,homeworkId:task.id})});
       const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
+      window.__taallamtInvalidateStudentStateView?.(id,'activity');
       button.classList.add('done');const circle=button.querySelector('.taskCircle');if(circle)circle.textContent='✓';task.completed=true;notify('تم تأكيد تنفيذ المهمة ✓');
       if(state?.homeworkEvidence){const row=state.homeworkEvidence.find(item=>item.homeworkId===task.id);if(row)row.status='completed'}
     }catch{notify('تعذر تأكيد المهمة الآن. حاول مرة أخرى.')}finally{button.disabled=false}
