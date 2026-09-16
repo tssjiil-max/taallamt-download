@@ -79,7 +79,7 @@
       const title=panelAction.closest('.panel')?.querySelector('h3')?.textContent?.trim();
       if(title==='تقدم المنهج'){stop(event);go('/teacher?section=curriculum');return;}
       if(title==='متابعة اليوم'){stop(event);toStudents('followup');return;}
-      if(title==='مهامي اليوم'){stop(event);go('/teacher/tasks');return;}
+      if(title==='التقييم الشامل'){stop(event);go('/teacher/students?action=assessment');return;}
       if(title==='الإعلانات'){stop(event);go('/teacher/announcements');return;}
     }
 
