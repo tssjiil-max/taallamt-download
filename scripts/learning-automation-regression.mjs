@@ -54,7 +54,7 @@ const checks=[
   ['student weekly plan is hydrated from learning automation',student.includes('/api/learning-automation?action=preview')&&student.includes('خطتي لهذا الأسبوع')],
   ['student weekly automation caches preview requests to prevent quota storms',student.includes('WEEKLY_TTL_MS')&&student.includes('weeklyCache')&&student.includes('weeklyPromise')],
   ['student weekly automation avoids rewriting identical schedule text',student.includes("if(sub.textContent!==nextText)sub.textContent=nextText")],
-  ['student weekly automation does not fetch before the weekly panel exists',student.indexOf("if(!panel)return")<student.indexOf("getWeeklyData")],
+  ['student weekly automation does not fetch before the weekly panel exists',student.includes("const panel=weeklyPanel();\n    if(!panel)return;\n    try{\n      const data=await getWeeklyData()")],
   ['teacher evaluation writes do not immediately re-read the full student snapshot',studentStateApi.includes('STATELESS_ACTIONS')&&studentStateApi.includes("'quick_assessment'")&&studentStateApi.includes("'assessment_group'")],
   ['teacher student actions no longer need browser prompt',!forms.includes('window.prompt')&&!forms.includes('prompt(')&&forms.includes('/api/student-state')],
   ['legacy delegated library files stay available only as rollback references',library.includes('/api/teacher-portfolio')&&libraryDelegation.includes('.libraryCard')],
