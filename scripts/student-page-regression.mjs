@@ -6,8 +6,9 @@ const interactions=readFileSync('public/student-interactions.js','utf8');
 const settingsNav=readFileSync('public/student-settings-navigation-fix.js','utf8');
 const studentAccess=readFileSync('public/student-access-guard.js','utf8');
 const teacherStudents=readFileSync('public/teacher-students-patch.js','utf8');
-const teacherAdmin=readFileSync('public/teacher-student-admin.js','utf8');
 const studentEvaluation=existsSync('public/student-teacher-evaluation.js')?readFileSync('public/student-teacher-evaluation.js','utf8'):'';
+const teacherEvaluation=existsSync('public/teacher-evaluation-extension.js')?readFileSync('public/teacher-evaluation-extension.js','utf8'):'';
+const evaluationApi=existsSync('api/student-evaluation.js')?readFileSync('api/student-evaluation.js','utf8'):'';
 const studentSync=readFileSync('src/student-sync.ts','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
 const indexHtml=readFileSync('index.html','utf8');
@@ -55,14 +56,16 @@ const checks=[
   ['guardian raw device token is local only',studentAccess.includes('taallamtGuardianDevice:')&&studentState.includes('hashToken(deviceToken)')],
   ['student teacher evaluation patch exists',studentEvaluation.length>0],
   ['student teacher evaluation patch is loaded',indexHtml.includes('/student-teacher-evaluation.js')],
-  ['tasks stay visible on the right and teacher evaluation replaces weekly panel',studentEvaluation.includes("taskPanel")&&studentEvaluation.includes("weekPanel")&&studentEvaluation.includes("insertBefore(taskPanel,weekPanel)")&&studentEvaluation.includes('تقييم المعلم')],
+  ['tasks stay visible on the right and teacher evaluation replaces weekly panel',studentEvaluation.includes('taskPanel')&&studentEvaluation.includes('weekPanel')&&studentEvaluation.includes('insertBefore(taskPanel,weekPanel)')&&studentEvaluation.includes('تقييم المعلم')],
   ['teacher evaluation is limited to current published curriculum distribution',studentEvaluation.includes('state.weeklyPlan')&&studentEvaluation.includes('state.curriculum')&&studentEvaluation.includes('targetIds')],
   ['teacher evaluation shows academic tri-state including not mastered',studentEvaluation.includes('أتقن')&&studentEvaluation.includes('يحتاج تدريب')&&studentEvaluation.includes('لم يتقن')&&studentEvaluation.includes('not_mastered')],
   ['teacher evaluation includes behavior and values',studentEvaluation.includes('السلوك')&&studentEvaluation.includes('القيم')&&studentEvaluation.includes('valueNamesFromState')],
-  ['backend accepts not mastered academic assessment',studentState.includes("['mastered','needs_practice','not_mastered']")],
-  ['backend can save value assessment in existing assessments collection',studentState.includes("action==='value'")&&studentState.includes('saveValueAssessment')&&studentState.includes("kind:'value'")],
-  ['teacher academic assessment offers not mastered',teacherAdmin.includes('data-value="not_mastered"')&&teacherAdmin.includes('لم يتقن')],
-  ['teacher assessment includes values row driven by current weekly plan',teacherAdmin.includes('tsaValueRow')&&teacherAdmin.includes('weeklyValueNames')&&teacherAdmin.includes("action:'value'")],
+  ['isolated evaluation api writes only to existing assessments collection',evaluationApi.includes('/assessments/')&&evaluationApi.includes("action==='academic'")&&evaluationApi.includes("action==='value'")],
+  ['isolated evaluation api accepts not mastered',evaluationApi.includes("['mastered','needs_practice','not_mastered']")],
+  ['value assessment is stored as value behavior without a new collection',evaluationApi.includes("kind:'value'")&&evaluationApi.includes('valueName')],
+  ['teacher evaluation extension exists and is loaded',teacherEvaluation.length>0&&indexHtml.includes('/teacher-evaluation-extension.js')],
+  ['teacher academic assessment offers not mastered',teacherEvaluation.includes('data-value="not_mastered"')&&teacherEvaluation.includes('لم يتقن')],
+  ['teacher assessment includes values row driven by current weekly plan',teacherEvaluation.includes('tsaValueRow')&&teacherEvaluation.includes('weeklyValueNames')&&teacherEvaluation.includes("action:'value'")],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
