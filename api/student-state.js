@@ -13,6 +13,7 @@ const timeOf=(x)=>String(x.enteredAt||x.createdAt||x.assignedAt||x.startedAt||''
 const desc=(a,b)=>timeOf(b).localeCompare(timeOf(a));
 const behaviorChoices={distinguished:{label:'متميز',tone:'positive'},consistent:{label:'مستمر',tone:'positive'},needs_followup:{label:'يحتاج متابعة',tone:'needs_attention'}};
 const MAX_GUARDIAN_DEVICES=2;
+const STATELESS_ACTIONS=new Set(['assessment','behavior','quick_assessment','assessment_group']);
 const accessToken=()=>randomBytes(24).toString('base64url');
 const hashToken=(value)=>createHash('sha256').update(String(value||'')).digest('hex');
 const validAccessToken=(value)=>typeof value==='string'&&value.length>=20&&value.length<=200;
@@ -244,7 +245,7 @@ export default async function handler(req,res){
     else if(action==='homework'||action==='training')result=await saveHomework(studentId,{...body,kind:action});
     else if(action==='student_profile')result=await saveStudentProfile(studentId,body);
     else return res.status(400).json({ok:false,error:'ACTION_NOT_SUPPORTED'});
-    if(action.startsWith('access_'))return res.status(200).json({ok:true,...result});
+    if(action.startsWith('access_')||STATELESS_ACTIONS.has(action))return res.status(200).json({ok:true,...result});
     return res.status(200).json({ok:true,...result,state:await studentSnapshot(studentId)});
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
