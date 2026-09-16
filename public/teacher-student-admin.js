@@ -3,6 +3,7 @@
     'أحمد بسام صالح الأحمد','أسامه سلطان بن بخت الصاعدي','أمير نايف عبدالله الحجلي','أنس احمد عبدالله الجهني','أوس نايف بن حمد الشريف','أويس عادل فيصل المالكي','تميم ماجد جابر الحجلي','ثامر عبدالله رجاء العوفي','راكان حاتم مهل الجهني','ريان محمود - باري','سلطان فهد زعل الجهني','شامخ بدر لافي الجهني','عادل غالب عبدالله العنزي','عبدالجليل سالم محمود عبدالجليل','عبدالرحمن نواف هندي الحازمي','عمر حميد بن سليم العروي','فيصل محمد عويض المطيري','قصي عبدالله ظاهر الحجلي','كنان محمد عبدالعزيز اليوسفي','محمد سماح سعد البوق','محمد صالح حمد عواد','موسى رياض صالح الأحمد','نايف احمد صويدر الجهني','نواف مطلق صالح العمري','وائل محمد حسين روزي','وسام سلطان عبيد السناني','يمان احمد بن عايد الجهني','يوسف فلاح خلف الحربي','يوسف محمد لافي الجهني'
   ].map((name,index)=>({id:`s2-4-${String(index+1).padStart(2,'0')}`,number:index+1,name}));
 
+  const SUBJECT_TARGETS=['subject:arabic','subject:quran','subject:islamic','subject:spelling_handwriting'];
   const esc=(value)=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const findStudent=(id)=>STUDENTS.find(s=>s.id===id)||null;
   const detailMatch=()=>location.pathname.match(/^\/teacher\/student\/(s2-4-\d{2})\/?$/);
@@ -70,7 +71,7 @@
                 <button type="button" data-value="needs_practice">يحتاج تدريب</button>
               </div>
             </article>`).join('')}
-          <article class="tsaSubjectRow tsaBehaviorRow"><b>السلوك</b><div class="tsaChoices"><button type="button" data-value="distinguished">متميز ⭐</button><button type="button" data-value="continuous">مستمر</button><button type="button" data-value="needs_followup">يحتاج متابعة</button></div></article><div class="tsaDraftNote">اسحب يمينًا للطالب التالي · التقييم السريع لا يغيّر أي بيانات حتى الحفظ عبر المسار الحقيقي.</div>
+          <article class="tsaSubjectRow tsaBehaviorRow"><b>السلوك</b><div class="tsaChoices"><button type="button" data-value="distinguished">متميز ⭐</button><button type="button" data-value="consistent">مستمر</button><button type="button" data-value="needs_followup">يحتاج متابعة</button></div></article><div class="tsaDraftNote">اسحب يمينًا للطالب التالي · أي اختيار هنا يُحفظ مباشرة في ملف الطالب.</div>
         </section>
 
         <section class="tsaPanel" data-panel="followup" hidden>
@@ -95,22 +96,62 @@
       root.querySelectorAll('.tsaPanel').forEach(panel=>{panel.hidden=panel.dataset.panel!==safe;});
     };
 
+    const saveState=async(payload)=>{
+      const response=await fetch('/api/student-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:student.id,...payload})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
+      return data;
+    };
+
     root.querySelector('.tsaBack')?.addEventListener('click',()=>{history.back();});
     root.querySelectorAll('.tsaTabs button').forEach(btn=>btn.addEventListener('click',()=>selectTab(btn.dataset.tab)));
-    root.querySelectorAll('.tsaSubjectRow .tsaChoices button').forEach(btn=>btn.addEventListener('click',()=>{
+    root.querySelectorAll('.tsaSubjectRow .tsaChoices button').forEach(btn=>btn.addEventListener('click',async()=>{
       const row=btn.closest('.tsaSubjectRow');
-      row?.querySelectorAll('.tsaChoices button').forEach(b=>b.classList.toggle('selected',b===btn));
+      if(!row)return;
+      const buttons=[...row.querySelectorAll('.tsaChoices button')];
+      const previous=buttons.find(button=>button.classList.contains('selected'))||null;
+      buttons.forEach(button=>button.classList.toggle('selected',button===btn));
+      buttons.forEach(button=>{button.disabled=true;});
+      try{
+        if(row.classList.contains('tsaBehaviorRow')){
+          await saveState({action:'behavior',code:btn.dataset.value});
+        }else{
+          const targetId=SUBJECT_TARGETS[Number(row.dataset.subject)];
+          if(!targetId)throw new Error('ASSESSMENT_TARGET_INVALID');
+          await saveState({action:'assessment',academic:[{targetId,result:btn.dataset.value}]});
+        }
+      }catch(error){
+        buttons.forEach(button=>button.classList.toggle('selected',button===previous));
+        alert('تعذر حفظ التقييم. حاول مرة أخرى.');
+      }finally{
+        buttons.forEach(button=>{button.disabled=false;});
+      }
     }));
 
     const params=query();
     const group=params.get('group');
     const groupLabel=root.querySelector('#tsaGroupLabel');
     if(groupLabel)groupLabel.textContent=group==='focused'?'المتابعة المركزة · تقييم سريع للمهارات والسلوك':'المتابعة · تقييم سريع للمهارات والسلوك';
-    root.querySelector('#tsaEvaluateAll')?.addEventListener('click',()=>{
-      root.querySelectorAll('.tsaSubjectRow:not(.tsaBehaviorRow)').forEach(row=>{
+    root.querySelector('#tsaEvaluateAll')?.addEventListener('click',async event=>{
+      const allButton=event.currentTarget;
+      const rows=[...root.querySelectorAll('.tsaSubjectRow:not(.tsaBehaviorRow)')];
+      const previous=rows.map(row=>[...row.querySelectorAll('.tsaChoices button')].find(button=>button.classList.contains('selected'))||null);
+      rows.forEach(row=>{
         const button=row.querySelector('button[data-value="mastered"]');
-        row.querySelectorAll('.tsaChoices button').forEach(b=>b.classList.toggle('selected',b===button));
+        row.querySelectorAll('.tsaChoices button').forEach(choice=>choice.classList.toggle('selected',choice===button));
       });
+      allButton.disabled=true;
+      rows.forEach(row=>row.querySelectorAll('.tsaChoices button').forEach(button=>{button.disabled=true;}));
+      try{
+        const academic=rows.map(row=>({targetId:SUBJECT_TARGETS[Number(row.dataset.subject)],result:'mastered'})).filter(item=>item.targetId);
+        await saveState({action:'assessment',academic});
+      }catch(error){
+        rows.forEach((row,index)=>row.querySelectorAll('.tsaChoices button').forEach(button=>button.classList.toggle('selected',button===previous[index])));
+        alert('تعذر حفظ تقييم الكل. حاول مرة أخرى.');
+      }finally{
+        allButton.disabled=false;
+        rows.forEach(row=>row.querySelectorAll('.tsaChoices button').forEach(button=>{button.disabled=false;}));
+      }
     });
     let touchX=null;
     root.addEventListener('touchstart',e=>{touchX=e.changedTouches?.[0]?.clientX??null;},{passive:true});
