@@ -11,7 +11,7 @@
   };
   const TITLES={books:'الكتب والأدلة',worksheets:'أوراق العمل',remediation:'الخطط العلاجية',weekly:'الخطط الأسبوعية',assessments:'نماذج التقييم',spelling:'الإملاء والخط',general:'مواد تعليمية جاهزة للطباعة',portfolio:'ملف إنجاز المعلم'};
   const STUDENTS=['أحمد بسام الأحمد','أسامه سلطان الصاعدي','أمير نايف الحجيلي','أنس أحمد الجهني','أوس نايف الشريف','أويس عادل المالكي','تميم ماجد الحجيلي','ثامر عبدالله العوفي','راكان حاتم الجهني','ريان محمود بري','سلطان فهد الجهني','شامخ بدر الجهني','عادل غالب العنزي','عبدالجليل سالم عبدالجليل','عبدالرحمن نواف الحازمي','عمر حميد العمري','فيصل محمد المطيري','قصي عبدالله الحجيلي','كنان محمد اليوسفي','محمد سماح البوق','محمد صالح عواد','موسى رياض الأحمد','نايف أحمد الجهني','نواف مطلق العمري','الحسن عادل الرجبي','وسام سلطان السناني','يمان أحمد الجهني','يوسف فلاح الحربي','يوسف محمد الجهني'].map((name,index)=>({id:`s2-4-${String(index+1).padStart(2,'0')}`,name,number:index+1}));
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const api=async(url,options)=>{const response=await fetch(url,options);const data=await response.json().catch(()=>({}));if(!response.ok||data.ok===false)throw new Error(data.error||`HTTP_${response.status}`);return data};
   const params=()=>new URLSearchParams(location.search);
   const section=()=>params().get('section')||'';
@@ -83,16 +83,10 @@
     return `<article class="taResource"><b>${esc(item.title||'')}</b><p>${esc(details)}</p>${actionHref?`<div class="taResourceFooter"><a href="${actionHref}">${esc(actionLabel)}</a></div>`:''}</article>`;
   }
 
-  async function renderPortfolio(container){
-    const data=await api('/api/teacher-portfolio');
-    const sections=Object.entries(data.sections||{}).map(([name,items])=>`<section class="taPortfolioSection"><h3>${esc(name)} (${items.length})</h3>${items.slice(0,30).map(item=>`<div class="taEvidence"><b>${esc(item.title)}</b><small>${item.occurredAt?new Date(item.occurredAt).toLocaleDateString('ar-SA'):''}</small>${item.downloadUrl?`<div class="taResourceFooter"><a href="${item.downloadUrl}" target="_blank">فتح الشاهد</a></div>`:''}</div>`).join('')}</section>`).join('');
-    container.innerHTML=`<div class="taSummaryGrid"><div class="taSummaryCard"><b>${data.counts?.total||0}</b><span>إجمالي الشواهد</span></div><div class="taSummaryCard"><b>${data.counts?.assessments||0}</b><span>تقييمات</span></div><div class="taSummaryCard"><b>${data.counts?.remediation||0}</b><span>خطط علاجية</span></div><div class="taSummaryCard"><b>${data.counts?.manualFiles||0}</b><span>شواهد مرفوعة</span></div></div><div class="taStandaloneActions"><a href="${hrefFor('general')}&upload=1">+ إضافة شاهد من الجوال</a><button type="button" onclick="window.print()">طباعة / حفظ PDF</button></div>${sections||'<div class="taEmpty">سيبدأ الملف بجمع الشواهد تلقائيًا مع استخدام الموقع.</div>'}`;
-  }
-
   async function renderCategory(key){
     const container=document.getElementById('taNativeLibraryContent');if(!container)return;
+    if(key==='portfolio'){container.dataset.professionalPortfolioHost='1';container.innerHTML='<div class="taEmpty">جارٍ تجهيز ملف الإنجاز المهني…</div>';return}
     try{
-      if(key==='portfolio'){await renderPortfolio(container);return}
       const [library,preview]=await Promise.all([api('/api/library-files?role=teacher'),api('/api/learning-automation?action=preview')]);
       const files=(library.files||[]).filter(file=>file.category===key);const content=preview.content||{};
       let html=uploadForm(key);
