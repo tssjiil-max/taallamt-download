@@ -1,5 +1,6 @@
 import {cert,getApps,initializeApp} from 'firebase-admin/app';
 import {getFirestore} from 'firebase-admin/firestore';
+import {getStorage} from 'firebase-admin/storage';
 
 function normalizePrivateKey(raw){
   let value=String(raw||'').trim();
@@ -19,5 +20,12 @@ function credentials(){
   const pasted=parseServiceAccount(privateKeyRaw.trim());if(pasted)return pasted;
   return {projectId,clientEmail,privateKey:normalizePrivateKey(privateKeyRaw)};
 }
-export function adminDb(){if(!getApps().length)initializeApp({credential:cert(credentials())});return getFirestore()}
+function app(){
+  if(getApps().length)return getApps()[0];
+  const account=credentials();
+  const storageBucket=process.env.FIREBASE_STORAGE_BUCKET?.trim()||process.env.VITE_FIREBASE_STORAGE_BUCKET?.trim()||`${account.projectId}.appspot.com`;
+  return initializeApp({credential:cert(account),storageBucket});
+}
+export function adminDb(){return getFirestore(app())}
+export function adminStorageBucket(){return getStorage(app()).bucket()}
 export function previewWriteGuard(){const env=process.env.VERCEL_ENV,ref=process.env.VERCEL_GIT_COMMIT_REF?.trim();if(env==='production'&&ref!=='build/taallamt-flex-v1')throw new Error('PRODUCTION_WRITE_BLOCKED')}
