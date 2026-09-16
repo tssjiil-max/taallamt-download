@@ -34,6 +34,9 @@ const checks=[
   ['achievements read portfolio summaries',patch.includes('state?.portfolio')&&patch.includes('.summary')],
   ['hobbies offer selectable child-friendly choices',patch.includes('HOBBY_OPTIONS')&&patch.includes('saveHobbies')],
   ['goals and skills have small top-card icons',css.includes('[data-student-info="goals"] b::before')&&css.includes('[data-student-info="skills"] b::before')],
+  ['settings navigation resolves visible student sections',patch.includes("function findStudentSection(kind)")&&patch.includes("kind==='subjects'")&&patch.includes("kind==='tasks'")],
+  ['settings navigation scrolls after modal removal',patch.includes('requestAnimationFrame(()=>requestAnimationFrame')&&patch.includes('scrollIntoView({behavior:\'smooth\',block:\'start\'})')],
+  ['settings material and task buttons use reliable section navigation',patch.includes("['عرض المواد',()=>scrollStudentSection('subjects')]")&&patch.includes("['مهامي اليوم',()=>scrollStudentSection('tasks')]")],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
