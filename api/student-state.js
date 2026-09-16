@@ -1,3 +1,4 @@
+import {createHash,randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 
@@ -11,6 +12,16 @@ const items=(snap)=>snap.docs.map(d=>({id:d.id,...d.data()}));
 const timeOf=(x)=>String(x.enteredAt||x.createdAt||x.assignedAt||x.startedAt||'');
 const desc=(a,b)=>timeOf(b).localeCompare(timeOf(a));
 const behaviorChoices={distinguished:{label:'متميز',tone:'positive'},consistent:{label:'مستمر',tone:'positive'},needs_followup:{label:'يحتاج متابعة',tone:'needs_attention'}};
+const MAX_GUARDIAN_DEVICES=2;
+const accessToken=()=>randomBytes(24).toString('base64url');
+const hashToken=(value)=>createHash('sha256').update(String(value||'')).digest('hex');
+const validAccessToken=(value)=>typeof value==='string'&&value.length>=20&&value.length<=200;
+const normalizeGuardianDevices=(profile)=>Array.isArray(profile?.guardianDevices)?profile.guardianDevices.filter(x=>x&&typeof x.tokenHash==='string').slice(0,MAX_GUARDIAN_DEVICES):[];
+function sanitizeProfile(data){
+  if(!data)return null;
+  const {guardianInviteToken,guardianDevices,...safe}=data;
+  return safe;
+}
 
 async function studentSnapshot(studentId){
   const db=adminDb(),student=getStudent(studentId);
@@ -39,7 +50,7 @@ async function studentSnapshot(studentId){
   const latestWeekKey=weeklyPlanAll[0]?.weekKey;
   const weeklyPlanRows=latestWeekKey?weeklyPlanAll.filter(x=>x.weekKey===latestWeekKey):[];
   return {
-    ok:true,student,profile:profile.exists?profile.data():null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
+    ok:true,student,profile:profile.exists?sanitizeProfile(profile.data()):null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
     needsFollowupCount,
     assessments:assessmentRows.slice(0,30),
     remediation:items(remediation).sort(desc).slice(0,20),
@@ -49,6 +60,63 @@ async function studentSnapshot(studentId){
     curriculum:curriculumRows,
     weeklyPlan:weeklyPlanRows
   };
+}
+
+async function shareGuardianAccess(studentId,body){
+  const requested=String(body.inviteToken||'').trim();
+  if(!validAccessToken(requested))throw new Error('ACCESS_TOKEN_INVALID');
+  const db=adminDb(),ref=db.doc(`${base()}/studentProfiles/${studentId}`),timestamp=now();
+  return db.runTransaction(async tx=>{
+    const snap=await tx.get(ref),profile=snap.exists?snap.data():{};
+    const current=String(profile?.guardianInviteToken||'');
+    if(current&&current!==requested)throw new Error('ACCESS_SHARE_FORBIDDEN');
+    const devices=normalizeGuardianDevices(profile);
+    if(!current)tx.set(ref,{studentId,guardianInviteToken:requested,guardianDevices:devices,guardianAccessUpdatedAt:timestamp,updatedAt:timestamp},{merge:true});
+    return {inviteToken:current||requested,devicesCount:devices.length,maxDevices:MAX_GUARDIAN_DEVICES};
+  });
+}
+
+async function claimGuardianDevice(studentId,body){
+  const invite=String(body.inviteToken||'').trim(),deviceToken=String(body.deviceToken||'').trim();
+  if(!validAccessToken(invite))throw new Error('ACCESS_INVITE_INVALID');
+  if(!validAccessToken(deviceToken))throw new Error('ACCESS_DEVICE_INVALID');
+  const db=adminDb(),ref=db.doc(`${base()}/studentProfiles/${studentId}`),deviceHash=hashToken(deviceToken),timestamp=now();
+  return db.runTransaction(async tx=>{
+    const snap=await tx.get(ref),profile=snap.exists?snap.data():{};
+    if(String(profile?.guardianInviteToken||'')!==invite)throw new Error('ACCESS_INVITE_INVALID');
+    const devices=normalizeGuardianDevices(profile),existing=devices.find(x=>x.tokenHash===deviceHash);
+    if(existing){
+      const next=devices.map(x=>x.tokenHash===deviceHash?{...x,lastSeenAt:timestamp}:x);
+      tx.set(ref,{guardianDevices:next,guardianAccessUpdatedAt:timestamp,updatedAt:timestamp},{merge:true});
+      return {linked:true,devicesCount:next.length,maxDevices:MAX_GUARDIAN_DEVICES};
+    }
+    if(devices.length>=MAX_GUARDIAN_DEVICES)throw new Error('ACCESS_DEVICE_LIMIT');
+    const deviceLabel=String(body.deviceLabel||'جهاز ولي الأمر').trim().slice(0,80)||'جهاز ولي الأمر';
+    const next=[...devices,{tokenHash:deviceHash,label:deviceLabel,linkedAt:timestamp,lastSeenAt:timestamp}];
+    tx.set(ref,{studentId,guardianDevices:next,guardianAccessUpdatedAt:timestamp,updatedAt:timestamp},{merge:true});
+    return {linked:true,devicesCount:next.length,maxDevices:MAX_GUARDIAN_DEVICES};
+  });
+}
+
+async function verifyGuardianDevice(studentId,body){
+  const deviceToken=String(body.deviceToken||'').trim();
+  if(!validAccessToken(deviceToken))throw new Error('ACCESS_DEVICE_INVALID');
+  const snap=await adminDb().doc(`${base()}/studentProfiles/${studentId}`).get();
+  const devices=normalizeGuardianDevices(snap.exists?snap.data():{}),deviceHash=hashToken(deviceToken);
+  if(!devices.some(x=>x.tokenHash===deviceHash))throw new Error('ACCESS_DEVICE_NOT_LINKED');
+  return {verified:true,devicesCount:devices.length,maxDevices:MAX_GUARDIAN_DEVICES};
+}
+
+async function releaseGuardianDevice(studentId,body){
+  const deviceToken=String(body.deviceToken||'').trim();
+  if(!validAccessToken(deviceToken))throw new Error('ACCESS_DEVICE_INVALID');
+  const db=adminDb(),ref=db.doc(`${base()}/studentProfiles/${studentId}`),deviceHash=hashToken(deviceToken),timestamp=now();
+  return db.runTransaction(async tx=>{
+    const snap=await tx.get(ref),profile=snap.exists?snap.data():{};
+    const devices=normalizeGuardianDevices(profile),next=devices.filter(x=>x.tokenHash!==deviceHash);
+    if(next.length!==devices.length)tx.set(ref,{guardianDevices:next,guardianAccessUpdatedAt:timestamp,updatedAt:timestamp},{merge:true});
+    return {released:next.length!==devices.length,devicesCount:next.length,maxDevices:MAX_GUARDIAN_DEVICES};
+  });
 }
 
 async function addStar(studentId){
@@ -156,11 +224,18 @@ export default async function handler(req,res){
     const body=req.method==='GET'?{}:jsonBody(req);
     const studentId=String((req.method==='GET'?req.query?.studentId:body.studentId)||'');
     const student=getStudent(studentId);if(!student)return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
-    if(req.method==='GET')return res.status(200).json(await studentSnapshot(studentId));
+    if(req.method==='GET'){
+      if(String(req.query?.guardianAccess||'')==='1')await verifyGuardianDevice(studentId,{deviceToken:String(req.query?.deviceToken||'')});
+      return res.status(200).json(await studentSnapshot(studentId));
+    }
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
     previewWriteGuard();
     const action=String(body.action||'');let result;
-    if(action==='star')result=await addStar(studentId);
+    if(action==='access_share')result=await shareGuardianAccess(studentId,body);
+    else if(action==='access_claim')result=await claimGuardianDevice(studentId,body);
+    else if(action==='access_verify')result=await verifyGuardianDevice(studentId,body);
+    else if(action==='access_release')result=await releaseGuardianDevice(studentId,body);
+    else if(action==='star')result=await addStar(studentId);
     else if(action==='assessment')result=await saveAssessment(studentId,body);
     else if(action==='behavior')result=await saveBehavior(studentId,body);
     else if(action==='quick_assessment')result=await saveQuickAssessment(studentId,body);
@@ -169,10 +244,11 @@ export default async function handler(req,res){
     else if(action==='homework'||action==='training')result=await saveHomework(studentId,{...body,kind:action});
     else if(action==='student_profile')result=await saveStudentProfile(studentId,body);
     else return res.status(400).json({ok:false,error:'ACTION_NOT_SUPPORTED'});
+    if(action.startsWith('access_'))return res.status(200).json({ok:true,...result});
     return res.status(200).json({ok:true,...result,state:await studentSnapshot(studentId)});
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
-    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message.endsWith('_REQUIRED')||message.endsWith('_EMPTY')||message.endsWith('_INVALID')?400:500;
+    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message==='ACCESS_DEVICE_LIMIT'?409:['ACCESS_INVITE_INVALID','ACCESS_DEVICE_INVALID','ACCESS_DEVICE_NOT_LINKED','ACCESS_SHARE_FORBIDDEN'].includes(message)?403:message.endsWith('_REQUIRED')||message.endsWith('_EMPTY')||message.endsWith('_INVALID')?400:500;
     console.error('student-state',message);
     return res.status(status).json({ok:false,error:message});
   }
