@@ -73,6 +73,29 @@
     if(location.pathname!=='/teacher/students')return;
     const root=document.getElementById('root');
     if(!root)return;
+    const params=new URLSearchParams(location.search);
+    if(params.get('action')==='assessment'){
+      root.innerHTML=`
+        <main class="teacherStudentsScreen" dir="rtl">
+          <header class="teacherStudentsHeader">
+            <button class="teacherStudentsBack" type="button" aria-label="العودة">‹</button>
+            <div><h1>التقييم الشامل</h1><p>اختر مجموعة التقييم</p></div>
+          </header>
+          <section class="teacherStudentsList">
+            <button class="teacherStudentRow" type="button" data-assessment-group="followup">
+              <span class="teacherStudentNumber">1</span><span class="teacherStudentName"><b>المتابعة</b><small style="display:block">التقييم والمتابعة المعتادة</small></span><span class="teacherStudentChevron">‹</span>
+            </button>
+            <button class="teacherStudentRow" type="button" data-assessment-group="focused">
+              <span class="teacherStudentNumber">2</span><span class="teacherStudentName"><b>المتابعة المركزة</b><small style="display:block">للطلاب الذين يحتاجون متابعة أكثر</small></span><span class="teacherStudentChevron">‹</span>
+            </button>
+          </section>
+        </main>`;
+      root.querySelector('.teacherStudentsBack')?.addEventListener('click',()=>{location.href='/teacher';});
+      root.querySelectorAll('[data-assessment-group]').forEach(btn=>btn.addEventListener('click',()=>{
+        location.href=`/teacher/student/${roster[0].id}?tab=assessment&group=${btn.dataset.assessmentGroup}`;
+      }));
+      return;
+    }
     root.innerHTML=`
       <main class="teacherStudentsScreen" dir="rtl">
         <header class="teacherStudentsHeader">
