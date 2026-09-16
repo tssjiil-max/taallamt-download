@@ -4,6 +4,7 @@ const css=readFileSync('public/student-profile-refine.css','utf8');
 const patch=readFileSync('public/student-style-patch.js','utf8');
 const interactions=readFileSync('public/student-interactions.js','utf8');
 const settingsNav=readFileSync('public/student-settings-navigation-fix.js','utf8');
+const studentAccess=readFileSync('public/student-access-guard.js','utf8');
 const teacherStudents=readFileSync('public/teacher-students-patch.js','utf8');
 const studentSync=readFileSync('src/student-sync.ts','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
@@ -40,6 +41,15 @@ const checks=[
   ['settings navigation scrolls after modal removal',settingsNav.includes('requestAnimationFrame(()=>requestAnimationFrame')&&settingsNav.includes("scrollIntoView({behavior:'smooth',block:'start'})")],
   ['settings material and task buttons are intercepted safely',settingsNav.includes("label==='عرض المواد'?'subjects':label==='مهامي اليوم'?'tasks':null")&&settingsNav.includes('event.stopImmediatePropagation()')],
   ['settings navigation patch is loaded',indexHtml.includes('/student-settings-navigation-fix.js')],
+  ['guardian access guard loads before app code',indexHtml.includes('/student-access-guard.js')&&indexHtml.indexOf('/student-access-guard.js')<indexHtml.indexOf('/src/main.tsx')],
+  ['guardian access is capped at two devices',studentState.includes('MAX_GUARDIAN_DEVICES=2')],
+  ['guardian access supports share claim verify and release',studentState.includes("action==='access_share'")&&studentState.includes("action==='access_claim'")&&studentState.includes("action==='access_verify'")&&studentState.includes("action==='access_release'")],
+  ['guardian access stays in existing student profile',studentState.includes('studentProfiles/${studentId}')&&studentState.includes('guardianDevices')],
+  ['guardian device secrets are removed from student snapshots',studentState.includes('sanitizeProfile')&&studentState.includes('guardianInviteToken,guardianDevices')],
+  ['student page blocks until guardian access is verified',studentAccess.includes('studentAccessPending')&&studentAccess.includes("accessPost(studentId,'access_claim'")&&studentAccess.includes("accessPost(studentId,'access_verify'")],
+  ['student can release current linked device',studentAccess.includes("accessPost(activeAccess.studentId,'access_release'")&&studentAccess.includes('إلغاء ربط هذا الجهاز')],
+  ['teacher can share protected student link',studentAccess.includes("accessPost(studentId,'access_share'")&&studentAccess.includes('مشاركة رابط الطالب')&&studentAccess.includes('navigator.share')],
+  ['guardian raw device token is local only',studentAccess.includes('taallamtGuardianDevice:')&&studentState.includes('hashToken(deviceToken)')],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
