@@ -5,6 +5,7 @@ const patch=readFileSync('public/student-style-patch.js','utf8');
 const interactions=readFileSync('public/student-interactions.js','utf8');
 const teacherStudents=readFileSync('public/teacher-students-patch.js','utf8');
 const studentSync=readFileSync('src/student-sync.ts','utf8');
+const studentState=readFileSync('api/student-state.js','utf8');
 
 const checks=[
   ['subject grid can shrink',css.includes('grid-template-columns:repeat(4,minmax(0,1fr))')],
@@ -22,6 +23,16 @@ const checks=[
   ['followup group has bulk master action',teacherStudents.includes('data-bulk-master-followup')],
   ['bulk master action is restricted to followup group',teacherStudents.includes("if(safe==='followup')")],
   ['bulk master saves a quick assessment per followup student',teacherStudents.includes('bulkMasterFollowup')],
+  ['student state exposes curriculum targets',studentState.includes('curriculum:curriculumRows')],
+  ['student state exposes published weekly plan',studentState.includes('weeklyPlan:weeklyPlanRows')],
+  ['student profile persists hobbies without a new collection',studentState.includes('patch.hobbies=hobbies')],
+  ['subject panel explains when teacher has not published subject work',patch.includes('لم ينشر المعلم مهارة أو واجبًا لهذه المادة لهذا الأسبوع بعد')],
+  ['subject panel resolves weekly targets and homework from teacher state',patch.includes('subjectPublishedPlan')&&patch.includes('subjectHomework')],
+  ['skills panel resolves curriculum target names',patch.includes('targetTitleMap')&&patch.includes('needs_practice')],
+  ['goals are derived from teacher assessments',patch.includes('practiceTargets')&&patch.includes('أحتاج تدريبًا على')],
+  ['achievements read portfolio summaries',patch.includes('state?.portfolio')&&patch.includes('.summary')],
+  ['hobbies offer selectable child-friendly choices',patch.includes('HOBBY_OPTIONS')&&patch.includes('saveHobbies')],
+  ['goals and skills have small top-card icons',css.includes('[data-student-info="goals"] b::before')&&css.includes('[data-student-info="skills"] b::before')],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
