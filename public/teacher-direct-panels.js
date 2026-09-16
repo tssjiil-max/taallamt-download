@@ -40,7 +40,7 @@
   root.querySelector('.teacherStudentsBack')?.addEventListener('click',()=>{location.href='/teacher';});
 
   async function getSummary(){
-    const response=await fetch(`/api/teacher-class-summary?view=${encodeURIComponent(view)}`,{cache:'no-store'});
+    const response=await fetch(`/api/student-evaluation?view=${encodeURIComponent(`class_${view}`)}`,{cache:'no-store'});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
     return data;
