@@ -1,4 +1,4 @@
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 
 const css=readFileSync('public/student-profile-refine.css','utf8');
 const patch=readFileSync('public/student-style-patch.js','utf8');
@@ -6,6 +6,8 @@ const interactions=readFileSync('public/student-interactions.js','utf8');
 const teacherStudents=readFileSync('public/teacher-students-patch.js','utf8');
 const studentSync=readFileSync('src/student-sync.ts','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
+const indexHtml=readFileSync('index.html','utf8');
+const studentAccess=existsSync('public/student-access-guard.js')?readFileSync('public/student-access-guard.js','utf8'):'';
 
 const checks=[
   ['subject grid can shrink',css.includes('grid-template-columns:repeat(4,minmax(0,1fr))')],
@@ -35,8 +37,16 @@ const checks=[
   ['hobbies offer selectable child-friendly choices',patch.includes('HOBBY_OPTIONS')&&patch.includes('saveHobbies')],
   ['goals and skills have small top-card icons',css.includes('[data-student-info="goals"] b::before')&&css.includes('[data-student-info="skills"] b::before')],
   ['settings navigation resolves visible student sections',patch.includes("function findStudentSection(kind)")&&patch.includes("kind==='subjects'")&&patch.includes("kind==='tasks'")],
-  ['settings navigation scrolls after modal removal',patch.includes('requestAnimationFrame(()=>requestAnimationFrame')&&patch.includes('scrollIntoView({behavior:\'smooth\',block:\'start\'})')],
+  ['settings navigation scrolls after modal removal',patch.includes('requestAnimationFrame(()=>requestAnimationFrame')&&patch.includes("scrollIntoView({behavior:'smooth',block:'start'})")],
   ['settings material and task buttons use reliable section navigation',patch.includes("['عرض المواد',()=>scrollStudentSection('subjects')]")&&patch.includes("['مهامي اليوم',()=>scrollStudentSection('tasks')]")],
+  ['guardian access guard is present',studentAccess.length>0],
+  ['guardian access guard loads before the app',indexHtml.includes('/student-access-guard.js')&&indexHtml.indexOf('/student-access-guard.js')<indexHtml.indexOf('/src/main.tsx')],
+  ['guardian access is capped at two devices',studentState.includes('MAX_GUARDIAN_DEVICES=2')],
+  ['guardian access supports share claim verify and release',studentState.includes("action==='access_share'")&&studentState.includes("action==='access_claim'")&&studentState.includes("action==='access_verify'")&&studentState.includes("action==='access_release'")],
+  ['guardian device secrets are removed from snapshots',studentState.includes('sanitizeProfile')&&studentState.includes('guardianDevices')&&studentState.includes('guardianInviteToken')],
+  ['student page blocks until guardian access is verified',studentAccess.includes('studentAccessPending')&&studentAccess.includes('access_claim')&&studentAccess.includes('access_verify')],
+  ['student can release the current device',studentAccess.includes('access_release')&&studentAccess.includes('إلغاء ربط هذا الجهاز')],
+  ['teacher can share a protected student link',studentAccess.includes('access_share')&&studentAccess.includes('مشاركة رابط الطالب')&&studentAccess.includes('navigator.share')],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
