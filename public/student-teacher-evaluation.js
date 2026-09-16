@@ -44,7 +44,7 @@
 
   async function fetchState(){
     const id=studentId();if(!id)return null;
-    try{const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(id)}`,{cache:'no-store'});const data=await response.json();return response.ok&&data?.ok?data:null}catch{return null}
+    try{const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(id)}&view=evaluation`,{cache:'no-store'});const data=await response.json();return response.ok&&data?.ok?data:null}catch{return null}
   }
 
   function curriculumMap(state){return new Map((state?.curriculum||[]).map(target=>[String(target.id),target]));}
