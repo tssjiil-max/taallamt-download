@@ -28,8 +28,8 @@ if(matches.length!==7)throw new Error(`STUDENT_VECTOR_BUNDLE_INVALID:${matches.l
 
 for(const match of matches){
   const filename=match[1].trim();
-  const svg=match[2].trim()+"\n";
-  if(!svg.includes('<svg')||svg.includes('<image'))throw new Error(`STUDENT_VECTOR_NOT_PATH_ONLY:${filename}`);
+  const svg=match[2].replace(/\n@@END@@\s*$/,'').trim()+"\n";
+  if(!svg.includes('<svg')||svg.includes('<image')||svg.includes('@@END@@'))throw new Error(`STUDENT_VECTOR_NOT_PATH_ONLY:${filename}`);
   writeFileSync(join(targetDir,filename),svg,'utf8');
 }
 
