@@ -42,6 +42,7 @@ const checks=[
   ['settings material and task buttons are intercepted safely',settingsNav.includes("label==='عرض المواد'?'subjects':label==='مهامي اليوم'?'tasks':null")&&settingsNav.includes('event.stopImmediatePropagation()')],
   ['settings navigation patch is loaded',indexHtml.includes('/student-settings-navigation-fix.js')],
   ['guardian access guard loads before app code',indexHtml.includes('/student-access-guard.js')&&indexHtml.indexOf('/student-access-guard.js')<indexHtml.indexOf('/src/main.tsx')],
+  ['generic student route is not blocked without a student id',studentAccess.includes("if(!studentId)return;")],
   ['guardian access is capped at two devices',studentState.includes('MAX_GUARDIAN_DEVICES=2')],
   ['guardian access supports share claim verify and release',studentState.includes("action==='access_share'")&&studentState.includes("action==='access_claim'")&&studentState.includes("action==='access_verify'")&&studentState.includes("action==='access_release'")],
   ['guardian access stays in existing student profile',studentState.includes('studentProfiles/${studentId}')&&studentState.includes('guardianDevices')],
