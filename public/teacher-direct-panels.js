@@ -3,10 +3,6 @@
   const view=path==='/teacher/messages'?'messages':path==='/teacher/followup'?'followup':path==='/teacher/stars'?'stars':null;
   if(!view)return;
 
-  const STUDENTS=[
-    'أحمد بسام صالح الأحمد','أسامه سلطان بن بخت الصاعدي','أمير نايف عبدالله الحجلي','أنس احمد عبدالله الجهني','أوس نايف بن حمد الشريف','أويس عادل فيصل المالكي','تميم ماجد جابر الحجلي','ثامر عبدالله رجاء العوفي','راكان حاتم مهل الجهني','ريان محمود - باري','سلطان فهد زعل الجهني','شامخ بدر لافي الجهني','عادل غالب عبدالله العنزي','عبدالجليل سالم محمود عبدالجليل','عبدالرحمن نواف هندي الحازمي','عمر حميد بن سليم العروي','فيصل محمد عويض المطيري','قصي عبدالله ظاهر الحجلي','كنان محمد عبدالعزيز اليوسفي','محمد سماح سعد البوق','محمد صالح حمد عواد','موسى رياض صالح الأحمد','نايف احمد صويدر الجهني','نواف مطلق صالح العمري','وائل محمد حسين روزي','وسام سلطان عبيد السناني','يمان احمد بن عايد الجهني','يوسف فلاح خلف الحربي','يوسف محمد لافي الجهني'
-  ].map((name,index)=>({id:`s2-4-${String(index+1).padStart(2,'0')}`,number:index+1,name}));
-
   const esc=(value)=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const root=document.getElementById('root');
   if(!root)return;
@@ -43,11 +39,11 @@
 
   root.querySelector('.teacherStudentsBack')?.addEventListener('click',()=>{location.href='/teacher';});
 
-  async function getState(student){
-    const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(student.id)}`,{cache:'no-store'});
-    const data=await response.json();
+  async function getSummary(){
+    const response=await fetch(`/api/teacher-class-summary?view=${encodeURIComponent(view)}`,{cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
     if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
-    return {...data,student:{...student,...data.student}};
+    return data;
   }
 
   function setContent(html,countText){
@@ -57,50 +53,42 @@
     if(count)count.textContent=countText;
   }
 
-  function rowBase(state,detail,actionLabel,tab){
-    return `<article class="teacherDirectRow" data-student-id="${state.student.id}">
-      <span class="teacherStudentNumber">${state.student.number}</span>
-      <div class="teacherDirectMain"><b>${esc(state.student.name)}</b><small>${esc(detail)}</small></div>
-      <button class="teacherDirectOpen" type="button" data-open-student="${state.student.id}" data-tab="${tab}">${actionLabel}</button>
+  function rowBase(student,detail,actionLabel,tab){
+    return `<article class="teacherDirectRow" data-student-id="${student.id}">
+      <span class="teacherStudentNumber">${student.number}</span>
+      <div class="teacherDirectMain"><b>${esc(student.name)}</b><small>${esc(detail)}</small></div>
+      <button class="teacherDirectOpen" type="button" data-open-student="${student.id}" data-tab="${tab}">${actionLabel}</button>
     </article>`;
   }
 
-  async function renderMessages(states){
-    const rows=[];
-    let total=0;
-    for(const state of states){
-      const messages=(state.communications||[]).filter(item=>item.reasonCode==='guardian_message'||String(item.reason||'').includes('رسالة'));
-      if(!messages.length)continue;
-      total+=messages.length;
-      const latest=messages[0];
-      rows.push(rowBase(state,`${latest.reason||'رسالة'}: ${latest.summary}${messages.length>1?` · ${messages.length} رسائل`:''}`,'فتح الرسائل','homework'));
-    }
-    setContent(rows.length?rows.join(''):'<div class="teacherDirectStatus">لا توجد رسائل مسجلة حاليًا.</div>',`${total} رسالة · ${rows.length} طالب`);
+  function renderMessages(summary){
+    const rows=(summary.students||[]).map(row=>{
+      const latest=row.latest||{};
+      return rowBase(row.student,`${latest.reason||'رسالة'}: ${latest.summary||''}${row.count>1?` · ${row.count} رسائل`:''}`,'فتح الرسائل','homework');
+    });
+    setContent(rows.length?rows.join(''):'<div class="teacherDirectStatus">لا توجد رسائل مسجلة حاليًا.</div>',`${Number(summary.total)||0} رسالة · ${rows.length} طالب`);
   }
 
-  async function renderFollowup(states){
-    const rows=[];
-    for(const state of states){
-      const follow=(state.communications||[]).find(item=>['followup','remediation'].includes(item.reasonCode));
-      const behavior=(state.assessments||[]).some(item=>(item.behavior||[]).some(b=>b.code==='needs_followup'||b.label==='يحتاج متابعة'));
-      if(!follow&&!behavior)continue;
-      const detail=follow?`${follow.reason||'متابعة'}: ${follow.summary}`:'سلوك مسجل: يحتاج متابعة';
-      rows.push(rowBase(state,detail,'فتح المتابعة','followup'));
-    }
+  function renderFollowup(summary){
+    const rows=(summary.students||[]).map(row=>{
+      const follow=row.latestFollowup;
+      const detail=follow?`${follow.reason||'متابعة'}: ${follow.summary||''}`:'سلوك مسجل: يحتاج متابعة';
+      return rowBase(row.student,detail,'فتح المتابعة','followup');
+    });
     setContent(rows.length?rows.join(''):'<div class="teacherDirectStatus">لا يوجد طلاب يحتاجون متابعة مسجلة حاليًا.</div>',`${rows.length} طالب يحتاج متابعة`);
   }
 
-  async function renderStars(states){
-    const rows=states.map(state=>`<article class="teacherDirectRow" data-student-id="${state.student.id}">
-      <span class="teacherStudentNumber">${state.student.number}</span>
-      <div class="teacherDirectMain"><b>${esc(state.student.name)}</b><small>رصيد النجوم الحالي</small></div>
+  function renderStars(summary){
+    const rows=(summary.students||[]).map(row=>`<article class="teacherDirectRow" data-student-id="${row.student.id}">
+      <span class="teacherStudentNumber">${row.student.number}</span>
+      <div class="teacherDirectMain"><b>${esc(row.student.name)}</b><small>رصيد النجوم الحالي</small></div>
       <div class="teacherDirectStarControls">
         <button type="button" data-star-delta="1" aria-label="إضافة نجمة">+</button>
-        <span class="teacherDirectStarBalance" data-star-balance>${Number(state.stars)||0} / 30</span>
+        <span class="teacherDirectStarBalance" data-star-balance>${Number(row.stars)||0} / 30</span>
         <button type="button" data-star-delta="-1" aria-label="إنقاص نجمة">−</button>
       </div>
     </article>`).join('');
-    setContent(rows,`${states.length} طالب · إدارة النجوم مباشرة`);
+    setContent(rows,`${(summary.students||[]).length} طالب · إدارة النجوم مباشرة`);
   }
 
   root.addEventListener('click',async event=>{
@@ -135,11 +123,13 @@
   });
 
   (async()=>{
-    const settled=await Promise.allSettled(STUDENTS.map(getState));
-    const states=settled.filter(item=>item.status==='fulfilled').map(item=>item.value);
-    if(!states.length){setContent('<div class="teacherDirectStatus">تعذر تحميل بيانات الطلاب.</div>','تعذر تحميل البيانات');return;}
-    if(view==='messages')await renderMessages(states);
-    else if(view==='followup')await renderFollowup(states);
-    else await renderStars(states);
+    try{
+      const summary=await getSummary();
+      if(view==='messages')renderMessages(summary);
+      else if(view==='followup')renderFollowup(summary);
+      else renderStars(summary);
+    }catch{
+      setContent('<div class="teacherDirectStatus">تعذر تحميل بيانات الطلاب.</div>','تعذر تحميل البيانات');
+    }
   })();
 })();
