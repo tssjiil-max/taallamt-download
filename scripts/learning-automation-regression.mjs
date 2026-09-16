@@ -10,6 +10,7 @@ const libraryDelegation=readFileSync('public/teacher-library-delegation.js','utf
 const nativeLibrary=existsSync('public/teacher-library-native.js')?readFileSync('public/teacher-library-native.js','utf8'):'';
 const professionalPortfolio=existsSync('public/teacher-portfolio-professional.js')?readFileSync('public/teacher-portfolio-professional.js','utf8'):'';
 const portfolioApi=readFileSync('api/teacher-portfolio.js','utf8');
+const evaluationApi=readFileSync('api/student-evaluation.js','utf8');
 const student=readFileSync('public/student-learning-automation.js','utf8');
 const bridge=existsSync('public/student-automation-bridge.js')?readFileSync('public/student-automation-bridge.js','utf8'):'';
 const interactions=readFileSync('public/student-interactions.js','utf8');
@@ -17,7 +18,6 @@ const studentEvaluation=readFileSync('public/student-teacher-evaluation.js','utf
 const teacherAdmin=readFileSync('public/teacher-student-admin.js','utf8');
 const teacherEvaluation=readFileSync('public/teacher-evaluation-extension.js','utf8');
 const directPanels=readFileSync('public/teacher-direct-panels.js','utf8');
-const classSummaryApi=readFileSync('api/teacher-class-summary.js','utf8');
 const automationApi=readFileSync('api/learning-automation.js','utf8');
 const studentStateApi=readFileSync('api/student-state.js','utf8');
 const homeworkStatus=readFileSync('public/teacher-homework-status.js','utf8');
@@ -40,7 +40,7 @@ const checks=[
   ['Quran automation distinguishes memorization or review work',automationApi.includes("taskType:'quran'")||automationApi.includes("taskType:subject==='quran'")],
   ['student bridge reads both automation preview and student state',bridge.includes('/api/learning-automation?action=preview')&&bridge.includes('/api/student-state?studentId=')],
   ['student bridge reuses the shared weekly preview cache',bridge.includes('__taallamtLearningPreview')&&student.includes('__taallamtLearningPreview')],
-  ['student bridge reads the lightweight activity view',bridge.includes('view=activity')||bridge.includes("'activity'" )],
+  ['student bridge reads the lightweight activity view',bridge.includes('view=activity')||bridge.includes("'activity'")],
   ['student bridge replaces static task rows only for a selected student',bridge.includes("const id=studentId();if(!id)return false")&&bridge.includes("panel.querySelectorAll('.taskItem,.automationTaskEmpty')")&&bridge.includes('مهامي اليوم')],
   ['student bridge filters today tasks by Saudi automation date',bridge.includes('scheduledDate')&&bridge.includes('preview.localDate')],
   ['student bridge merges materialized and preview tasks by deterministic id',bridge.includes('materialized')&&bridge.includes('preview.homework')&&bridge.includes('new Map')],
@@ -51,9 +51,9 @@ const checks=[
   ['student evaluation reads only evaluation data',studentEvaluation.includes('view=evaluation')],
   ['teacher group control reads only assessment metadata',teacherAdmin.includes('view=assessment_meta')],
   ['teacher values extension reads only weekly values',teacherEvaluation.includes('view=weekly_values')],
-  ['teacher direct panels use one class summary request',directPanels.includes('/api/teacher-class-summary?view=')&&!directPanels.includes('Promise.allSettled(STUDENTS.map(getState))')],
-  ['teacher class summary bounds stars to one class ledger read set',classSummaryApi.includes('db.getAll(...refs)')&&classSummaryApi.includes('CLASS_STUDENTS')],
-  ['teacher class summary caches repeat reads',classSummaryApi.includes('const cache=new Map()')&&classSummaryApi.includes('ttlFor')],
+  ['teacher direct panels use one class summary request',directPanels.includes('/api/student-evaluation?view=')&&directPanels.includes('class_${view}')&&!directPanels.includes('Promise.allSettled(STUDENTS.map(getState))')],
+  ['class star summary uses one batched class ledger read set',evaluationApi.includes('db.getAll(...refs)')&&evaluationApi.includes('CLASS_STUDENTS')&&evaluationApi.includes('class_stars')],
+  ['class summaries cache repeat reads inside an existing API function',evaluationApi.includes('const summaryCache=new Map()')&&evaluationApi.includes('ttlFor')&&evaluationApi.includes('class_messages')&&evaluationApi.includes('class_followup')],
   ['native library script is loaded as a classic script',index.includes('<script src="/teacher-library-native.js"></script>')&&!index.includes('type="module" src="/teacher-library-native.js"')],
   ['native library converts cards to real href navigation',nativeLibrary.includes('replaceWith(link)')&&nativeLibrary.includes('/teacher/library?section=')],
   ['native library supports all seven sections', ['books','worksheets','remediation','weekly','assessments','spelling','general'].every(key=>nativeLibrary.includes(`'${key}'`))],
