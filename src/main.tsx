@@ -128,8 +128,10 @@ function Teacher(){
       <StatusLine tone="gold" label="لم يتم تقييمهم" value="4"/>
       <StatusLine tone="gray" label="ملاحظات سلوكية" value="2"/>
     </Panel>
-    <Panel title="مهامي اليوم" icon="tasks" action="عرض الكل" onAction={()=>go('/teacher/tasks')}>
-      <ChecklistItem text="إدخال تقييم لغتي - الوحدة 2"/><ChecklistItem text="مراجعة خطط علاجية (3 طلاب)"/><ChecklistItem text="إرسال واجبات الدراسات"/>
+    <Panel title="التقييم الشامل" icon="assessment" action="فتح التقييم" onAction={()=>go('/teacher/students?action=assessment')}>
+      <StatusLine tone="gold" label="لم يتم تقييمهم" value="4"/>
+      <StatusLine tone="red" label="يحتاجون متابعة" value="6"/>
+      <StatusLine tone="green" label="تم تقييم اليوم" value="24"/>
     </Panel>
     <Panel title="الإعلانات" icon="megaphone" action="عرض الكل" onAction={()=>go('/teacher/announcements')}>
       <div className="announcement"><span className="announcementDot"/><div><b>اجتماع أولياء الأمور يوم الأحد</b><small>2026 - 09 - 05</small></div></div>
