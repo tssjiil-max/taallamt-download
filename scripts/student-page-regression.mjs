@@ -3,6 +3,7 @@ import {existsSync,readFileSync} from 'node:fs';
 const css=readFileSync('public/student-profile-refine.css','utf8');
 const patch=readFileSync('public/student-style-patch.js','utf8');
 const interactions=readFileSync('public/student-interactions.js','utf8');
+const settingsNav=readFileSync('public/student-settings-navigation-fix.js','utf8');
 const teacherStudents=readFileSync('public/teacher-students-patch.js','utf8');
 const studentSync=readFileSync('src/student-sync.ts','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
@@ -36,9 +37,10 @@ const checks=[
   ['achievements read portfolio summaries',patch.includes('state?.portfolio')&&patch.includes('.summary')],
   ['hobbies offer selectable child-friendly choices',patch.includes('HOBBY_OPTIONS')&&patch.includes('saveHobbies')],
   ['goals and skills have small top-card icons',css.includes('[data-student-info="goals"] b::before')&&css.includes('[data-student-info="skills"] b::before')],
-  ['settings navigation resolves visible student sections',patch.includes("function findStudentSection(kind)")&&patch.includes("kind==='subjects'")&&patch.includes("kind==='tasks'")],
-  ['settings navigation scrolls after modal removal',patch.includes('requestAnimationFrame(()=>requestAnimationFrame')&&patch.includes("scrollIntoView({behavior:'smooth',block:'start'})")],
-  ['settings material and task buttons use reliable section navigation',patch.includes("['عرض المواد',()=>scrollStudentSection('subjects')]")&&patch.includes("['مهامي اليوم',()=>scrollStudentSection('tasks')]")],
+  ['settings navigation resolves visible student sections',settingsNav.includes("function findStudentSection(kind)")&&settingsNav.includes("kind==='subjects'")&&settingsNav.includes("kind==='tasks'")],
+  ['settings navigation scrolls after modal removal',settingsNav.includes('requestAnimationFrame(()=>requestAnimationFrame')&&settingsNav.includes("scrollIntoView({behavior:'smooth',block:'start'})")],
+  ['settings material and task buttons are intercepted safely',settingsNav.includes("label==='عرض المواد'?'subjects':label==='مهامي اليوم'?'tasks':null")&&settingsNav.includes('event.stopImmediatePropagation()')],
+  ['settings navigation patch is loaded',indexHtml.includes('/student-settings-navigation-fix.js')],
   ['guardian access guard is present',studentAccess.length>0],
   ['guardian access guard loads before the app',indexHtml.includes('/student-access-guard.js')&&indexHtml.indexOf('/student-access-guard.js')<indexHtml.indexOf('/src/main.tsx')],
   ['guardian access is capped at two devices',studentState.includes('MAX_GUARDIAN_DEVICES=2')],
