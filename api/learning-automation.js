@@ -6,7 +6,7 @@ const root=()=>`workspaces/${WORKSPACE_ID}`;
 const nowIso=()=>new Date().toISOString();
 const weekKey=(week)=>`1448-f1-w${String(week).padStart(2,'0')}`;
 const subjectLabels={arabic:'لغتي',quran:'القرآن الكريم',islamic:'الدراسات الإسلامية',spelling:'الإملاء والخط',handwriting:'الإملاء والخط'};
-const fallbackSchedule={0:['arabic','quran'],1:['arabic','quran'],2:['islamic','quran'],3:['islamic'],4:['spelling']};
+const fallbackSchedule={0:['arabic','quran'],1:['arabic','quran'],2:['arabic','quran'],3:['arabic','islamic'],4:['spelling']};
 const normalizeSubject=(value)=>{
   const raw=String(value||'').trim().toLowerCase();
   if(['arabic','لغتي','اللغة العربية'].includes(raw))return 'arabic';
