@@ -57,14 +57,14 @@ const checks=[
   ['student teacher evaluation patch exists',studentEvaluation.length>0],
   ['student teacher evaluation patch is loaded',indexHtml.includes('/student-teacher-evaluation.js')],
   ['tasks stay visible on the right and teacher evaluation replaces weekly panel',studentEvaluation.includes('taskPanel')&&studentEvaluation.includes('weekPanel')&&studentEvaluation.includes('insertBefore(taskPanel,weekPanel)')&&studentEvaluation.includes('تقييم المعلم')],
-  ['teacher evaluation is limited to current published curriculum distribution',studentEvaluation.includes('state.weeklyPlan')&&studentEvaluation.includes('state.curriculum')&&studentEvaluation.includes('targetIds')],
+  ['teacher evaluation is limited to current published curriculum distribution',studentEvaluation.includes('state?.weeklyPlan')&&studentEvaluation.includes('state?.curriculum')&&studentEvaluation.includes('targetIds')],
   ['teacher evaluation shows academic tri-state including not mastered',studentEvaluation.includes('أتقن')&&studentEvaluation.includes('يحتاج تدريب')&&studentEvaluation.includes('لم يتقن')&&studentEvaluation.includes('not_mastered')],
   ['teacher evaluation includes behavior and values',studentEvaluation.includes('السلوك')&&studentEvaluation.includes('القيم')&&studentEvaluation.includes('valueNamesFromState')],
   ['isolated evaluation api writes only to existing assessments collection',evaluationApi.includes('/assessments/')&&evaluationApi.includes("action==='academic'")&&evaluationApi.includes("action==='value'")],
   ['isolated evaluation api accepts not mastered',evaluationApi.includes("['mastered','needs_practice','not_mastered']")],
   ['value assessment is stored as value behavior without a new collection',evaluationApi.includes("kind:'value'")&&evaluationApi.includes('valueName')],
   ['teacher evaluation extension exists and is loaded',teacherEvaluation.length>0&&indexHtml.includes('/teacher-evaluation-extension.js')],
-  ['teacher academic assessment offers not mastered',teacherEvaluation.includes('data-value="not_mastered"')&&teacherEvaluation.includes('لم يتقن')],
+  ['teacher academic assessment offers not mastered',teacherEvaluation.includes("dataset.value='not_mastered'")&&teacherEvaluation.includes('لم يتقن')],
   ['teacher assessment includes values row driven by current weekly plan',teacherEvaluation.includes('tsaValueRow')&&teacherEvaluation.includes('weeklyValueNames')&&teacherEvaluation.includes("action:'value'")],
 ];
 
