@@ -74,3 +74,8 @@
 .student .studentSubject .studentSubjectMascot{max-width:100%!important}
 .student .miniCards>[data-student-info]{cursor:pointer}
 .student .miniCards>[data-student-info]:focus-visible{outline:2px solid #1689e8;outline-offset:2px;border-radius:8px!important}
+
+/* Small student-profile icons and hobby selector. */
+.student .miniCards>[data-student-info="goals"] b::before{content:"◎";color:#25a4cf;font-size:14px;line-height:1;font-weight:900}
+.student .miniCards>[data-student-info="skills"] b::before{content:"✦";color:#2fb88a;font-size:13px;line-height:1;font-weight:900}
+.studentHobbyPanel{display:grid;gap:12px}.studentHobbyPanel>p{margin:0;color:#527170;font-size:13px;font-weight:700;line-height:1.7}.studentHobbyGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.studentHobbyGrid button{min-height:46px;border:1px solid #d9edf5;border-radius:14px;background:#f5fbff;color:#285665;font-weight:800;font-size:13px}.studentHobbyGrid button.selected{background:#e7f8ef;border-color:#7fcfa7;color:#1f7650;box-shadow:inset 0 0 0 1px #7fcfa7}.studentHobbySave{min-height:46px;border:0;border-radius:14px;background:#168fe6;color:#fff;font-weight:900;font-size:14px}.studentHobbySave:disabled{opacity:.55}
