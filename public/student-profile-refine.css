@@ -67,3 +67,10 @@
   .student .studentProfile,.student .rewards{margin-left:8px!important;margin-right:8px!important}
   .student .subjects,.student .studentDay{padding-left:8px!important;padding-right:8px!important}
 }
+
+/* Root-cause fix: the fixed 84px subject mascots were forcing the four-column RTL grid wider than the phone viewport. */
+.student .subjects{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.student .studentSubject{min-width:0!important}
+.student .studentSubject .studentSubjectMascot{max-width:100%!important}
+.student .miniCards>[data-student-info]{cursor:pointer}
+.student .miniCards>[data-student-info]:focus-visible{outline:2px solid #1689e8;outline-offset:2px;border-radius:8px!important}
