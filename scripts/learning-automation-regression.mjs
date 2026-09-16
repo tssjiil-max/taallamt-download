@@ -12,6 +12,12 @@ const professionalPortfolio=existsSync('public/teacher-portfolio-professional.js
 const portfolioApi=readFileSync('api/teacher-portfolio.js','utf8');
 const student=readFileSync('public/student-learning-automation.js','utf8');
 const bridge=existsSync('public/student-automation-bridge.js')?readFileSync('public/student-automation-bridge.js','utf8'):'';
+const interactions=readFileSync('public/student-interactions.js','utf8');
+const studentEvaluation=readFileSync('public/student-teacher-evaluation.js','utf8');
+const teacherAdmin=readFileSync('public/teacher-student-admin.js','utf8');
+const teacherEvaluation=readFileSync('public/teacher-evaluation-extension.js','utf8');
+const directPanels=readFileSync('public/teacher-direct-panels.js','utf8');
+const classSummaryApi=readFileSync('api/teacher-class-summary.js','utf8');
 const automationApi=readFileSync('api/learning-automation.js','utf8');
 const studentStateApi=readFileSync('api/student-state.js','utf8');
 const homeworkStatus=readFileSync('public/teacher-homework-status.js','utf8');
@@ -33,11 +39,21 @@ const checks=[
   ['automation preview survives timetable read failure with verified fallback',automationApi.includes('fallbackSchedule')&&automationApi.includes('catch')&&automationApi.includes('scheduleSource')],
   ['Quran automation distinguishes memorization or review work',automationApi.includes("taskType:'quran'")||automationApi.includes("taskType:subject==='quran'")],
   ['student bridge reads both automation preview and student state',bridge.includes('/api/learning-automation?action=preview')&&bridge.includes('/api/student-state?studentId=')],
+  ['student bridge reuses the shared weekly preview cache',bridge.includes('__taallamtLearningPreview')&&student.includes('__taallamtLearningPreview')],
+  ['student bridge reads the lightweight activity view',bridge.includes('view=activity')||bridge.includes("'activity'" )],
   ['student bridge replaces static task rows only for a selected student',bridge.includes("const id=studentId();if(!id)return false")&&bridge.includes("panel.querySelectorAll('.taskItem,.automationTaskEmpty')")&&bridge.includes('مهامي اليوم')],
   ['student bridge filters today tasks by Saudi automation date',bridge.includes('scheduledDate')&&bridge.includes('preview.localDate')],
   ['student bridge merges materialized and preview tasks by deterministic id',bridge.includes('materialized')&&bridge.includes('preview.homework')&&bridge.includes('new Map')],
   ['materialized student tasks remain completable through existing endpoint',bridge.includes('/api/homework-complete')&&bridge.includes('homeworkId')],
   ['subject modal receives current distribution and today assignment context',bridge.includes('studentPatchModal')&&bridge.includes('subjectMap')&&bridge.includes('targetIds')&&bridge.includes('تكليف اليوم')],
+  ['student interactions no longer poll Firestore every ten seconds',!interactions.includes('setInterval(applyTaskStatus')&&!interactions.includes('10000')],
+  ['student interactions dedupe activity state reads',interactions.includes('__taallamtStudentStateViewFetch')&&interactions.includes("'activity'")],
+  ['student evaluation reads only evaluation data',studentEvaluation.includes('view=evaluation')],
+  ['teacher group control reads only assessment metadata',teacherAdmin.includes('view=assessment_meta')],
+  ['teacher values extension reads only weekly values',teacherEvaluation.includes('view=weekly_values')],
+  ['teacher direct panels use one class summary request',directPanels.includes('/api/teacher-class-summary?view=')&&!directPanels.includes('Promise.allSettled(STUDENTS.map(getState))')],
+  ['teacher class summary bounds stars to one class ledger read set',classSummaryApi.includes('db.getAll(...refs)')&&classSummaryApi.includes('CLASS_STUDENTS')],
+  ['teacher class summary caches repeat reads',classSummaryApi.includes('const cache=new Map()')&&classSummaryApi.includes('ttlFor')],
   ['native library script is loaded as a classic script',index.includes('<script src="/teacher-library-native.js"></script>')&&!index.includes('type="module" src="/teacher-library-native.js"')],
   ['native library converts cards to real href navigation',nativeLibrary.includes('replaceWith(link)')&&nativeLibrary.includes('/teacher/library?section=')],
   ['native library supports all seven sections', ['books','worksheets','remediation','weekly','assessments','spelling','general'].every(key=>nativeLibrary.includes(`'${key}'`))],
@@ -56,9 +72,13 @@ const checks=[
   ['student weekly automation caches preview requests to prevent quota storms',student.includes('WEEKLY_TTL_MS')&&student.includes('weeklyCache')&&student.includes('weeklyPromise')],
   ['student weekly automation avoids rewriting identical schedule text',student.includes("if(sub.textContent!==nextText)sub.textContent=nextText")],
   ['student weekly automation does not fetch before the weekly panel exists',student.includes("const panel=weeklyPanel();\n    if(!panel)return;\n    try{\n      const data=await getWeeklyData()")],
-  ['teacher evaluation writes do not immediately re-read the full student snapshot',studentStateApi.includes('STATELESS_ACTIONS')&&studentStateApi.includes("'quick_assessment'")&&studentStateApi.includes("'assessment_group'")],
+  ['student state exposes lightweight read views',['profile','reward','assessment_meta','weekly_values','evaluation','homework','activity'].every(view=>studentStateApi.includes(`view==='${view}'`))],
+  ['student state caches shared curriculum and weekly context',studentStateApi.includes('WEEKLY_CONTEXT_TTL_MS')&&studentStateApi.includes('weeklyContextCache')],
+  ['student state limits homework document reads to recent evidence',studentStateApi.includes('items(evidence).sort(desc).slice(0,30)')],
+  ['common write actions do not immediately re-read the full student snapshot',studentStateApi.includes("'guardian_message'")&&studentStateApi.includes("'homework'")&&studentStateApi.includes("'student_profile'")&&studentStateApi.includes('STATELESS_ACTIONS')],
   ['teacher homework status does not poll student state every ten seconds',!homeworkStatus.includes('setInterval(')],
   ['teacher homework status only refreshes while the homework tab is visible',(homeworkStatus.includes('currentPanel.hidden')||homeworkStatus.includes('!node.hidden'))&&homeworkStatus.includes('data-tab="homework"')],
+  ['teacher homework status reads only homework data',homeworkStatus.includes('view=homework')],
   ['teacher student actions no longer need browser prompt',!forms.includes('window.prompt')&&!forms.includes('prompt(')&&forms.includes('/api/student-state')],
   ['legacy delegated library files stay available only as rollback references',library.includes('/api/teacher-portfolio')&&libraryDelegation.includes('.libraryCard')],
 ];
