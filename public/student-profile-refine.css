@@ -46,3 +46,24 @@
   .student .scheduleText b,.student .taskText b{font-size:10.2px!important;font-weight:600!important;line-height:1.28!important}
   .student .scheduleText span,.student .taskText span{font-size:8px!important;font-weight:500!important;line-height:1.28!important}
 }
+
+/* Student-only legibility and horizontal centering. No behavior/data changes. */
+.student.screen{width:100%!important;max-width:430px!important;margin-inline:auto!important;padding-inline:0!important;transform:none!important;direction:rtl!important;overflow-x:clip!important}
+.student .studentProfile,.student .rewards{margin-left:10px!important;margin-right:10px!important}
+.student .subjects,.student .studentDay{padding-left:10px!important;padding-right:10px!important}
+.student .studentCleanDetails .studentDetailLabel{font-size:10.5px!important}
+.student .studentCleanDetails .studentDetailValue{font-size:13.3px!important}
+.student .studentCleanDetails .studentDetailRow:first-child .studentDetailValue{font-size:15px!important}
+.student .studentCleanDetails .studentSchool{font-size:9.8px!important}
+.student .studentDateMeta span,.student .studentDateMeta b{font-size:9.5px!important}
+.student .miniCards b{font-size:11px!important}
+.student .miniCards small,.student .miniCards span{font-size:8.8px!important}
+.student .dayPanel h3{font-size:15.5px!important}
+.student .scheduleText b,.student .taskText b{font-size:12.2px!important;line-height:1.28!important}
+.student .scheduleText span,.student .taskText span{font-size:9.8px!important;line-height:1.25!important}
+.student .rewardStars>b{font-size:10.2px!important}
+.student .studentNav button>b{font-size:10.5px!important}
+@media(max-width:375px){
+  .student .studentProfile,.student .rewards{margin-left:8px!important;margin-right:8px!important}
+  .student .subjects,.student .studentDay{padding-left:8px!important;padding-right:8px!important}
+}
