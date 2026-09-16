@@ -1,4 +1,4 @@
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 import {contentForWeek,quranForDay,weekNumberForDate,riyadhWeekday} from '../server/learning-content.js';
 
 const week3=contentForWeek(3);
@@ -7,6 +7,7 @@ const vercel=JSON.parse(readFileSync('vercel.json','utf8'));
 const index=readFileSync('index.html','utf8');
 const library=readFileSync('public/teacher-library-automation.js','utf8');
 const libraryDelegation=readFileSync('public/teacher-library-delegation.js','utf8');
+const nativeLibrary=existsSync('public/teacher-library-native.js')?readFileSync('public/teacher-library-native.js','utf8'):'';
 const student=readFileSync('public/student-learning-automation.js','utf8');
 const forms=readFileSync('public/teacher-action-forms.js','utf8');
 
@@ -18,13 +19,15 @@ const checks=[
   ['Wednesday is not silently treated as a Quran distribution day',riyadhWeekday(september16)===3&&quranForDay(3,3)===null],
   ['daily cron is 10:00 UTC = 13:00 Asia/Riyadh Sunday-Thursday',vercel.crons?.some(x=>x.path==='/api/cron-daily'&&x.schedule==='0 10 * * 0-4')],
   ['weekly automation runs Saturday morning',vercel.crons?.some(x=>x.path==='/api/cron-weekly'&&x.schedule==='0 5 * * 6')],
-  ['teacher library, action forms and student automation are loaded',index.includes('/teacher-library-automation.js')&&index.includes('/teacher-library-delegation.js')&&index.includes('/teacher-action-forms.js')&&index.includes('/student-learning-automation.js')],
-  ['library preserves public/private/teacher access modes',library.includes("value=\"public\"")&&library.includes("value=\"private\"")&&library.includes("value=\"teacher\"")],
-  ['library cards use capture delegated clicks so React rerenders cannot drop handlers',libraryDelegation.includes("document.addEventListener('click'")&&libraryDelegation.includes('.libraryCard')&&libraryDelegation.includes('true);')],
-  ['delegated library still supports upload and public/private/teacher access',libraryDelegation.includes('/api/library-files')&&libraryDelegation.includes('public')&&libraryDelegation.includes('private')&&libraryDelegation.includes('teacher')],
-  ['teacher portfolio can collect and accept phone evidence',library.includes('/api/teacher-portfolio')&&library.includes('إضافة شاهد من الجوال')],
+  ['teacher action forms and student automation remain loaded',index.includes('/teacher-action-forms.js')&&index.includes('/student-learning-automation.js')],
+  ['native library script is loaded as a classic script',index.includes('<script src="/teacher-library-native.js"></script>')&&!index.includes('type="module" src="/teacher-library-native.js"')],
+  ['native library converts cards to real href navigation',nativeLibrary.includes('replaceWith(link)')&&nativeLibrary.includes('/teacher/library?section=')],
+  ['native library supports all seven sections', ['books','worksheets','remediation','weekly','assessments','spelling','general'].every(key=>nativeLibrary.includes(`'${key}'`))],
+  ['native library preserves upload and public/private/teacher access',nativeLibrary.includes('/api/library-files')&&nativeLibrary.includes('public')&&nativeLibrary.includes('private')&&nativeLibrary.includes('teacher')],
+  ['teacher portfolio remains available from the native library',nativeLibrary.includes('/api/teacher-portfolio')&&nativeLibrary.includes('ملف إنجاز المعلم')],
   ['student weekly plan is hydrated from learning automation',student.includes('/api/learning-automation?action=preview')&&student.includes('خطتي لهذا الأسبوع')],
   ['teacher student actions no longer need browser prompt',!forms.includes('window.prompt')&&!forms.includes('prompt(')&&forms.includes('/api/student-state')],
+  ['legacy delegated library files stay available only as rollback references',library.includes('/api/teacher-portfolio')&&libraryDelegation.includes('.libraryCard')],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
