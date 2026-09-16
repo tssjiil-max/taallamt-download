@@ -44,7 +44,7 @@
       </main>`;
 
     const selectTab=(tab)=>{const safe=['assessment','followup','behavior','homework'].includes(tab)?tab:'assessment';root.querySelectorAll('.tsaTabs button').forEach(button=>button.classList.toggle('active',button.dataset.tab===safe));root.querySelectorAll('.tsaPanel').forEach(panel=>{panel.hidden=panel.dataset.panel!==safe;});};
-    const fetchState=async()=>{const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(student.id)}`,{cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);return data;};
+    const fetchState=async()=>{const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(student.id)}&view=assessment_meta`,{cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);return data;};
     const saveState=async(payload)=>{const response=await fetch('/api/student-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:student.id,...payload})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);return data;};
     const params=query(),group=params.get('group');
     const groupLabel=root.querySelector('#tsaGroupLabel');if(groupLabel)groupLabel.textContent=group==='focused'?'المتابعة المركزة · تقييم سريع للمواد والسلوك':'المتابعة · تقييم سريع للمواد والسلوك';
