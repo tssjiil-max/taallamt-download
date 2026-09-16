@@ -59,7 +59,7 @@ function SubjectIcon({kind}:{kind:'quran'|'islamic'|'lughati'|'writing'}){
  return <img className={`subjectIcon ${kind}`} src={asset(map[kind])} alt="" aria-hidden="true"/>;
 }
 
-function Mascot({className=''}:{className?:string}){return <img className={`mascot ${className}`} src={asset('teacher-icons/shakabumbo-logo.svg')} alt="شكابمبو"/>}
+function Mascot({className=''}:{className?:string}){return <img className={`mascot ${className}`} src={asset('student-assets/student-main-logo.webp')} alt="شكابمبو"/>}
 
 function App(){
  if(location.pathname.startsWith('/student'))return <Student/>;
