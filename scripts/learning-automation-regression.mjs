@@ -28,7 +28,7 @@ const checks=[
   ['native library converts cards to real href navigation',nativeLibrary.includes('replaceWith(link)')&&nativeLibrary.includes('/teacher/library?section=')],
   ['native library supports all seven sections', ['books','worksheets','remediation','weekly','assessments','spelling','general'].every(key=>nativeLibrary.includes(`'${key}'`))],
   ['native library preserves upload and public/private/teacher access',nativeLibrary.includes('/api/library-files')&&nativeLibrary.includes('public')&&nativeLibrary.includes('private')&&nativeLibrary.includes('teacher')],
-  ['native library never owns or fetches portfolio data',nativeLibrary.includes("if(key==='portfolio'){container.dataset.professionalPortfolioHost='1';return}")&&!nativeLibrary.includes("if(key==='portfolio'){await renderPortfolio(container);return}")],
+  ['native library never owns or fetches portfolio data',nativeLibrary.includes("container.dataset.professionalPortfolioHost='1'")&&!nativeLibrary.includes('/api/teacher-portfolio')&&!nativeLibrary.includes('renderPortfolio(')],
   ['professional portfolio can render without Firestore using cache/fallback',professionalPortfolio.includes('fallbackData')&&professionalPortfolio.includes('readCache')&&professionalPortfolio.includes('waitForContainer')],
   ['professional portfolio is loaded after native library navigation',index.includes('<script src="/teacher-portfolio-professional.js"></script>')&&index.includes('/teacher-portfolio-professional.css')],
   ['professional portfolio has the agreed structured sections',professionalSections.every(section=>portfolioApi.includes(section)&&professionalPortfolio.includes(section))],
