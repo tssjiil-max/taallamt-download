@@ -8,8 +8,11 @@ const index=readFileSync('index.html','utf8');
 const library=readFileSync('public/teacher-library-automation.js','utf8');
 const libraryDelegation=readFileSync('public/teacher-library-delegation.js','utf8');
 const nativeLibrary=existsSync('public/teacher-library-native.js')?readFileSync('public/teacher-library-native.js','utf8'):'';
+const portfolioApi=readFileSync('api/teacher-portfolio.js','utf8');
 const student=readFileSync('public/student-learning-automation.js','utf8');
 const forms=readFileSync('public/teacher-action-forms.js','utf8');
+
+const professionalSections=['الهوية المهنية','الأهداف المهنية','التخطيط للتعلم','تنفيذ التدريس والأنشطة','التقويم ونواتج التعلم','الفروق الفردية والخطط العلاجية','التواصل مع الأسرة','التحفيز والإنجاز','التطوير المهني والمجتمع المهني','المبادرات والمشروعات','ملخص الأثر'];
 
 const checks=[
   ['16 Sep 2026 resolves to curriculum week 3',weekNumberForDate(september16)===3],
@@ -25,6 +28,11 @@ const checks=[
   ['native library supports all seven sections', ['books','worksheets','remediation','weekly','assessments','spelling','general'].every(key=>nativeLibrary.includes(`'${key}'`))],
   ['native library preserves upload and public/private/teacher access',nativeLibrary.includes('/api/library-files')&&nativeLibrary.includes('public')&&nativeLibrary.includes('private')&&nativeLibrary.includes('teacher')],
   ['teacher portfolio remains available from the native library',nativeLibrary.includes('/api/teacher-portfolio')&&nativeLibrary.includes('ملف إنجاز المعلم')],
+  ['professional portfolio has the agreed structured sections',professionalSections.every(section=>portfolioApi.includes(section)||nativeLibrary.includes(section))],
+  ['professional portfolio calculates learning impact metrics from live system data',portfolioApi.includes('masteryRate')&&portfolioApi.includes('studentsAssessed')&&portfolioApi.includes('remediationResolvedRate')&&portfolioApi.includes('impactSummary')],
+  ['professional portfolio generates measurable professional goals',portfolioApi.includes('professionalGoals')&&portfolioApi.includes('target')&&portfolioApi.includes('current')],
+  ['portfolio accepts phone evidence into a selected professional section',nativeLibrary.includes('portfolioSection')&&nativeLibrary.includes("category:'teacher-portfolio'")&&nativeLibrary.includes('شاهد من الجوال')],
+  ['portfolio supports print/download and share actions',nativeLibrary.includes('تحميل نسخة')&&nativeLibrary.includes('navigator.share')&&nativeLibrary.includes('window.print')],
   ['student weekly plan is hydrated from learning automation',student.includes('/api/learning-automation?action=preview')&&student.includes('خطتي لهذا الأسبوع')],
   ['teacher student actions no longer need browser prompt',!forms.includes('window.prompt')&&!forms.includes('prompt(')&&forms.includes('/api/student-state')],
   ['legacy delegated library files stay available only as rollback references',library.includes('/api/teacher-portfolio')&&libraryDelegation.includes('.libraryCard')],
