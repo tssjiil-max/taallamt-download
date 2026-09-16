@@ -38,12 +38,19 @@ export async function buildWeeklyPlan(week,{publish=true}={}){
 }
 export async function publishWeeklyPlan(week){previewWriteGuard();const db=adminDb(),items=await buildWeeklyPlan(week,{publish:true}),batch=db.batch();for(const item of items)batch.set(db.doc(`${root()}/weeklyPlans/${item.id}`),item,{merge:true});await batch.commit();return {saved:true,week:items[0]?.weekNumber||week,items}}
 
+function fallbackSubjects(weekday,reason='TIMETABLE_EMPTY'){
+  return {subjects:[...(fallbackSchedule[weekday]||[])],timetableCount:0,source:'verified_distribution_schedule_fallback',reason};
+}
 async function scheduledSubjectsForDay(weekday){
-  const db=adminDb(),snap=await db.collection(`${root()}/timetable`).get();
-  const all=rows(snap).filter(item=>(!item.classId||item.classId===CLASS_ID)&&Number(item.weekday)===weekday),subjects=[];
-  for(const item of all){const normalized=normalizeSubject(item.subject);if(normalized&&!subjects.includes(normalized))subjects.push(normalized)}
-  if(snap.size===0)return {subjects:[...(fallbackSchedule[weekday]||[])],timetableCount:0,source:'existing_student_week_plan_fallback'};
-  return {subjects,timetableCount:snap.size,source:'timetable'};
+  try{
+    const db=adminDb(),snap=await db.collection(`${root()}/timetable`).get();
+    const all=rows(snap).filter(item=>(!item.classId||item.classId===CLASS_ID)&&Number(item.weekday)===weekday),subjects=[];
+    for(const item of all){const normalized=normalizeSubject(item.subject);if(normalized&&!subjects.includes(normalized))subjects.push(normalized)}
+    if(snap.size===0)return fallbackSubjects(weekday);
+    return {subjects,timetableCount:snap.size,source:'timetable'};
+  }catch(error){
+    return {...fallbackSubjects(weekday,'TIMETABLE_READ_UNAVAILABLE'),error:error instanceof Error?error.message:String(error)};
+  }
 }
 
 function homeworkCopy(subject,item,daySpecific){
@@ -52,6 +59,27 @@ function homeworkCopy(subject,item,daySpecific){
   if(subject==='islamic')return {title:`الدراسات الإسلامية — ${item.lesson}`,instructions:`راجع درس «${item.lesson}»، ثم اذكر مثالًا بسيطًا يوضح ${item.skill}.`};
   return {title:`الإملاء والخط — ${item.skill}`,instructions:`تدرّب على مهارة «${item.skill}»: اكتب خمس كلمات مناسبة للمهارة ثم جملة قصيرة بخط واضح.`};
 }
+function quranTaskType(daySpecific,item){
+  const text=`${daySpecific?.lesson||item?.lesson||''} ${daySpecific?.surah||item?.surah||''}`;
+  return /(تقويم|مراجعة|استكمال|اختبارات)/.test(text)?'quran_review':'quran_memorization';
+}
+function automationHomework(subject,item,daySpecific,localDate,week,scheduleSource){
+  const copy=homeworkCopy(subject,item,daySpecific);
+  return {
+    id:`auto-homework:${localDate}:${subject}`,
+    subject:subjectLabels[subject]||subject,
+    subjectKey:subject,
+    title:copy.title,
+    instructions:copy.instructions,
+    targetIds:[targetId(subject,week)],
+    scheduledDate:localDate,
+    kind:'homework',
+    taskType:subject==='quran'?quranTaskType(daySpecific,item):subject==='spelling'?'spelling_practice':'lesson_practice',
+    source:'automation',
+    scheduleSource,
+    weekNumber:week
+  };
+}
 
 export async function publishDailyHomework(date=new Date()){
   previewWriteGuard();const weekday=riyadhWeekday(date),localDate=riyadhDateString(date),week=weekNumberForDate(date);
@@ -59,16 +87,16 @@ export async function publishDailyHomework(date=new Date()){
   const content=contentForWeek(week),schedule=await scheduledSubjectsForDay(weekday),subjects=[...schedule.subjects],db=adminDb(),created=[];
   for(const subject of subjects){
     const item=content[subject];if(!item||item.holiday)continue;const daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(subject==='quran'&&!daySpecific)continue;
-    const id=`auto-homework:${localDate}:${subject}`,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();if(existing.exists){created.push({id,subject,duplicate:true});continue;}
-    const copy=homeworkCopy(subject,item,daySpecific),timestamp=nowIso(),record={id,classId:CLASS_ID,subject:subjectLabels[subject]||subject,title:copy.title,instructions:copy.instructions,targetIds:[targetId(subject,week)],assignedAt:timestamp,scheduledDate:localDate,status:'published',kind:'homework',source:'automation',scheduleSource:schedule.source,weekNumber:week};
-    const batch=db.batch();batch.set(ref,record);for(const student of CLASS_STUDENTS){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}await batch.commit();created.push({id,subject,title:copy.title,duplicate:false});
+    const planned=automationHomework(subject,item,daySpecific,localDate,week,schedule.source),id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();if(existing.exists){created.push({id,subject,duplicate:true});continue;}
+    const timestamp=nowIso(),record={...planned,classId:CLASS_ID,assignedAt:timestamp,status:'published'};
+    const batch=db.batch();batch.set(ref,record);for(const student of CLASS_STUDENTS){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}await batch.commit();created.push({id,subject,title:record.title,taskType:record.taskType,duplicate:false});
   }
   return {saved:true,localDate,weekday,week,subjects,scheduleSource:schedule.source,timetableMissing:schedule.timetableCount===0,created};
 }
 
 export async function previewAutomation(date=new Date()){
   const weekday=riyadhWeekday(date),localDate=riyadhDateString(date),week=weekNumberForDate(date),content=contentForWeek(week),schedule=await scheduledSubjectsForDay(weekday),subjects=[...schedule.subjects];
-  const homework=subjects.map(subject=>{const item=content[subject],daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(!item||item.holiday||(subject==='quran'&&!daySpecific))return null;return {subject,label:subjectLabels[subject],...homeworkCopy(subject,item,daySpecific)}}).filter(Boolean);
+  const homework=subjects.map(subject=>{const item=content[subject],daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(!item||item.holiday||(subject==='quran'&&!daySpecific))return null;return automationHomework(subject,item,daySpecific,localDate,week,schedule.source)}).filter(Boolean);
   return {ok:true,localDate,weekday,week,weekKey:weekKey(week),timetableMissing:schedule.timetableCount===0,scheduleSource:schedule.source,scheduledSubjects:subjects,content,homework};
 }
 
