@@ -61,7 +61,7 @@
         </nav>
 
         <section class="tsaPanel" data-panel="assessment">
-          <div class="tsaPanelTitle"><div><h3>التقييم الأكاديمي</h3><p>التقييم هنا من جهة المعلم، وليس صفحة الطالب/ولي الأمر.</p></div></div>
+          <div class="tsaPanelTitle"><div><h3>التقييم الشامل</h3><p id="tsaGroupLabel">تقييم سريع للمهارات والسلوك</p></div><button type="button" id="tsaEvaluateAll">تقييم الكل: أتقن</button></div>
           ${['لغتي','القرآن الكريم','الدراسات الإسلامية','الإملاء والخط'].map((subject,i)=>`
             <article class="tsaSubjectRow" data-subject="${i}">
               <b>${subject}</b>
@@ -70,7 +70,7 @@
                 <button type="button" data-value="needs_practice">يحتاج تدريب</button>
               </div>
             </article>`).join('')}
-          <div class="tsaDraftNote">هذه شاشة إدارة المعلم. ربط «حفظ وإرسال» ببيانات ولي الأمر سيكون اختبار الربط التالي.</div>
+          <article class="tsaSubjectRow tsaBehaviorRow"><b>السلوك</b><div class="tsaChoices"><button type="button" data-value="distinguished">متميز ⭐</button><button type="button" data-value="continuous">مستمر</button><button type="button" data-value="needs_followup">يحتاج متابعة</button></div></article><div class="tsaDraftNote">اسحب يمينًا للطالب التالي · التقييم السريع لا يغيّر أي بيانات حتى الحفظ عبر المسار الحقيقي.</div>
         </section>
 
         <section class="tsaPanel" data-panel="followup" hidden>
@@ -103,6 +103,25 @@
     }));
 
     const params=query();
+    const group=params.get('group');
+    const groupLabel=root.querySelector('#tsaGroupLabel');
+    if(groupLabel)groupLabel.textContent=group==='focused'?'المتابعة المركزة · تقييم سريع للمهارات والسلوك':'المتابعة · تقييم سريع للمهارات والسلوك';
+    root.querySelector('#tsaEvaluateAll')?.addEventListener('click',()=>{
+      root.querySelectorAll('.tsaSubjectRow:not(.tsaBehaviorRow)').forEach(row=>{
+        const button=row.querySelector('button[data-value="mastered"]');
+        row.querySelectorAll('.tsaChoices button').forEach(b=>b.classList.toggle('selected',b===button));
+      });
+    });
+    let touchX=null;
+    root.addEventListener('touchstart',e=>{touchX=e.changedTouches?.[0]?.clientX??null;},{passive:true});
+    root.addEventListener('touchend',e=>{
+      if(touchX===null)return;
+      const dx=(e.changedTouches?.[0]?.clientX??touchX)-touchX;touchX=null;
+      if(dx<70)return;
+      const idx=STUDENTS.findIndex(s=>s.id===student.id);
+      const next=STUDENTS[idx+1];
+      if(next)location.href=`/teacher/student/${next.id}?tab=assessment${group?`&group=${encodeURIComponent(group)}`:''}`;
+    },{passive:true});
     selectTab(params.get('tab')||'assessment');
     const subject=params.get('subject');
     if(subject){
