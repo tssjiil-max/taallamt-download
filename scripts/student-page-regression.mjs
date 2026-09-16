@@ -4,6 +4,7 @@ const css=readFileSync('public/student-profile-refine.css','utf8');
 const patch=readFileSync('public/student-style-patch.js','utf8');
 const interactions=readFileSync('public/student-interactions.js','utf8');
 const teacherStudents=readFileSync('public/teacher-students-patch.js','utf8');
+const studentSync=readFileSync('src/student-sync.ts','utf8');
 
 const checks=[
   ['subject grid can shrink',css.includes('grid-template-columns:repeat(4,minmax(0,1fr))')],
@@ -17,6 +18,7 @@ const checks=[
   ['info cards are bound to actions',patch.includes('bindStudentInfoCards')],
   ['More menu has no placeholder fallback',!patch.includes("label==='صورتي'?openStudentPanel('photo'):toast('لا توجد بيانات متاحة حاليًا')")],
   ['live interactions do not hijack More',!interactions.includes("if(text!=='المزيد')return")],
+  ['teacher More is not hijacked by student sync',!studentSync.includes("title==='شكابمبو'||title==='المزيد'")],
   ['followup group has bulk master action',teacherStudents.includes('data-bulk-master-followup')],
   ['bulk master action is restricted to followup group',teacherStudents.includes("if(safe==='followup')")],
   ['bulk master saves a quick assessment per followup student',teacherStudents.includes('bulkMasterFollowup')],
