@@ -1,4 +1,4 @@
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 
 const css=readFileSync('public/student-profile-refine.css','utf8');
 const patch=readFileSync('public/student-style-patch.js','utf8');
@@ -6,6 +6,8 @@ const interactions=readFileSync('public/student-interactions.js','utf8');
 const settingsNav=readFileSync('public/student-settings-navigation-fix.js','utf8');
 const studentAccess=readFileSync('public/student-access-guard.js','utf8');
 const teacherStudents=readFileSync('public/teacher-students-patch.js','utf8');
+const teacherAdmin=readFileSync('public/teacher-student-admin.js','utf8');
+const studentEvaluation=existsSync('public/student-teacher-evaluation.js')?readFileSync('public/student-teacher-evaluation.js','utf8'):'';
 const studentSync=readFileSync('src/student-sync.ts','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
 const indexHtml=readFileSync('index.html','utf8');
@@ -51,6 +53,16 @@ const checks=[
   ['student can release current linked device',studentAccess.includes("accessPost(activeAccess.studentId,'access_release'")&&studentAccess.includes('إلغاء ربط هذا الجهاز')],
   ['teacher can share protected student link',studentAccess.includes("accessPost(studentId,'access_share'")&&studentAccess.includes('مشاركة رابط الطالب')&&studentAccess.includes('navigator.share')],
   ['guardian raw device token is local only',studentAccess.includes('taallamtGuardianDevice:')&&studentState.includes('hashToken(deviceToken)')],
+  ['student teacher evaluation patch exists',studentEvaluation.length>0],
+  ['student teacher evaluation patch is loaded',indexHtml.includes('/student-teacher-evaluation.js')],
+  ['tasks stay visible on the right and teacher evaluation replaces weekly panel',studentEvaluation.includes("taskPanel")&&studentEvaluation.includes("weekPanel")&&studentEvaluation.includes("insertBefore(taskPanel,weekPanel)")&&studentEvaluation.includes('تقييم المعلم')],
+  ['teacher evaluation is limited to current published curriculum distribution',studentEvaluation.includes('state.weeklyPlan')&&studentEvaluation.includes('state.curriculum')&&studentEvaluation.includes('targetIds')],
+  ['teacher evaluation shows academic tri-state including not mastered',studentEvaluation.includes('أتقن')&&studentEvaluation.includes('يحتاج تدريب')&&studentEvaluation.includes('لم يتقن')&&studentEvaluation.includes('not_mastered')],
+  ['teacher evaluation includes behavior and values',studentEvaluation.includes('السلوك')&&studentEvaluation.includes('القيم')&&studentEvaluation.includes('valueNamesFromState')],
+  ['backend accepts not mastered academic assessment',studentState.includes("['mastered','needs_practice','not_mastered']")],
+  ['backend can save value assessment in existing assessments collection',studentState.includes("action==='value'")&&studentState.includes('saveValueAssessment')&&studentState.includes("kind:'value'")],
+  ['teacher academic assessment offers not mastered',teacherAdmin.includes('data-value="not_mastered"')&&teacherAdmin.includes('لم يتقن')],
+  ['teacher assessment includes values row driven by current weekly plan',teacherAdmin.includes('tsaValueRow')&&teacherAdmin.includes('weeklyValueNames')&&teacherAdmin.includes("action:'value'")],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
