@@ -58,7 +58,7 @@ const checks=[
   ['student weekly automation does not fetch before the weekly panel exists',student.includes("const panel=weeklyPanel();\n    if(!panel)return;\n    try{\n      const data=await getWeeklyData()")],
   ['teacher evaluation writes do not immediately re-read the full student snapshot',studentStateApi.includes('STATELESS_ACTIONS')&&studentStateApi.includes("'quick_assessment'")&&studentStateApi.includes("'assessment_group'")],
   ['teacher homework status does not poll student state every ten seconds',!homeworkStatus.includes('setInterval(')],
-  ['teacher homework status only refreshes while the homework tab is visible',homeworkStatus.includes("panel.hidden")&&homeworkStatus.includes("data-tab=\"homework\"")],
+  ['teacher homework status only refreshes while the homework tab is visible',(homeworkStatus.includes('currentPanel.hidden')||homeworkStatus.includes('!node.hidden'))&&homeworkStatus.includes('data-tab="homework"')],
   ['teacher student actions no longer need browser prompt',!forms.includes('window.prompt')&&!forms.includes('prompt(')&&forms.includes('/api/student-state')],
   ['legacy delegated library files stay available only as rollback references',library.includes('/api/teacher-portfolio')&&libraryDelegation.includes('.libraryCard')],
 ];
