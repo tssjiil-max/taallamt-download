@@ -25,6 +25,7 @@
       .finally(()=>{weeklyPromise=null});
     return weeklyPromise;
   }
+  if(typeof window.__taallamtLearningPreview!=='function')window.__taallamtLearningPreview=getWeeklyData;
 
   async function hydrateWeekly(){
     const panel=weeklyPanel();
