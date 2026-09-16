@@ -47,6 +47,8 @@
   }
 
   if(STUDENT_PATH){
+    const params=new URLSearchParams(location.search),studentId=params.get('studentId')||'';
+    if(!studentId)return;
     installStyle();document.documentElement.classList.add('studentAccessPending');
     let activeAccess=null,resolveReady;const studentAccessReady=new Promise(resolve=>{resolveReady=resolve;});
     window.__taallamtStudentAccessReady=studentAccessReady;
@@ -63,13 +65,11 @@
       return originalFetch(input,init);
     };
 
-    const params=new URLSearchParams(location.search),studentId=params.get('studentId')||'';
     const invite=params.get('invite')||'';
     const stored=studentId?localStorage.getItem(tokenKey(studentId))||'':'';
     let deviceToken=stored,created=false;
     (async()=>{
       try{
-        if(!studentId)throw Object.assign(new Error('STUDENT_NOT_FOUND'),{code:'STUDENT_NOT_FOUND'});
         let result;
         if(invite){
           if(!deviceToken){deviceToken=randomToken();created=true;localStorage.setItem(tokenKey(studentId),deviceToken);}
