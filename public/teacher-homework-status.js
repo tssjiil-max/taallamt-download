@@ -13,7 +13,7 @@
     if(inflight)return inflight;
     inflight=(async()=>{
       try{
-        const r=await fetch(`/api/student-state?studentId=${encodeURIComponent(studentId)}`,{cache:'no-store'}),state=await r.json();if(!r.ok||!state.ok)return;
+        const r=await fetch(`/api/student-state?studentId=${encodeURIComponent(studentId)}&view=homework`,{cache:'no-store'}),state=await r.json();if(!r.ok||!state.ok)return;
         let box=currentPanel.querySelector('.tsaHomeworkState');if(!box){box=document.createElement('div');box.className='tsaHomeworkState';Object.assign(box.style,{margin:'0 0 12px',padding:'10px 12px',borderRadius:'12px',background:'#eef7ff',color:'#245b83',fontSize:'12px',fontWeight:'800',lineHeight:'1.7'});const grid=currentPanel.querySelector('.tsaActionGrid');currentPanel.insertBefore(box,grid||null)}
         const completed=new Set((state.homeworkEvidence||[]).filter(x=>x.status==='completed').map(x=>x.homeworkId));
         const rows=(state.homework||[]).slice(0,4).map(x=>`${completed.has(x.id)?'✅':'⏳'} ${x.title}`);
