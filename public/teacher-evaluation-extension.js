@@ -15,7 +15,7 @@
     return unique(values);
   }
 
-  async function fetchState(studentId){const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(studentId)}`,{cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);return data;}
+  async function fetchState(studentId){const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(studentId)}&view=weekly_values`,{cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);return data;}
   async function saveExtension(studentId,payload){const response=await fetch('/api/student-evaluation',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId,...payload})});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);return data;}
 
   function installStyle(){
