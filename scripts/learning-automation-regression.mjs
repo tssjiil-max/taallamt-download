@@ -14,6 +14,7 @@ const student=readFileSync('public/student-learning-automation.js','utf8');
 const bridge=existsSync('public/student-automation-bridge.js')?readFileSync('public/student-automation-bridge.js','utf8'):'';
 const automationApi=readFileSync('api/learning-automation.js','utf8');
 const studentStateApi=readFileSync('api/student-state.js','utf8');
+const homeworkStatus=readFileSync('public/teacher-homework-status.js','utf8');
 const forms=readFileSync('public/teacher-action-forms.js','utf8');
 
 const professionalSections=['الهوية المهنية','الأهداف المهنية','التخطيط للتعلم','تنفيذ التدريس والأنشطة','التقويم ونواتج التعلم','الفروق الفردية والخطط العلاجية','التواصل مع الأسرة','التحفيز والإنجاز','التطوير المهني والمجتمع المهني','المبادرات والمشروعات','ملخص الأثر'];
@@ -56,6 +57,8 @@ const checks=[
   ['student weekly automation avoids rewriting identical schedule text',student.includes("if(sub.textContent!==nextText)sub.textContent=nextText")],
   ['student weekly automation does not fetch before the weekly panel exists',student.includes("const panel=weeklyPanel();\n    if(!panel)return;\n    try{\n      const data=await getWeeklyData()")],
   ['teacher evaluation writes do not immediately re-read the full student snapshot',studentStateApi.includes('STATELESS_ACTIONS')&&studentStateApi.includes("'quick_assessment'")&&studentStateApi.includes("'assessment_group'")],
+  ['teacher homework status does not poll student state every ten seconds',!homeworkStatus.includes('setInterval(')],
+  ['teacher homework status only refreshes while the homework tab is visible',homeworkStatus.includes("panel.hidden")&&homeworkStatus.includes("data-tab=\"homework\"")],
   ['teacher student actions no longer need browser prompt',!forms.includes('window.prompt')&&!forms.includes('prompt(')&&forms.includes('/api/student-state')],
   ['legacy delegated library files stay available only as rollback references',library.includes('/api/teacher-portfolio')&&libraryDelegation.includes('.libraryCard')],
 ];
