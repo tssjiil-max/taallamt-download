@@ -13,7 +13,14 @@ const timeOf=(x)=>String(x.enteredAt||x.createdAt||x.assignedAt||x.startedAt||''
 const desc=(a,b)=>timeOf(b).localeCompare(timeOf(a));
 const behaviorChoices={distinguished:{label:'متميز',tone:'positive'},consistent:{label:'مستمر',tone:'positive'},needs_followup:{label:'يحتاج متابعة',tone:'needs_attention'}};
 const MAX_GUARDIAN_DEVICES=2;
-const STATELESS_ACTIONS=new Set(['assessment','behavior','quick_assessment','assessment_group']);
+const STATELESS_ACTIONS=new Set(['assessment','behavior','quick_assessment','assessment_group','followup','student_note','guardian_message','remediation','homework','training','student_profile']);
+const WEEKLY_CONTEXT_TTL_MS=5*60*1000;
+const FULL_SNAPSHOT_TTL_MS=20*1000;
+let weeklyContextCache=null;
+let weeklyContextAt=0;
+let weeklyContextPromise=null;
+const snapshotCache=new Map();
+const snapshotInflight=new Map();
 const accessToken=()=>randomBytes(24).toString('base64url');
 const hashToken=(value)=>createHash('sha256').update(String(value||'')).digest('hex');
 const validAccessToken=(value)=>typeof value==='string'&&value.length>=20&&value.length<=200;
@@ -24,44 +31,117 @@ function sanitizeProfile(data){
   return safe;
 }
 
+async function weeklyContext(){
+  if(weeklyContextCache&&Date.now()-weeklyContextAt<WEEKLY_CONTEXT_TTL_MS)return weeklyContextCache;
+  if(weeklyContextPromise)return weeklyContextPromise;
+  weeklyContextPromise=(async()=>{
+    const db=adminDb(),root=base();
+    const [curriculum,weeklyPlan]=await Promise.all([
+      db.collection(`${root}/curriculumTargets`).get(),
+      db.collection(`${root}/weeklyPlans`).where('publishStatus','==','published').get()
+    ]);
+    const curriculumRows=items(curriculum);
+    const weeklyPlanAll=items(weeklyPlan).filter(x=>x.publishStatus==='published').sort((a,b)=>String(b.weekKey||'').localeCompare(String(a.weekKey||'')));
+    const latestWeekKey=weeklyPlanAll[0]?.weekKey;
+    const value={curriculum:curriculumRows,weeklyPlan:latestWeekKey?weeklyPlanAll.filter(x=>x.weekKey===latestWeekKey):[]};
+    weeklyContextCache=value;weeklyContextAt=Date.now();return value;
+  })().finally(()=>{weeklyContextPromise=null});
+  return weeklyContextPromise;
+}
+
+async function homeworkRows(studentId){
+  const db=adminDb(),root=base();
+  const evidence=await db.collection(`${root}/homeworkEvidence`).where('studentId','==',studentId).get();
+  const evidenceRows=items(evidence).sort(desc).slice(0,30);
+  const homeworkIds=[...new Set(evidenceRows.map(x=>x.homeworkId).filter(Boolean))];
+  const homeworkDocs=homeworkIds.length?await Promise.all(homeworkIds.map(id=>db.doc(`${root}/homework/${id}`).get())):[];
+  return {homework:homeworkDocs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()})).sort(desc),homeworkEvidence:evidenceRows};
+}
+
+async function profileSnapshot(studentId){
+  const student=getStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
+  const profile=await adminDb().doc(`${base()}/studentProfiles/${studentId}`).get();
+  return {ok:true,student,profile:profile.exists?sanitizeProfile(profile.data()):null};
+}
+
+async function rewardSnapshot(studentId){
+  const student=getStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
+  const ledger=await adminDb().doc(`${base()}/rewardLedgers/${studentId}_${monthKey()}`).get();
+  return {ok:true,student,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0};
+}
+
+async function assessmentMetaSnapshot(studentId){
+  const db=adminDb(),student=getStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
+  const root=base();
+  const [profile,assessments]=await Promise.all([
+    db.doc(`${root}/studentProfiles/${studentId}`).get(),
+    db.collection(`${root}/assessments`).where('studentId','==',studentId).get()
+  ]);
+  const assessmentRows=items(assessments);
+  const needsFollowupCount=assessmentRows.reduce((total,row)=>total+(row.behavior||[]).filter(item=>item?.code==='needs_followup').length,0);
+  return {ok:true,student,profile:profile.exists?sanitizeProfile(profile.data()):null,needsFollowupCount};
+}
+
+async function weeklyValuesSnapshot(studentId){
+  const student=getStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
+  return {ok:true,student,...await weeklyContext()};
+}
+
+async function evaluationSnapshot(studentId){
+  const db=adminDb(),student=getStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
+  const assessments=await db.collection(`${base()}/assessments`).where('studentId','==',studentId).get();
+  return {ok:true,student,assessments:items(assessments).sort(desc).slice(0,30),...await weeklyContext()};
+}
+
+async function homeworkSnapshot(studentId,includeAssessments=false){
+  const db=adminDb(),student=getStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
+  const root=base();
+  if(!includeAssessments)return {ok:true,student,...await homeworkRows(studentId)};
+  const [activity,assessments]=await Promise.all([
+    homeworkRows(studentId),
+    db.collection(`${root}/assessments`).where('studentId','==',studentId).get()
+  ]);
+  return {ok:true,student,...activity,assessments:items(assessments).sort(desc).slice(0,30)};
+}
+
 async function studentSnapshot(studentId){
   const db=adminDb(),student=getStudent(studentId);
   if(!student)throw new Error('STUDENT_NOT_FOUND');
   const root=base();
   const ledgerRef=db.doc(`${root}/rewardLedgers/${studentId}_${monthKey()}`);
-  const [ledger,profile,assessments,remediation,portfolio,evidence,communications,curriculum,weeklyPlan]=await Promise.all([
+  const [ledger,profile,assessments,remediation,portfolio,activity,communications,context]=await Promise.all([
     ledgerRef.get(),
     db.doc(`${root}/studentProfiles/${studentId}`).get(),
     db.collection(`${root}/assessments`).where('studentId','==',studentId).get(),
     db.collection(`${root}/remediationPlans`).where('studentId','==',studentId).get(),
     db.collection(`${root}/portfolioEvents`).where('studentId','==',studentId).get(),
-    db.collection(`${root}/homeworkEvidence`).where('studentId','==',studentId).get(),
+    homeworkRows(studentId),
     db.collection(`${root}/communications`).where('studentId','==',studentId).get(),
-    db.collection(`${root}/curriculumTargets`).get(),
-    db.collection(`${root}/weeklyPlans`).where('publishStatus','==','published').get()
+    weeklyContext()
   ]);
   const assessmentRows=items(assessments).sort(desc);
   const needsFollowupCount=assessmentRows.reduce((total,row)=>total+(row.behavior||[]).filter(item=>item?.code==='needs_followup').length,0);
-  const evidenceRows=items(evidence).sort(desc);
-  const homeworkIds=[...new Set(evidenceRows.map(x=>x.homeworkId).filter(Boolean))];
-  const homeworkDocs=homeworkIds.length?await Promise.all(homeworkIds.map(id=>db.doc(`${root}/homework/${id}`).get())):[];
-  const homework=homeworkDocs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()})).sort(desc);
-  const curriculumRows=items(curriculum);
-  const weeklyPlanAll=items(weeklyPlan).filter(x=>x.publishStatus==='published').sort((a,b)=>String(b.weekKey||'').localeCompare(String(a.weekKey||'')));
-  const latestWeekKey=weeklyPlanAll[0]?.weekKey;
-  const weeklyPlanRows=latestWeekKey?weeklyPlanAll.filter(x=>x.weekKey===latestWeekKey):[];
   return {
     ok:true,student,profile:profile.exists?sanitizeProfile(profile.data()):null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
     needsFollowupCount,
     assessments:assessmentRows.slice(0,30),
     remediation:items(remediation).sort(desc).slice(0,20),
     portfolio:items(portfolio).sort(desc).slice(0,30),
-    homework,homeworkEvidence:evidenceRows.slice(0,30),
+    homework:activity.homework,homeworkEvidence:activity.homeworkEvidence,
     communications:items(communications).sort(desc).slice(0,30),
-    curriculum:curriculumRows,
-    weeklyPlan:weeklyPlanRows
+    curriculum:context.curriculum,
+    weeklyPlan:context.weeklyPlan
   };
 }
+
+async function cachedStudentSnapshot(studentId){
+  const cached=snapshotCache.get(studentId);
+  if(cached&&Date.now()-cached.at<FULL_SNAPSHOT_TTL_MS)return cached.value;
+  if(snapshotInflight.has(studentId))return snapshotInflight.get(studentId);
+  const promise=studentSnapshot(studentId).then(value=>{snapshotCache.set(studentId,{at:Date.now(),value});return value}).finally(()=>snapshotInflight.delete(studentId));
+  snapshotInflight.set(studentId,promise);return promise;
+}
+function invalidateStudentSnapshot(studentId){snapshotCache.delete(studentId);snapshotInflight.delete(studentId)}
 
 async function shareGuardianAccess(studentId,body){
   const requested=String(body.inviteToken||'').trim();
@@ -227,7 +307,15 @@ export default async function handler(req,res){
     const student=getStudent(studentId);if(!student)return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
     if(req.method==='GET'){
       if(String(req.query?.guardianAccess||'')==='1')await verifyGuardianDevice(studentId,{deviceToken:String(req.query?.deviceToken||'')});
-      return res.status(200).json(await studentSnapshot(studentId));
+      const view=String(req.query?.view||'full');
+      if(view==='profile')return res.status(200).json(await profileSnapshot(studentId));
+      if(view==='reward')return res.status(200).json(await rewardSnapshot(studentId));
+      if(view==='assessment_meta')return res.status(200).json(await assessmentMetaSnapshot(studentId));
+      if(view==='weekly_values')return res.status(200).json(await weeklyValuesSnapshot(studentId));
+      if(view==='evaluation')return res.status(200).json(await evaluationSnapshot(studentId));
+      if(view==='homework')return res.status(200).json(await homeworkSnapshot(studentId,false));
+      if(view==='activity')return res.status(200).json(await homeworkSnapshot(studentId,true));
+      return res.status(200).json(await cachedStudentSnapshot(studentId));
     }
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
     previewWriteGuard();
@@ -245,8 +333,9 @@ export default async function handler(req,res){
     else if(action==='homework'||action==='training')result=await saveHomework(studentId,{...body,kind:action});
     else if(action==='student_profile')result=await saveStudentProfile(studentId,body);
     else return res.status(400).json({ok:false,error:'ACTION_NOT_SUPPORTED'});
+    invalidateStudentSnapshot(studentId);
     if(action.startsWith('access_')||STATELESS_ACTIONS.has(action))return res.status(200).json({ok:true,...result});
-    return res.status(200).json({ok:true,...result,state:await studentSnapshot(studentId)});
+    return res.status(200).json({ok:true,...result,state:await cachedStudentSnapshot(studentId)});
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
     const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message==='ACCESS_DEVICE_LIMIT'?409:['ACCESS_INVITE_INVALID','ACCESS_DEVICE_INVALID','ACCESS_DEVICE_NOT_LINKED','ACCESS_SHARE_FORBIDDEN'].includes(message)?403:message.endsWith('_REQUIRED')||message.endsWith('_EMPTY')||message.endsWith('_INVALID')?400:500;
