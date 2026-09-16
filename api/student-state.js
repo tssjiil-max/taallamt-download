@@ -10,6 +10,7 @@ const jsonBody=(req)=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req
 const items=(snap)=>snap.docs.map(d=>({id:d.id,...d.data()}));
 const timeOf=(x)=>String(x.enteredAt||x.createdAt||x.assignedAt||x.startedAt||'');
 const desc=(a,b)=>timeOf(b).localeCompare(timeOf(a));
+const behaviorChoices={distinguished:{label:'متميز',tone:'positive'},consistent:{label:'مستمر',tone:'positive'},needs_followup:{label:'يحتاج متابعة',tone:'needs_attention'}};
 
 async function studentSnapshot(studentId){
   const db=adminDb(),student=getStudent(studentId);
@@ -25,13 +26,16 @@ async function studentSnapshot(studentId){
     db.collection(`${root}/homeworkEvidence`).where('studentId','==',studentId).get(),
     db.collection(`${root}/communications`).where('studentId','==',studentId).get()
   ]);
+  const assessmentRows=items(assessments).sort(desc);
+  const needsFollowupCount=assessmentRows.reduce((total,row)=>total+(row.behavior||[]).filter(item=>item?.code==='needs_followup').length,0);
   const evidenceRows=items(evidence).sort(desc);
   const homeworkIds=[...new Set(evidenceRows.map(x=>x.homeworkId).filter(Boolean))];
   const homeworkDocs=homeworkIds.length?await Promise.all(homeworkIds.map(id=>db.doc(`${root}/homework/${id}`).get())):[];
   const homework=homeworkDocs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()})).sort(desc);
   return {
     ok:true,student,profile:profile.exists?profile.data():null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
-    assessments:items(assessments).sort(desc).slice(0,30),
+    needsFollowupCount,
+    assessments:assessmentRows.slice(0,30),
     remediation:items(remediation).sort(desc).slice(0,20),
     portfolio:items(portfolio).sort(desc).slice(0,30),
     homework,homeworkEvidence:evidenceRows.slice(0,30),
@@ -51,8 +55,12 @@ async function addStar(studentId){
   });
 }
 
+function validAcademic(body){
+  return Array.isArray(body.academic)?body.academic.filter(x=>x&&typeof x.targetId==='string'&&['mastered','needs_practice'].includes(x.result)):[];
+}
+
 async function saveAssessment(studentId,body){
-  const academic=Array.isArray(body.academic)?body.academic.filter(x=>x&&typeof x.targetId==='string'&&['mastered','needs_practice'].includes(x.result)):[];
+  const academic=validAcademic(body);
   if(!academic.length)throw new Error('ASSESSMENT_EMPTY');
   const db=adminDb(),root=base(),timestamp=now(),id=uid('assessment');
   const record={id,studentId,classSessionId:`manual:${timestamp.slice(0,10)}`,sessionDate:timestamp.slice(0,10),enteredAt:timestamp,track:'general',academic,behavior:[]};
@@ -61,11 +69,29 @@ async function saveAssessment(studentId,body){
 }
 
 async function saveBehavior(studentId,body){
-  const allowed={distinguished:{label:'متميز',tone:'positive'},consistent:{label:'مستمر',tone:'positive'},needs_followup:{label:'يحتاج متابعة',tone:'needs_attention'}};
-  const choice=allowed[body.code];if(!choice)throw new Error('BEHAVIOR_INVALID');
+  const choice=behaviorChoices[body.code];if(!choice)throw new Error('BEHAVIOR_INVALID');
   const db=adminDb(),root=base(),timestamp=now(),id=uid('behavior');
   await db.doc(`${root}/assessments/${id}`).set({id,studentId,classSessionId:`manual:${timestamp.slice(0,10)}`,sessionDate:timestamp.slice(0,10),enteredAt:timestamp,track:'general',academic:[],behavior:[{code:body.code,label:choice.label,tone:choice.tone}]});
   return {saved:true,id,label:choice.label};
+}
+
+async function saveQuickAssessment(studentId,body){
+  const academic=validAcademic(body);
+  if(!academic.length)throw new Error('ASSESSMENT_EMPTY');
+  const behaviorCode=String(body.behaviorCode||'distinguished');
+  const choice=behaviorChoices[behaviorCode];if(!choice)throw new Error('BEHAVIOR_INVALID');
+  const db=adminDb(),root=base(),timestamp=now(),id=uid('quick_assessment');
+  const record={id,studentId,classSessionId:`manual:${timestamp.slice(0,10)}`,sessionDate:timestamp.slice(0,10),enteredAt:timestamp,track:'general',academic,behavior:[{code:behaviorCode,label:choice.label,tone:choice.tone}],source:'quick_assessment'};
+  await db.doc(`${root}/assessments/${id}`).set(record);
+  return {saved:true,id,label:choice.label};
+}
+
+async function saveAssessmentGroup(studentId,body){
+  const assessmentGroup=String(body.assessmentGroup||'');
+  if(!['followup','focused'].includes(assessmentGroup))throw new Error('ASSESSMENT_GROUP_INVALID');
+  const db=adminDb(),root=base();
+  await db.doc(`${root}/studentProfiles/${studentId}`).set({studentId,assessmentGroup,assessmentGroupUpdatedAt:now(),updatedAt:now()},{merge:true});
+  return {saved:true,assessmentGroup};
 }
 
 async function saveCommunication(studentId,body){
@@ -123,6 +149,8 @@ export default async function handler(req,res){
     if(action==='star')result=await addStar(studentId);
     else if(action==='assessment')result=await saveAssessment(studentId,body);
     else if(action==='behavior')result=await saveBehavior(studentId,body);
+    else if(action==='quick_assessment')result=await saveQuickAssessment(studentId,body);
+    else if(action==='assessment_group')result=await saveAssessmentGroup(studentId,body);
     else if(['followup','student_note','guardian_message','remediation'].includes(action))result=await saveCommunication(studentId,{...body,kind:action});
     else if(action==='homework'||action==='training')result=await saveHomework(studentId,{...body,kind:action});
     else if(action==='student_profile')result=await saveStudentProfile(studentId,body);
