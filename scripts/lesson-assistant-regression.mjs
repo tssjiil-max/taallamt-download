@@ -8,6 +8,7 @@ const shellCss=read('public/teacher-lesson-shell.css');
 const planner=read('src/core/lesson-assistant.ts');
 const automationApi=read('api/learning-automation.js');
 const assistant=read('server/lesson-assistant-ai.js');
+const vercel=read('vercel.json');
 const pkg=JSON.parse(read('package.json')||'{}');
 
 const checks=[
@@ -19,7 +20,8 @@ const checks=[
   ['lesson page reads existing learning automation preview',page.includes('/api/learning-automation?action=preview')],
   ['lesson page exposes teacher controls',page.includes('جهّز الحصة لي')&&page.includes('الاستراتيجية')&&page.includes('إدارة الوقت')],
   ['Shakabombo is an active lesson assistant',page.includes('اسأل شكابمبو')&&page.includes('سؤال طالب')&&page.includes('بسّط')&&page.includes('مثال آخر')],
-  ['lesson page reuses learning automation for assistant requests',page.includes('/api/learning-automation?action=assistant')&&page.includes('subjectLabel')&&page.includes('skill')&&!page.includes('CLASS_STUDENTS')],
+  ['lesson page sends only bounded lesson context to assistant route',page.includes('/api/lesson-assistant')&&page.includes('subjectLabel')&&page.includes('skill')&&!page.includes('CLASS_STUDENTS')],
+  ['assistant route is rewritten to the existing learning function',vercel.includes('"source":"/api/lesson-assistant"')&&vercel.includes('"destination":"/api/learning-automation?action=assistant"')],
   ['no extra assistant serverless function remains',!existsSync('api/lesson-assistant.js')],
   ['learning automation exposes assistant action',automationApi.includes("action==='assistant'")&&automationApi.includes('runLessonAssistant')],
   ['planner module exists with subject-aware strategies',planner.includes('strategyOptionsForLesson')&&planner.includes("quran")&&planner.includes("islamic")&&planner.includes("spelling")],
