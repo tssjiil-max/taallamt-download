@@ -26,7 +26,6 @@ const review=gradeHomeworkAnswer({answer:'كتبت فقرة طويلة عن ال
 assert.equal(review.requiresTeacherReview,true);
 
 const required=[
-  'api/homework-create.js',
   'api/homework-complete.js',
   'public/teacher-action-forms.js',
   'public/student-homework-autograde.js',
@@ -34,19 +33,20 @@ const required=[
   'index.html'
 ];
 for(const path of required)assert.equal(existsSync(path),true,`missing ${path}`);
-const createApi=readFileSync('api/homework-create.js','utf8');
 const completeApi=readFileSync('api/homework-complete.js','utf8');
 const teacherForm=readFileSync('public/teacher-action-forms.js','utf8');
 const studentUi=readFileSync('public/student-homework-autograde.js','utf8');
 const teacherStatus=readFileSync('public/teacher-homework-status.js','utf8');
 const index=readFileSync('index.html','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
-assert.equal(createApi.includes('createAutoGradingConfig'),true);
-assert.equal(createApi.includes('autoGrading'),true);
+assert.equal(existsSync('api/homework-create.js'),false,'auto grading must reuse student-state to stay within the Vercel function budget');
+assert.equal(studentState.includes('createAutoGradingConfig'),true);
+assert.equal(studentState.includes('autoGrading'),true);
 assert.equal(completeApi.includes('gradeHomeworkAnswer'),true);
 assert.equal(completeApi.includes("status:grade.status"),true);
 assert.equal(teacherForm.includes('answerKey'),true);
-assert.equal(teacherForm.includes('/api/homework-create'),true);
+assert.equal(teacherForm.includes('/api/student-state'),true);
+assert.equal(teacherForm.includes('/api/homework-create'),false);
 assert.equal(studentUi.includes('/api/homework-complete'),true);
 assert.equal(studentUi.includes('درجتك'),true);
 assert.equal(teacherStatus.includes('score'),true);
