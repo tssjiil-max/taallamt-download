@@ -1,7 +1,7 @@
 import {createHash,randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
-import {publicAutoGradingConfig} from '../server/homework-autograde.mjs';
+import {createAutoGradingConfig,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.mjs';
 
 const base=()=>`workspaces/${WORKSPACE_ID}`;
 const monthKey=()=>new Date().toISOString().slice(0,7);
@@ -9,6 +9,7 @@ const now=()=>new Date().toISOString();
 const uid=(prefix)=>`${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
 const clampStars=(n)=>Math.max(0,Math.min(30,Number(n)||0));
 const jsonBody=(req)=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
+const acceptedHomeworkAnswers=value=>Array.isArray(value)?value:String(value||'').split(/[\n,،]+/).map(x=>x.trim()).filter(Boolean);
 const items=(snap)=>snap.docs.map(d=>({id:d.id,...d.data()}));
 const timeOf=(x)=>String(x.enteredAt||x.createdAt||x.assignedAt||x.startedAt||'');
 const desc=(a,b)=>timeOf(b).localeCompare(timeOf(a));
@@ -184,15 +185,19 @@ async function saveCommunication(studentId,body){
 
 async function saveHomework(studentId,body){
   const title=String(body.title||'').trim();if(!title)throw new Error('TITLE_REQUIRED');
-  const instructions=String(body.instructions||'').trim();
+  const instructions=String(body.instructions||'').trim().slice(0,2000);
   const kind=body.kind==='training'?'training':'homework';
+  const answerKey=String(body.answerKey||'').trim().slice(0,500);
+  const alternatives=acceptedHomeworkAnswers(body.acceptedAnswers).slice(0,12).map(x=>String(x).slice(0,500));
+  const maxScore=Math.min(100,Math.max(1,Number(body.maxScore)||10));
+  const autoGrading=answerKey?createAutoGradingConfig({answerKey,acceptedAnswers:alternatives,maxScore},gradingSecretFromEnv()):null;
   const db=adminDb(),root=base(),id=uid(kind),evidenceId=`${id}_${studentId}`,timestamp=now();
-  const record={id,classId:CLASS_ID,subject:kind==='training'?'تدريب منزلي':'واجب',title,instructions,targetIds:[],assignedAt:timestamp,status:'published',kind};
+  const record={id,classId:CLASS_ID,subject:kind==='training'?'تدريب منزلي':'واجب',title,instructions,targetIds:[],assignedAt:timestamp,status:'published',kind,...(autoGrading?{autoGrading}:{})};
   const batch=db.batch();
   batch.set(db.doc(`${root}/homework/${id}`),record);
-  batch.set(db.doc(`${root}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId,status:'assigned',assignedAt:timestamp});
+  batch.set(db.doc(`${root}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId,status:'assigned',assignedAt:timestamp,maxScore:autoGrading?.maxScore||maxScore,autoGradingEnabled:Boolean(autoGrading)});
   await batch.commit();
-  return {saved:true,id,record};
+  return {saved:true,id,autoGradingEnabled:Boolean(autoGrading),maxScore:autoGrading?.maxScore||maxScore};
 }
 
 async function saveStudentProfile(studentId,body){
