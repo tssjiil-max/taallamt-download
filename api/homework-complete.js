@@ -1,6 +1,6 @@
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID} from '../server/class-roster.js';
-import {gradeHomeworkAnswer,gradingSecretFromEnv} from '../server/homework-autograde.mjs';
+import {gradeHomeworkAnswer,gradingSecretFromEnv} from '../server/homework-autograde.js';
 
 export default async function handler(req,res){
   try{
