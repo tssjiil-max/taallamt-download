@@ -1,18 +1,20 @@
 import {existsSync,readFileSync} from 'node:fs';
 
 const read=(path)=>existsSync(path)?readFileSync(path,'utf8'):'';
-const main=read('src/main.tsx');
-const css=read('src/ui.css');
+const index=read('index.html');
+const page=read('src/teacher-lesson-page.tsx');
+const css=read('src/teacher-lesson.css');
 const planner=read('src/core/lesson-assistant.ts');
 const api=read('api/lesson-assistant.js');
 const pkg=JSON.parse(read('package.json')||'{}');
 
 const checks=[
-  ['lesson route exists',main.includes("location.pathname==='/teacher/lesson'")&&main.includes('<TeacherLesson')],
-  ['start lesson navigates instead of alerting',main.includes("go('/teacher/lesson')")&&!main.includes("onClick={()=>alert('تم بدء الحصة')}")],
-  ['lesson page reads existing learning automation preview',main.includes('/api/learning-automation?action=preview')],
-  ['lesson page exposes teacher controls',main.includes('جهّز الحصة لي')&&main.includes('الاستراتيجية')&&main.includes('إدارة الوقت')],
-  ['Shakabombo is an active lesson assistant',main.includes('اسأل شكابمبو')&&main.includes('سؤال طالب')&&main.includes('بسّط')&&main.includes('مثال آخر')],
+  ['lesson route has an isolated page entry',index.includes("location.pathname==='/teacher/lesson'")&&index.includes('/src/teacher-lesson-page.tsx')],
+  ['start lesson is intercepted without changing the existing teacher component',index.includes('.startLesson')&&index.includes("location.assign('/teacher/lesson')")],
+  ['lesson page reads existing learning automation preview',page.includes('/api/learning-automation?action=preview')],
+  ['lesson page exposes teacher controls',page.includes('جهّز الحصة لي')&&page.includes('الاستراتيجية')&&page.includes('إدارة الوقت')],
+  ['Shakabombo is an active lesson assistant',page.includes('اسأل شكابمبو')&&page.includes('سؤال طالب')&&page.includes('بسّط')&&page.includes('مثال آخر')],
+  ['lesson page posts only bounded lesson context to assistant API',page.includes('/api/lesson-assistant')&&page.includes('subjectLabel')&&page.includes('skill')&&!page.includes('CLASS_STUDENTS')],
   ['planner module exists with subject-aware strategies',planner.includes('strategyOptionsForLesson')&&planner.includes("quran")&&planner.includes("islamic")&&planner.includes("spelling")],
   ['planner builds lesson steps without student writes',planner.includes('buildLessonPlan')&&!planner.includes('assessments/')&&!planner.includes('studentProfiles/')],
   ['assistant API uses Vercel AI SDK',api.includes("from 'ai'")&&api.includes('generateText')],
