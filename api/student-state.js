@@ -1,7 +1,7 @@
 import {createHash,randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
-import {createAutoGradingConfig,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
+import {createAutoGradingConfig,gradeHomeworkAnswer,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
 
 const base=()=>`workspaces/${WORKSPACE_ID}`;
 const monthKey=()=>new Date().toISOString().slice(0,7);
@@ -217,11 +217,30 @@ async function saveStudentProfile(studentId,body){
   return {saved:true};
 }
 
+async function autoGradeSmoke(){
+  const studentId='s2-4-02',student=getStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
+  const db=adminDb(),root=base(),id=uid('__autograde_smoke__'),evidenceId=`${id}_${studentId}`,homeworkRef=db.doc(`${root}/homework/${id}`),evidenceRef=db.doc(`${root}/homeworkEvidence/${evidenceId}`),timestamp=now();
+  const secret=gradingSecretFromEnv(),autoGrading=createAutoGradingConfig({answerKey:'المدينة المنورة',acceptedAnswers:['الْمَدِينَةُ الْمُنَوَّرَةُ'],maxScore:10},secret);
+  const batch=db.batch();
+  batch.set(homeworkRef,{id,classId:CLASS_ID,subject:'واجب',title:'اختبار آلي مؤقت',instructions:'اختبار داخلي للتصحيح الآلي',targetIds:[],assignedAt:timestamp,status:'published',kind:'homework',autoGrading});
+  batch.set(evidenceRef,{id:evidenceId,homeworkId:id,studentId,status:'assigned',assignedAt:timestamp,maxScore:10,autoGradingEnabled:true});
+  await batch.commit();
+  const grade=gradeHomeworkAnswer({answer:'الْمَدِينَةُ الْمُنَوَّرَةُ',config:autoGrading,secret});
+  await evidenceRef.set({status:grade.status,submittedAt:timestamp,score:grade.score,maxScore:grade.maxScore,correct:grade.correct,autoFeedback:grade.feedback,gradingMode:grade.mode,requiresTeacherReview:grade.requiresTeacherReview},{merge:true});
+  const [homeworkSnap,evidenceSnap]=await Promise.all([homeworkRef.get(),evidenceRef.get()]);
+  const publicConfig=publicAutoGradingConfig(homeworkSnap.data()?.autoGrading);
+  const verified=Boolean(homeworkSnap.exists&&evidenceSnap.exists&&evidenceSnap.data()?.correct===true&&evidenceSnap.data()?.score===10&&publicConfig?.enabled&&!('answerDigests' in publicConfig));
+  await Promise.all([homeworkRef.delete(),evidenceRef.delete()]);
+  const [homeworkAfter,evidenceAfter]=await Promise.all([homeworkRef.get(),evidenceRef.get()]);
+  return {autoGradeSmoke:true,studentId,studentName:student.name,verified,score:grade.score,maxScore:grade.maxScore,feedback:grade.feedback,answerKeyHidden:!('answerDigests' in (publicConfig||{})),cleaned:!homeworkAfter.exists&&!evidenceAfter.exists};
+}
+
 async function stagingSmoke(){
   previewWriteGuard();
   const db=adminDb(),root=base(),id=uid('__staging_smoke__'),ref=db.doc(`${root}/communications/${id}`),value={id,studentId:'__staging_test__',recipient:'guardian',reasonCode:'smoke',summary:'staging smoke',createdAt:now(),status:'recorded'};
   await ref.set(value);const snap=await ref.get();const readable=snap.exists&&snap.data()?.summary==='staging smoke';await ref.delete();const deleted=!(await ref.get()).exists;
-  return {ok:true,firebaseAdmin:true,write:true,read:readable,delete:deleted,productionProtected:process.env.VERCEL_ENV!=='production'};
+  const autoGrade=await autoGradeSmoke();
+  return {ok:true,firebaseAdmin:true,write:true,read:readable,delete:deleted,autoGrade,productionProtected:process.env.VERCEL_ENV!=='production'};
 }
 
 export default async function handler(req,res){
