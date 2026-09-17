@@ -6,7 +6,8 @@ const page=read('src/teacher-lesson-page.tsx');
 const css=read('src/teacher-lesson.css');
 const shellCss=read('public/teacher-lesson-shell.css');
 const planner=read('src/core/lesson-assistant.ts');
-const api=read('api/lesson-assistant.js');
+const automationApi=read('api/learning-automation.js');
+const assistant=read('server/lesson-assistant-ai.js');
 const pkg=JSON.parse(read('package.json')||'{}');
 
 const checks=[
@@ -18,15 +19,17 @@ const checks=[
   ['lesson page reads existing learning automation preview',page.includes('/api/learning-automation?action=preview')],
   ['lesson page exposes teacher controls',page.includes('جهّز الحصة لي')&&page.includes('الاستراتيجية')&&page.includes('إدارة الوقت')],
   ['Shakabombo is an active lesson assistant',page.includes('اسأل شكابمبو')&&page.includes('سؤال طالب')&&page.includes('بسّط')&&page.includes('مثال آخر')],
-  ['lesson page posts only bounded lesson context to assistant API',page.includes('/api/lesson-assistant')&&page.includes('subjectLabel')&&page.includes('skill')&&!page.includes('CLASS_STUDENTS')],
+  ['lesson page reuses learning automation for assistant requests',page.includes('/api/learning-automation?action=assistant')&&page.includes('subjectLabel')&&page.includes('skill')&&!page.includes('CLASS_STUDENTS')],
+  ['no extra assistant serverless function remains',!existsSync('api/lesson-assistant.js')],
+  ['learning automation exposes assistant action',automationApi.includes("action==='assistant'")&&automationApi.includes('runLessonAssistant')],
   ['planner module exists with subject-aware strategies',planner.includes('strategyOptionsForLesson')&&planner.includes("quran")&&planner.includes("islamic")&&planner.includes("spelling")],
   ['planner builds lesson steps without student writes',planner.includes('buildLessonPlan')&&!planner.includes('assessments/')&&!planner.includes('studentProfiles/')],
-  ['assistant API uses Vercel AI SDK',api.includes("from 'ai'")&&api.includes('generateText')],
-  ['assistant API uses low-cost classroom model',api.includes("openai/gpt-5.6-luna")],
-  ['assistant API uses minimal reasoning for classroom latency',api.includes("reasoning:'none'")],
-  ['assistant API disallows prompt training through the gateway',api.includes('disallowPromptTraining:true')],
-  ['assistant API is bounded to lesson context',api.includes('خارج سياق درس اليوم')&&api.includes('لا تخمّن')&&api.includes('ثماني سنوات')],
-  ['assistant API does not write student or guardian data',!api.includes('adminDb')&&!api.includes('assessments/')&&!api.includes('studentProfiles/')&&!api.includes('communications/')],
+  ['assistant module uses Vercel AI SDK',assistant.includes("from 'ai'")&&assistant.includes('generateText')],
+  ['assistant module uses low-cost classroom model',assistant.includes("openai/gpt-5.6-luna")],
+  ['assistant module uses minimal reasoning for classroom latency',assistant.includes("reasoning:'none'")],
+  ['assistant module disallows prompt training through the gateway',assistant.includes('disallowPromptTraining:true')],
+  ['assistant module is bounded to lesson context',assistant.includes('خارج سياق درس اليوم')&&assistant.includes('لا تخمّن')&&assistant.includes('ثماني سنوات')],
+  ['assistant module has no Firebase or student writes',!assistant.includes('adminDb')&&!assistant.includes('assessments/')&&!assistant.includes('studentProfiles/')&&!assistant.includes('communications/')],
   ['AI dependency is installed',Boolean(pkg.dependencies?.ai)],
   ['lesson workspace has dedicated mobile styles',css.includes('.lessonWorkspace')&&css.includes('.shakabomboAssistant')],
 ];
