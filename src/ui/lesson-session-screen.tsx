@@ -1,6 +1,7 @@
 import React from 'react';
 import {CURRENT_LESSON} from '../core/current-lesson';
 import {buildLessonPlan,replyAsShakabambo,strategyAlternatives} from '../core/lesson-session';
+import {askShakabamboRemote} from '../core/lesson-assistant-client';
 import './lesson-session-screen.css';
 
 const mascot='/student-assets/student-main-logo.webp';
@@ -16,9 +17,11 @@ export function LessonSessionScreen(){
   const [audience,setAudience]=React.useState<'teacher'|'student'>('teacher');
   const [prompt,setPrompt]=React.useState('');
   const [reply,setReply]=React.useState(()=>replyAsShakabambo(context,'','teacher'));
+  const [assistantBusy,setAssistantBusy]=React.useState(false);
+  const [assistantNotice,setAssistantNotice]=React.useState('');
   const plan=React.useMemo(()=>buildLessonPlan(context,{strategy:strategy||undefined,includeTechnology,includeTimeManagement:includeTime}),[strategy,includeTechnology,includeTime,context]);
   const step=plan.steps[Math.min(stepIndex,plan.steps.length-1)];
-  const ask=(text:string)=>{const q=text.trim();if(!q)return;setPrompt(q);setReply(replyAsShakabambo(context,q,audience));};
+  const ask=async(text:string)=>{const q=text.trim();if(!q||assistantBusy)return;setPrompt(q);setAssistantBusy(true);setAssistantNotice('');const localReply=replyAsShakabambo(context,q,audience);try{setReply(await askShakabamboRemote(context,q,audience));}catch{setReply(localReply);setAssistantNotice('تعذر تشغيل شكابمبو الآن عبر الاتصال الذكي، فاستخدمت المساعدة المحلية المرتبطة بالحصة.');}finally{setAssistantBusy(false)}};
   const saveTemplate=()=>{try{localStorage.setItem('taallamt:lesson-template',JSON.stringify({context,plan,savedAt:new Date().toISOString()}));setReply('تم حفظ هذه الحصة كنموذج لك فقط. لم يتغير أي تقييم أو بيانات طالب.')}catch{setReply('تعذر حفظ الحصة على هذا الجهاز.')}};
 
   return <main className="lessonSession" dir="rtl">
@@ -64,14 +67,15 @@ export function LessonSessionScreen(){
       <section className="assistantCard">
         <div className="assistantHead"><img src={mascot} alt="شكابمبو"/><div><b>يا شكابمبو</b><span>مساعدك في درس {context.lesson}</span></div></div>
         <div className="audienceSwitch"><button className={audience==='teacher'?'active':''} onClick={()=>setAudience('teacher')}>أنا أسأل</button><button className={audience==='student'?'active':''} onClick={()=>setAudience('student')}>سؤال طالب</button></div>
-        <div className="quickPrompts">{['اشرح ببساطة','أعطني مثالًا','اسأل الطلاب','نشاط سريع','تقويم سريع'].map(q=><button key={q} onClick={()=>ask(q)}>{q}</button>)}</div>
-        <div className="assistantReply">{reply}</div>
-        <form className="assistantForm" onSubmit={e=>{e.preventDefault();ask(prompt)}}><input value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={audience==='student'?'اكتب سؤال الطالب...':'اطلب من شكابمبو شيئًا...'} aria-label="سؤال شكابمبو"/><button type="submit">اسأل</button></form>
+        <div className="quickPrompts">{['اشرح ببساطة','أعطني مثالًا','اسأل الطلاب','نشاط سريع','تقويم سريع'].map(q=><button key={q} disabled={assistantBusy} onClick={()=>void ask(q)}>{q}</button>)}</div>
+        <div className="assistantReply">{assistantBusy?'شكابمبو يقرأ سياق الدرس...':reply}</div>
+        {assistantNotice&&<div className="assistantNotice">{assistantNotice}</div>}
+        <form className="assistantForm" onSubmit={e=>{e.preventDefault();void ask(prompt)}}><input value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={audience==='student'?'اكتب سؤال الطالب...':'اطلب من شكابمبو شيئًا...'} aria-label="سؤال شكابمبو"/><button type="submit" disabled={assistantBusy||!prompt.trim()}>{assistantBusy?'...':'اسأل'}</button></form>
       </section>
 
       <section className="lessonFooterActions">
         <button onClick={()=>{setStarted(false);setStepIndex(0)}}>تعديل التجهيز</button>
-        <button onClick={()=>ask('فكرة أخرى')}>فكرة أخرى</button>
+        <button disabled={assistantBusy} onClick={()=>void ask('فكرة أخرى')}>فكرة أخرى</button>
         <button onClick={saveTemplate}>♡ حفظ كحصة نموذجية</button>
       </section>
     </>}
