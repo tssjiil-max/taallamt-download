@@ -54,7 +54,12 @@ export default async function handler(req,res){
     const question=clean(body.question,500);
     if(!question)return res.status(400).json({ok:false,error:'QUESTION_REQUIRED'});
     const context=safeContext(body.context);
-    const {text}=await generateText({model:'openai/gpt-5.6-luna',prompt:lessonPrompt(mode,question,context)});
+    const {text}=await generateText({
+      model:'openai/gpt-5.6-luna',
+      reasoning:'none',
+      providerOptions:{gateway:{disallowPromptTraining:true}},
+      prompt:lessonPrompt(mode,question,context),
+    });
     const answer=clean(text,1200);
     if(!answer)return res.status(503).json({ok:false,error:'ASSISTANT_EMPTY'});
     return res.status(200).json({ok:true,answer});
