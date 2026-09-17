@@ -37,6 +37,11 @@ export function createAutoGradingConfig({answerKey,acceptedAnswers=[],maxScore=1
   return {enabled:true,mode:'auto_exact',maxScore:safeMaxScore(maxScore),answerDigests};
 }
 
+export function publicAutoGradingConfig(config){
+  if(!config?.enabled)return null;
+  return {enabled:true,mode:String(config.mode||'auto_exact'),maxScore:safeMaxScore(config.maxScore)};
+}
+
 export function gradeHomeworkAnswer({answer,config,secret=''}={}){
   const max=safeMaxScore(config?.maxScore);
   if(!config?.enabled||!Array.isArray(config.answerDigests)||!config.answerDigests.length){
