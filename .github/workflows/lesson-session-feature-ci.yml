@@ -13,6 +13,8 @@ jobs:
       - run: npm install
       - name: Unit and regression tests
         run: npm test
+      - name: Shakabambo server regression
+        run: node scripts/lesson-assistant-server-regression.mjs
       - name: TypeScript compile check
         run: npx tsc
       - name: Vite production bundle check
