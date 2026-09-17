@@ -182,4 +182,22 @@ function TeacherLessonPage(){
   </main>;
 }
 
-createRoot(document.getElementById('root')!).render(<TeacherLessonPage/>);
+function mountTeacherLesson(){
+  document.body.classList.add('teacherLessonMode');
+  let host=document.getElementById('teacher-lesson-root');
+  if(!host){host=document.createElement('div');host.id='teacher-lesson-root';document.body.appendChild(host)}
+  createRoot(host).render(<TeacherLessonPage/>);
+}
+
+if(location.pathname==='/teacher/lesson'){
+  mountTeacherLesson();
+}else{
+  document.addEventListener('click',event=>{
+    const target=event.target;
+    const button=target instanceof Element?target.closest('.startLesson'):null;
+    if(!button)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    location.assign('/teacher/lesson');
+  },true);
+}
