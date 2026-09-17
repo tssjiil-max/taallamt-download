@@ -4,9 +4,11 @@
     const panel=document.querySelector('.teacherStudentAdmin [data-panel="homework"]');if(!panel)return;
     try{const r=await fetch(`/api/student-state?studentId=${encodeURIComponent(studentId)}`,{cache:'no-store'}),state=await r.json();if(!r.ok||!state.ok)return;
       let box=panel.querySelector('.tsaHomeworkState');if(!box){box=document.createElement('div');box.className='tsaHomeworkState';Object.assign(box.style,{margin:'0 0 12px',padding:'10px 12px',borderRadius:'12px',background:'#eef7ff',color:'#245b83',fontSize:'12px',fontWeight:'800',lineHeight:'1.7'});const grid=panel.querySelector('.tsaActionGrid');panel.insertBefore(box,grid||null)}
-      const completed=new Set((state.homeworkEvidence||[]).filter(x=>x.status==='completed').map(x=>x.homeworkId));
-      const rows=(state.homework||[]).slice(0,4).map(x=>`${completed.has(x.id)?'✅':'⏳'} ${x.title}`);
-      box.textContent=`الواجبات والتدريبات: ${state.homework?.length||0} · تم التنفيذ: ${completed.size}${rows.length?`\n${rows.join(' · ')}`:''}`;
+      const evidence=new Map((state.homeworkEvidence||[]).map(x=>[x.homeworkId,x]));
+      const completed=[...evidence.values()].filter(x=>x.status==='completed'||x.correct===true).length;
+      const graded=[...evidence.values()].filter(x=>x.status==='graded').length;
+      const rows=(state.homework||[]).slice(0,4).map(x=>{const e=evidence.get(x.id);if(e?.status==='graded')return `${e.correct?'🎯':'📝'} ${x.title} · ${e.score??0}/${e.maxScore??x.autoGrading?.maxScore??10}`;if(e?.status==='submitted')return `📝 ${x.title} · بانتظار المراجعة`;if(e?.status==='completed')return `✅ ${x.title}`;return `⏳ ${x.title}`});
+      box.textContent=`الواجبات والتدريبات: ${state.homework?.length||0} · تم التنفيذ: ${completed} · مصححة آليًا: ${graded}${rows.length?`\n${rows.join(' · ')}`:''}`;
       box.style.whiteSpace='pre-wrap';
     }catch{}
   }
