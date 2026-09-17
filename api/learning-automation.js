@@ -1,6 +1,7 @@
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {contentForWeek,quranForDay,riyadhDateString,riyadhWeekday,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
+import {runLessonAssistant} from '../server/lesson-assistant-ai.js';
 
 const root=()=>`workspaces/${WORKSPACE_ID}`;
 const nowIso=()=>new Date().toISOString();
@@ -101,5 +102,21 @@ export async function previewAutomation(date=new Date()){
 }
 
 export default async function handler(req,res){
-  try{const action=String(req.query?.action||req.body?.action||'preview');if(action==='preview')return res.status(200).json(await previewAutomation());if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});if(action==='seed'){const curriculum=await seedCurriculum();const weekly=await publishWeeklyPlan(weekNumberForDate());return res.status(200).json({ok:true,curriculum,weekly})}if(action==='weekly')return res.status(200).json({ok:true,...await publishWeeklyPlan(Number(req.body?.week)||weekNumberForDate(new Date(Date.now()+86400000))) });if(action==='daily')return res.status(200).json({ok:true,...await publishDailyHomework()});return res.status(400).json({ok:false,error:'ACTION_INVALID'})}catch(error){return res.status(500).json({ok:false,error:error instanceof Error?error.message:String(error)})}
+  try{
+    const action=String(req.query?.action||req.body?.action||'preview');
+    if(action==='preview')return res.status(200).json(await previewAutomation());
+    if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
+    if(action==='assistant'){
+      try{return res.status(200).json({ok:true,...await runLessonAssistant(req.body||{})})}
+      catch(error){
+        const message=error instanceof Error?error.message:String(error);
+        if(['MODE_INVALID','QUESTION_REQUIRED','SUBJECT_INVALID','LESSON_CONTEXT_REQUIRED'].includes(message))return res.status(400).json({ok:false,error:message});
+        return res.status(503).json({ok:false,error:'ASSISTANT_UNAVAILABLE',message:'تعذر تشغيل شكابمبو الآن. الحصة نفسها ما زالت جاهزة ويمكن متابعة الخطة بدون المساعد.'});
+      }
+    }
+    if(action==='seed'){const curriculum=await seedCurriculum();const weekly=await publishWeeklyPlan(weekNumberForDate());return res.status(200).json({ok:true,curriculum,weekly})}
+    if(action==='weekly')return res.status(200).json({ok:true,...await publishWeeklyPlan(Number(req.body?.week)||weekNumberForDate(new Date(Date.now()+86400000))) });
+    if(action==='daily')return res.status(200).json({ok:true,...await publishDailyHomework()});
+    return res.status(400).json({ok:false,error:'ACTION_INVALID'});
+  }catch(error){return res.status(500).json({ok:false,error:error instanceof Error?error.message:String(error)})}
 }
