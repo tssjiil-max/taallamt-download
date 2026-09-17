@@ -25,7 +25,7 @@
       try{
         const isHomework=config.action==='homework'||config.action==='training';
         if(isHomework)payload.kind=config.action;
-        const response=await fetch(isHomework?'/api/homework-create':'/api/student-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+        const response=await fetch('/api/student-state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
         const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
         status.className='taFormStatus ok';status.textContent=isHomework&&data.autoGradingEnabled?'تم الإرسال والتصحيح الآلي مفعّل ✓':'تم الحفظ والإرسال ✓';
         setTimeout(()=>{close();window.dispatchEvent(new Event('focus'))},750)
