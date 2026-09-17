@@ -55,5 +55,7 @@ assert.equal(studentUi.includes('درجتك'),true);
 assert.equal(teacherStatus.includes('score'),true);
 assert.equal(index.includes('/student-homework-autograde.js'),true);
 assert.equal(studentState.includes('publicAutoGradingConfig'),true);
+assert.equal(studentState.includes('autoGradeSmoke'),true);
+assert.equal(studentState.includes("s2-4-02"),true);
 
 console.log('Homework auto-grade regression checks passed.');
