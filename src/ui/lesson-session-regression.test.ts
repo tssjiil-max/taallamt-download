@@ -15,7 +15,9 @@ describe('teacher lesson session regression',()=>{
     const screen=readFileSync(screenPath,'utf8');
     expect(screen).toContain('شكابمبو');
     expect(screen).toContain('replyAsShakabambo');
+    expect(screen).toContain('askShakabamboRemote');
     expect(screen).toContain('سؤال طالب');
+    expect(screen).toContain('تعذر تشغيل شكابمبو الآن');
     expect(screen).not.toMatch(/student-evaluation|star-adjust|guardian|ولي الأمر/);
   });
 });
