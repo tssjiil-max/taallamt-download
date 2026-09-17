@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
-import {createAutoGradingConfig,gradeHomeworkAnswer,normalizeHomeworkAnswer,publicAutoGradingConfig} from '../server/homework-autograde.mjs';
+import {createAutoGradingConfig,gradeHomeworkAnswer,normalizeHomeworkAnswer,publicAutoGradingConfig} from '../server/homework-autograde.js';
 
 assert.equal(normalizeHomeworkAnswer('  السَّلَامُ، عليكم!  '),'السلام عليكم');
 
@@ -25,7 +25,10 @@ assert.equal(wrong.score,0);
 const review=gradeHomeworkAnswer({answer:'كتبت فقرة طويلة عن الدرس',config:null,secret});
 assert.equal(review.requiresTeacherReview,true);
 
+assert.equal(existsSync('server/homework-autograde.mjs'),false,'runtime helper must be .js so Vercel can bundle API functions safely');
+
 const required=[
+  'server/homework-autograde.js',
   'api/homework-complete.js',
   'public/teacher-action-forms.js',
   'public/student-homework-autograde.js',
