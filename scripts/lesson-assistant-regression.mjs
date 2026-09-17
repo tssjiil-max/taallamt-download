@@ -23,6 +23,8 @@ const checks=[
   ['planner builds lesson steps without student writes',planner.includes('buildLessonPlan')&&!planner.includes('assessments/')&&!planner.includes('studentProfiles/')],
   ['assistant API uses Vercel AI SDK',api.includes("from 'ai'")&&api.includes('generateText')],
   ['assistant API uses low-cost classroom model',api.includes("openai/gpt-5.6-luna")],
+  ['assistant API uses minimal reasoning for classroom latency',api.includes("reasoning:'none'")],
+  ['assistant API disallows prompt training through the gateway',api.includes('disallowPromptTraining:true')],
   ['assistant API is bounded to lesson context',api.includes('خارج سياق درس اليوم')&&api.includes('لا تخمّن')&&api.includes('ثماني سنوات')],
   ['assistant API does not write student or guardian data',!api.includes('adminDb')&&!api.includes('assessments/')&&!api.includes('studentProfiles/')&&!api.includes('communications/')],
   ['AI dependency is installed',Boolean(pkg.dependencies?.ai)],
