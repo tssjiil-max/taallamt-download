@@ -11,5 +11,12 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npm test
-      - run: npm run build
+      - name: Unit and regression tests
+        run: npm test
+      - name: TypeScript compile check
+        run: npx tsc
+      - name: Vite production bundle check
+        run: npx vite build
+      - name: Known baseline student vector regression
+        continue-on-error: true
+        run: node scripts/student-vector-assets-regression.mjs
