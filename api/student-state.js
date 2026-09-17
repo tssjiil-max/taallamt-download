@@ -1,7 +1,7 @@
 import {createHash,randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
-import {createAutoGradingConfig,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.mjs';
+import {createAutoGradingConfig,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
 
 const base=()=>`workspaces/${WORKSPACE_ID}`;
 const monthKey=()=>new Date().toISOString().slice(0,7);
