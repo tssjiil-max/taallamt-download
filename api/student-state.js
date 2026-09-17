@@ -1,6 +1,7 @@
 import {createHash,randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
+import {publicAutoGradingConfig} from '../server/homework-autograde.mjs';
 
 const base=()=>`workspaces/${WORKSPACE_ID}`;
 const monthKey=()=>new Date().toISOString().slice(0,7);
@@ -44,7 +45,7 @@ async function studentSnapshot(studentId){
   const evidenceRows=items(evidence).sort(desc);
   const homeworkIds=[...new Set(evidenceRows.map(x=>x.homeworkId).filter(Boolean))];
   const homeworkDocs=homeworkIds.length?await Promise.all(homeworkIds.map(id=>db.doc(`${root}/homework/${id}`).get())):[];
-  const homework=homeworkDocs.filter(x=>x.exists).map(x=>({id:x.id,...x.data()})).sort(desc);
+  const homework=homeworkDocs.filter(x=>x.exists).map(x=>{const raw={id:x.id,...x.data()};const safe=publicAutoGradingConfig(raw.autoGrading);return {...raw,autoGrading:safe||undefined}}).sort(desc);
   const curriculumRows=items(curriculum);
   const weeklyPlanAll=items(weeklyPlan).filter(x=>x.publishStatus==='published').sort((a,b)=>String(b.weekKey||'').localeCompare(String(a.weekKey||'')));
   const latestWeekKey=weeklyPlanAll[0]?.weekKey;
