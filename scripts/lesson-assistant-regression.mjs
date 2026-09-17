@@ -4,13 +4,16 @@ const read=(path)=>existsSync(path)?readFileSync(path,'utf8'):'';
 const index=read('index.html');
 const page=read('src/teacher-lesson-page.tsx');
 const css=read('src/teacher-lesson.css');
+const shellCss=read('public/teacher-lesson-shell.css');
 const planner=read('src/core/lesson-assistant.ts');
 const api=read('api/lesson-assistant.js');
 const pkg=JSON.parse(read('package.json')||'{}');
 
 const checks=[
   ['lesson page module is appended after the existing app scripts',index.includes('/src/teacher-lesson-page.tsx')&&index.lastIndexOf('/src/teacher-lesson-page.tsx')>index.indexOf('/src/main.tsx')],
+  ['lesson shell stylesheet is loaded without replacing existing styles',index.includes('/teacher-lesson-shell.css')],
   ['lesson route is isolated inside its own entry module',page.includes("location.pathname==='/teacher/lesson'")&&page.includes('teacher-lesson-root')],
+  ['lesson route hides only the existing React root',shellCss.includes('body.teacherLessonMode #root')&&shellCss.includes('teacher-lesson-root')],
   ['start lesson is intercepted without changing the existing teacher component',page.includes('.startLesson')&&page.includes("location.assign('/teacher/lesson')")],
   ['lesson page reads existing learning automation preview',page.includes('/api/learning-automation?action=preview')],
   ['lesson page exposes teacher controls',page.includes('جهّز الحصة لي')&&page.includes('الاستراتيجية')&&page.includes('إدارة الوقت')],
@@ -23,7 +26,7 @@ const checks=[
   ['assistant API is bounded to lesson context',api.includes('خارج سياق درس اليوم')&&api.includes('لا تخمّن')&&api.includes('ثماني سنوات')],
   ['assistant API does not write student or guardian data',!api.includes('adminDb')&&!api.includes('assessments/')&&!api.includes('studentProfiles/')&&!api.includes('communications/')],
   ['AI dependency is installed',Boolean(pkg.dependencies?.ai)],
-  ['lesson workspace has dedicated mobile styles',css.includes('.lessonWorkspace')&&css.includes('.shakabomboAssistant')&&css.includes('teacherLessonMode')],
+  ['lesson workspace has dedicated mobile styles',css.includes('.lessonWorkspace')&&css.includes('.shakabomboAssistant')],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
