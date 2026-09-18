@@ -1,6 +1,8 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import './ui.css';
+import {LessonSessionScreen} from './ui/lesson-session-screen';
+import {CURRENT_LESSON} from './core/current-lesson';
 
 const asset=(p:string)=>`/${p}`;
 
@@ -63,6 +65,7 @@ function Mascot({className=''}:{className?:string}){return <img className={`masc
 
 function App(){
  if(location.pathname.startsWith('/student'))return <Student/>;
+ if(location.pathname==='/teacher/lesson')return <LessonSessionScreen/>;
  if(location.pathname==='/teacher/students')return <TeacherStudents/>;
  if(location.pathname==='/teacher/library')return <TeacherLibrary/>;
  if(location.pathname==='/teacher/settings')return <TeacherSettings/>;
@@ -113,8 +116,8 @@ function Teacher(){
   <section className="nowCard">
     <div className="nowHeading"><h2><UiIcon name="clock" size={27}/>حصتي الآن</h2><div className="timePills"><span>10:00 - 10:45</span><b>الحصة 3</b></div></div>
     <div className="nowBody">
-      <button className="startLesson" onClick={()=>alert('تم بدء الحصة')}><UiIcon name="play" size={23}/>ابدأ الحصة</button>
-      <div className="lessonDetails"><h3><SubjectIcon kind="islamic"/>الدراسات الإسلامية</h3><p>الوحدة الثانية: أخلاق المسلم</p><p>الدرس: بر الوالدين</p><p><b>المهارات:</b> يبين صور بر الوالدين – يستنتج أثر البر في حياة المسلم</p></div>
+      <button className="startLesson" onClick={()=>go('/teacher/lesson')}><UiIcon name="play" size={23}/>ابدأ الحصة</button>
+      <div className="lessonDetails"><h3><SubjectIcon kind={CURRENT_LESSON.subject==='arabic'?'lughati':CURRENT_LESSON.subject==='quran'?'quran':CURRENT_LESSON.subject==='islamic'?'islamic':'writing'}/>{CURRENT_LESSON.subjectTitle}</h3><p>الوحدة: {CURRENT_LESSON.unit}</p><p>الدرس: {CURRENT_LESSON.lesson}</p><p><b>المهارات:</b> {CURRENT_LESSON.skills.join(' – ')}</p></div>
     </div>
   </section>
 
