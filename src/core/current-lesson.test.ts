@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {CURRENT_LESSON,resolveLessonFromPreview} from './current-lesson';
+import {CURRENT_LESSON,lessonCandidatesFromPreview,resolveLessonFromPreview} from './current-lesson';
 
 describe('resolveLessonFromPreview',()=>{
   it('reads the scheduled lesson, unit, skill and date from the existing learning preview',()=>{
@@ -16,8 +16,23 @@ describe('resolveLessonFromPreview',()=>{
     expect(context.date).toBe('2026-09-15');
   });
 
-  it('uses the existing current-lesson card only when no scheduled lesson can be resolved',()=>{
+  it('does not pretend there is a current lesson when the schedule has none',()=>{
     const context=resolveLessonFromPreview({localDate:'2026-09-18',scheduledSubjects:[],content:{}},CURRENT_LESSON);
-    expect(context).toEqual(CURRENT_LESSON);
+    expect(context).toBeNull();
+  });
+
+  it('offers only real weekly content as manual lesson choices when no current lesson exists',()=>{
+    const preview={
+      localDate:'2026-09-18',
+      scheduledSubjects:[],
+      content:{
+        arabic:{subject:'arabic',title:'لغتي',unit:'أقاربي',lesson:'صلة الرحم',skill:'استخراج الظواهر اللغوية'},
+        quran:{subject:'quran',title:'القرآن الكريم',surah:'الشمس',lesson:'الآيات 1 - 15',skill:'الحفظ وصحة القراءة'},
+      }
+    };
+    const choices=lessonCandidatesFromPreview(preview,CURRENT_LESSON);
+    expect(choices).toHaveLength(2);
+    expect(choices.map(item=>item.lesson)).toEqual(['صلة الرحم','الآيات 1 - 15']);
+    expect(choices.every(item=>item.date==='2026-09-18')).toBe(true);
   });
 });
