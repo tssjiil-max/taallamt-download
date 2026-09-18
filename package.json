@@ -16,6 +16,7 @@
     "ai": "latest"
   },
   "devDependencies": {
+    "@netlify/functions": "latest",
     "@vitejs/plugin-react": "latest",
     "vite": "latest",
     "typescript": "latest",
