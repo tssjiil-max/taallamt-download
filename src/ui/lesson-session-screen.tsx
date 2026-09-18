@@ -1,13 +1,14 @@
 import React from 'react';
-import {CURRENT_LESSON,loadCurrentLessonContext} from '../core/current-lesson';
-import {buildLessonPlan,replyAsShakabambo,strategyAlternatives} from '../core/lesson-session';
+import {loadLessonWorkspace,type LessonWorkspaceData} from '../core/current-lesson';
+import {buildLessonPlan,replyAsShakabambo,strategyAlternatives,type LessonContext} from '../core/lesson-session';
 import {askShakabamboRemote} from '../core/lesson-assistant-client';
 import './lesson-session-screen.css';
 
 const mascot='/student-assets/student-main-logo.webp';
 
 export function LessonSessionScreen(){
-  const [context,setContext]=React.useState(CURRENT_LESSON);
+  const [workspace,setWorkspace]=React.useState<LessonWorkspaceData|null>(null);
+  const [context,setContext]=React.useState<LessonContext|null>(null);
   const [strategy,setStrategy]=React.useState<string>('');
   const [chooseStrategy,setChooseStrategy]=React.useState(false);
   const [includeTechnology,setIncludeTechnology]=React.useState(false);
@@ -16,16 +17,51 @@ export function LessonSessionScreen(){
   const [stepIndex,setStepIndex]=React.useState(0);
   const [audience,setAudience]=React.useState<'teacher'|'student'>('teacher');
   const [prompt,setPrompt]=React.useState('');
-  const [reply,setReply]=React.useState(()=>replyAsShakabambo(context,'','teacher'));
+  const [reply,setReply]=React.useState('');
   const [assistantBusy,setAssistantBusy]=React.useState(false);
   const [assistantNotice,setAssistantNotice]=React.useState('');
   const [remoteUnavailable,setRemoteUnavailable]=React.useState(false);
-  React.useEffect(()=>{let live=true;loadCurrentLessonContext().then(value=>{if(live)setContext(value)});return()=>{live=false}},[]);
-  React.useEffect(()=>{setStrategy('');setStarted(false);setStepIndex(0);setPrompt('');setAssistantNotice('');setRemoteUnavailable(false);setReply(replyAsShakabambo(context,'','teacher'));},[context.subject,context.lesson,context.skills.join('|')]);
-  const plan=React.useMemo(()=>buildLessonPlan(context,{strategy:strategy||undefined,includeTechnology,includeTimeManagement:includeTime}),[strategy,includeTechnology,includeTime,context]);
-  const step=plan.steps[Math.min(stepIndex,plan.steps.length-1)];
-  const ask=async(text:string)=>{const q=text.trim();if(!q||assistantBusy)return;setPrompt(q);const localReply=replyAsShakabambo(context,q,audience);if(remoteUnavailable){setReply(localReply);setAssistantNotice('شكابمبو يعمل الآن بالمساعدة المحلية المرتبطة بالحصة.');return}setAssistantBusy(true);setAssistantNotice('');try{setReply(await askShakabamboRemote(context,q,audience));}catch{setRemoteUnavailable(true);setReply(localReply);setAssistantNotice('تعذر تشغيل شكابمبو الآن عبر الاتصال الذكي، فانتقلت المساعدة تلقائيًا للوضع المحلي لهذه الحصة.');}finally{setAssistantBusy(false)}};
-  const saveTemplate=()=>{try{localStorage.setItem('taallamt:lesson-template',JSON.stringify({context,plan,savedAt:new Date().toISOString()}));setReply('تم حفظ هذه الحصة كنموذج لك فقط. لم يتغير أي تقييم أو بيانات طالب.')}catch{setReply('تعذر حفظ الحصة على هذا الجهاز.')}};
+
+  React.useEffect(()=>{let live=true;loadLessonWorkspace().then(value=>{if(!live)return;setWorkspace(value);setContext(value.current)});return()=>{live=false}},[]);
+  React.useEffect(()=>{if(!context)return;setStrategy('');setStarted(false);setStepIndex(0);setPrompt('');setAssistantNotice('');setRemoteUnavailable(false);setReply(replyAsShakabambo(context,'','teacher'));},[context?.subject,context?.lesson,context?.skills.join('|')]);
+
+  const plan=React.useMemo(()=>context?buildLessonPlan(context,{strategy:strategy||undefined,includeTechnology,includeTimeManagement:includeTime}):null,[strategy,includeTechnology,includeTime,context]);
+  const step=plan?.steps[Math.min(stepIndex,Math.max(0,plan.steps.length-1))];
+
+  const ask=async(text:string)=>{
+    if(!context)return;
+    const q=text.trim();if(!q||assistantBusy)return;
+    setPrompt(q);
+    const localReply=replyAsShakabambo(context,q,audience);
+    if(remoteUnavailable){setReply(localReply);setAssistantNotice('شكابمبو يعمل الآن بالمساعدة المحلية المرتبطة بالحصة.');return}
+    setAssistantBusy(true);setAssistantNotice('');
+    try{setReply(await askShakabamboRemote(context,q,audience))}
+    catch{setRemoteUnavailable(true);setReply(localReply);setAssistantNotice('تعذر تشغيل شكابمبو الآن عبر الاتصال الذكي، فانتقلت المساعدة تلقائيًا للوضع المحلي لهذه الحصة.')}
+    finally{setAssistantBusy(false)}
+  };
+  const saveTemplate=()=>{if(!context||!plan)return;try{localStorage.setItem('taallamt:lesson-template',JSON.stringify({context,plan,savedAt:new Date().toISOString()}));setReply('تم حفظ هذه الحصة كنموذج لك فقط. لم يتغير أي تقييم أو بيانات طالب.')}catch{setReply('تعذر حفظ الحصة على هذا الجهاز.')}};
+
+  if(!workspace)return <main className="lessonSession lessonSelectState" dir="rtl"><section className="shakabamboIntro"><img src={mascot} alt="شكابمبو"/><div><b>شكابمبو يحدد الحصة...</b><p>أقرأ الجدول والتوزيع والدرس والمهارة قبل تجهيز الحصة.</p></div></section></main>;
+
+  if(!context){
+    return <main className="lessonSession lessonSelectState" dir="rtl">
+      <header className="lessonHeader">
+        <button className="lessonBack" onClick={()=>location.assign('/teacher')} aria-label="العودة">‹</button>
+        <div className="lessonHeaderText"><span>تعلّمت · تجهيز حصة</span><h1>اختر الحصة</h1><p>{workspace.preview?.localDate||'الحصة المطلوبة'}</p></div>
+        <img src={mascot} alt="شكابمبو" className="lessonMascot"/>
+      </header>
+      <section className="shakabamboIntro">
+        <img src={mascot} alt="شكابمبو"/>
+        <div><b>{workspace.status==='selection_required'?'ما فيه حصة حالية محددة':'تعذر تحديد درس هذه الحصة تلقائيًا'}</b><p>{workspace.choices.length?'اختر درسًا موجودًا فعلًا في توزيع هذا الأسبوع، وأنا أجهّزه معك.':'لن أخمّن درسًا غير موجود. ارجع للمعلم أو جرّب عند توفر بيانات الجدول.'}</p></div>
+      </section>
+      {workspace.choices.length>0&&<section className="lessonSetup lessonChoiceGrid">
+        <h2>دروس الأسبوع المتاحة</h2>
+        <div className="lessonChoiceList">{workspace.choices.map(item=><button key={item.subject+item.lesson} onClick={()=>setContext(item)}><b>{item.subjectTitle}</b><span>{item.lesson}</span><small>{item.skills[0]}</small></button>)}</div>
+      </section>}
+    </main>;
+  }
+
+  if(!plan||!step)return null;
 
   return <main className="lessonSession" dir="rtl">
     <header className="lessonHeader">
