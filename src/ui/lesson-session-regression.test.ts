@@ -14,6 +14,8 @@ describe('teacher lesson session regression',()=>{
   it('keeps Shakabambo inside the lesson experience without student or guardian writes',()=>{
     const screen=readFileSync(screenPath,'utf8');
     expect(screen).toContain('شكابمبو');
+    expect(screen).toContain('/teacher-icons/shakabumbo-logo.svg');
+    expect(screen).not.toContain('/student-assets/student-main-logo.webp');
     expect(screen).toContain('replyAsShakabambo');
     expect(screen).toContain('askShakabamboRemote');
     expect(screen).toContain('سؤال طالب');
