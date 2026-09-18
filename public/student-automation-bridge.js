@@ -111,6 +111,6 @@
   }
 
   const observer=new MutationObserver(()=>{if(latest)requestAnimationFrame(()=>enhanceSubjectModals(latest.preview,latest.state))});
-  const start=()=>{observer.observe(document.body,{childList:true,subtree:true});void refresh();setTimeout(()=>void refresh(),700);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh()})};
+  const start=()=>{observer.observe(document.body,{childList:true,subtree:true});void refresh();setTimeout(()=>void refresh(),700);setInterval(()=>void refresh(),12000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh()})};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
