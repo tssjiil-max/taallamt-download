@@ -36,6 +36,20 @@ describe('resolveLessonFromPreview',()=>{
     expect(choices.map(item=>item.lesson)).toEqual(['صلة الرحم','الآيات 1 - 15']);
     expect(choices.every(item=>item.date==='2026-09-18')).toBe(true);
   });
+  it('asks the teacher to choose when more than one subject is scheduled for the day',()=>{
+    const preview={
+      localDate:'2026-09-20',
+      scheduledSubjects:['arabic','quran'],
+      content:{
+        arabic:{subject:'arabic',title:'لغتي',unit:'أقاربي',lesson:'صلة الرحم',skill:'القراءة الجهرية'},
+        quran:{subject:'quran',title:'القرآن الكريم',surah:'الشمس',lesson:'الآيات 1 - 6',skill:'الحفظ وصحة القراءة'},
+        islamic:{subject:'islamic',title:'الدراسات الإسلامية',unit:'أسماء الله وصفاته',lesson:'الله السميع البصير',skill:'تمييز أثر الإيمان بالاسمين'}
+      }
+    };
+    expect(resolveLessonFromPreview(preview,CURRENT_LESSON)).toBeNull();
+    expect(lessonCandidatesFromPreview(preview,CURRENT_LESSON).map(item=>item.subject)).toEqual(['arabic','quran']);
+  });
+
   it('requests the existing learning preview for an explicitly selected future date',async()=>{
     let requested='';
     const fakeFetch=async(url:string)=>{
