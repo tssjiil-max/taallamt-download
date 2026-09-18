@@ -9,6 +9,7 @@ const mustExist=[
   'public/student-automation-bridge.js',
   'public/student-teacher-evaluation.js',
   'public/student-style-patch.js',
+  'src/main.tsx',
   'index.html'
 ];
 for(const path of mustExist)assert.equal(existsSync(path),true,`missing ${path}`);
@@ -20,6 +21,7 @@ const feed=readFileSync('public/student-live-feed.js','utf8');
 const announceApi=readFileSync('api/teacher-announcements.js','utf8');
 const announceSync=readFileSync('public/teacher-announcement-live-sync.js','utf8');
 const stylePatch=readFileSync('public/student-style-patch.js','utf8');
+const main=readFileSync('src/main.tsx','utf8');
 const index=readFileSync('index.html','utf8');
 
 assert.equal(evaluation.includes("heading.textContent='تقييمي اليوم'"),true);
@@ -48,6 +50,12 @@ assert.equal(announceApi.includes("targetType==='student'"),true);
 assert.equal(announceApi.includes("targetType==='students'"),true);
 assert.equal(announceApi.includes("item.status!=='published'"),true);
 assert.equal(announceSync.includes("location.pathname.startsWith('/teacher')"),true);
+assert.equal(announceSync.includes("targetType:item?.targetType==='student'?'student':'class'"),true);
+assert.equal(main.includes('<option value="class">الفصل كامل</option>'),true);
+assert.equal(main.includes('<option value="student">طالب محدد</option>'),true);
+assert.equal(main.includes("targetType:a.targetType||'class'"),true);
+assert.equal(main.includes("لا توجد إعلانات منشورة"),true);
+assert.equal(main.includes("اجتماع أولياء الأمور يوم الأحد"),false,'teacher home must not contain a fabricated default announcement');
 
 assert.equal(stylePatch.includes("const SHAKABUMBO_PROFILE='/student-shakabumbo-shield.svg';"),true);
 assert.equal(stylePatch.includes("const SHAKABUMBO_NAV='/student-assets/student-center-logo.svg';"),true);
