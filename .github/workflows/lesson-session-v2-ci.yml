@@ -15,3 +15,7 @@ jobs:
         run: npm test
       - name: Full project build
         run: npm run build
+      - name: Preview smoke
+        env:
+          TAALLAMT_PREVIEW_URL: https://taallamt-teacher-git-feature-lesson-session-091b44-tssjiil-2953.vercel.app
+        run: node scripts/lesson-preview-smoke.mjs
