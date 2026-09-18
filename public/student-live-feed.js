@@ -71,7 +71,24 @@
     });
   }
 
+  async function syncLiveState(){
+    try{
+      const data=await state();if(!data)return;
+      try{localStorage.setItem('studentStars',String(Number(data.stars)||0))}catch{}
+      const stars=Math.max(0,Math.min(30,Number(data.stars)||0));
+      const grid=document.querySelector('.student .starGrid');
+      if(grid){
+        [...grid.children].forEach((node,index)=>node.classList.toggle('on',index<stars));
+        grid.setAttribute('aria-label',`${stars} من 30 نجمة`);
+      }
+      document.querySelectorAll('[data-star-balance],[data-student-stars]').forEach(node=>{node.textContent=`${stars} / 30`});
+      window.dispatchEvent(new CustomEvent('taallamt:student-state-updated',{detail:{state:data}}));
+    }catch(error){console.warn('student live state',error)}
+  }
+
   const observer=new MutationObserver(()=>requestAnimationFrame(enhanceMore));
   observer.observe(document.body,{childList:true,subtree:true});
-  enhanceMore();
+  enhanceMore();syncLiveState();setTimeout(syncLiveState,700);setInterval(syncLiveState,12000);
+  window.addEventListener('focus',syncLiveState);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncLiveState()});
 })();
