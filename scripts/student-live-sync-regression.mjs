@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 
 const mustExist=[
-  'api/teacher-announcements.js',
   'public/student-live-feed.js',
   'public/teacher-announcement-live-sync.js',
   'public/student-homework-autograde.js',
@@ -18,7 +17,7 @@ const evaluation=readFileSync('public/student-teacher-evaluation.js','utf8');
 const homework=readFileSync('public/student-automation-bridge.js','utf8');
 const autograde=readFileSync('public/student-homework-autograde.js','utf8');
 const feed=readFileSync('public/student-live-feed.js','utf8');
-const announceApi=readFileSync('api/teacher-announcements.js','utf8');
+const studentState=readFileSync('api/student-state.js','utf8');
 const announceSync=readFileSync('public/teacher-announcement-live-sync.js','utf8');
 const stylePatch=readFileSync('public/student-style-patch.js','utf8');
 const main=readFileSync('src/main.tsx','utf8');
@@ -42,14 +41,17 @@ assert.equal(autograde.includes('/api/homework-complete'),true);
 
 assert.equal(feed.includes('ملاحظات المعلم'),true);
 assert.equal(feed.includes('الإعلانات'),true);
-assert.equal(feed.includes('/api/teacher-announcements?studentId='),true);
 assert.equal(feed.includes('/api/student-state?studentId='),true);
 assert.equal(feed.includes("setInterval(syncLiveState,12000)"),true);
 
-assert.equal(announceApi.includes("targetType==='student'"),true);
-assert.equal(announceApi.includes("targetType==='students'"),true);
-assert.equal(announceApi.includes("item.status!=='published'"),true);
+assert.equal(studentState.includes("announcementVisibleToStudent"),true);
+assert.equal(studentState.includes("action||'')==='announcement'"),true);
+assert.equal(studentState.includes("targetType==='student'"),true);
+assert.equal(studentState.includes("targetType==='students'"),true);
+assert.equal(studentState.includes("item.status!=='published'"),true);
 assert.equal(announceSync.includes("location.pathname.startsWith('/teacher')"),true);
+assert.equal(announceSync.includes("fetch('/api/student-state'"),true);
+assert.equal(existsSync('api/teacher-announcements.js'),false,'announcement sync must reuse student-state to avoid a new Vercel function');
 assert.equal(announceSync.includes("targetType:item?.targetType==='student'?'student':'class'"),true);
 assert.equal(main.includes('<option value="class">الفصل كامل</option>'),true);
 assert.equal(main.includes('<option value="student">طالب محدد</option>'),true);
