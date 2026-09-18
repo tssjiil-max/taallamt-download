@@ -1,0 +1,19 @@
+name: Student Live Sync CI
+on:
+  push:
+    branches: ["feature/student-live-sync-functions-v1"]
+  pull_request:
+    branches: ["feature/lesson-session-shakabambo-v2"]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Unit and regression tests
+        run: npm test
+      - name: Full project build
+        run: npm run build
