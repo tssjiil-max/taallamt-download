@@ -4,7 +4,7 @@ import {buildLessonPlan,replyAsShakabambo,strategyAlternatives,type LessonContex
 import {askShakabamboRemote} from '../core/lesson-assistant-client';
 import './lesson-session-screen.css';
 
-const mascot='/student-assets/student-main-logo.webp';
+const mascot='/teacher-icons/shakabumbo-logo.svg';
 
 export function LessonSessionScreen(){
   const [workspace,setWorkspace]=React.useState<LessonWorkspaceData|null>(null);
