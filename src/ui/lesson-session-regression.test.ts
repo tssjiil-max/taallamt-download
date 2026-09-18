@@ -18,6 +18,8 @@ describe('teacher lesson session regression',()=>{
     expect(screen).toContain('askShakabamboRemote');
     expect(screen).toContain('سؤال طالب');
     expect(screen).toContain('تعذر تشغيل شكابمبو الآن');
+    expect(screen).toContain('remoteUnavailable');
+    expect(screen).toContain('المساعدة المحلية');
     expect(screen).not.toMatch(/student-evaluation|star-adjust|guardian|ولي الأمر/);
   });
 });
