@@ -20,8 +20,6 @@
     }
   ],
   "git": {
-    "deploymentEnabled": {
-      "feature/student-live-sync-functions-v1": false
-    }
+    "deploymentEnabled": false
   }
 }
