@@ -1,7 +1,5 @@
 name: Student Live Sync CI
 on:
-  push:
-    branches: ["feature/student-live-sync-functions-v1"]
   pull_request:
     branches: ["feature/lesson-session-shakabambo-v2"]
 jobs:
