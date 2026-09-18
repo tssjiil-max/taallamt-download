@@ -1,5 +1,3 @@
-import {generateText} from 'ai';
-
 const SUBJECTS=new Set(['arabic','quran','islamic','spelling','handwriting']);
 const MODES=new Set(['teacher','student']);
 const clean=(value,max)=>String(value||'').trim().replace(/\s+/g,' ').slice(0,max);
@@ -53,6 +51,7 @@ export async function runLessonAssistant(body={}){
   const question=clean(body.question,500);
   if(!question)throw new Error('QUESTION_REQUIRED');
   const context=safeContext(body.context);
+  const {generateText}=await import('ai');
   const {text}=await generateText({
     model:'openai/gpt-5.6-luna',
     reasoning:'none',
