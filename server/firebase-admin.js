@@ -28,4 +28,13 @@ function app(){
 }
 export function adminDb(){return getFirestore(app())}
 export function adminStorageBucket(){return getStorage(app()).bucket()}
-export function previewWriteGuard(){const env=process.env.VERCEL_ENV,ref=process.env.VERCEL_GIT_COMMIT_REF?.trim();if(env==='production'&&ref!=='build/taallamt-flex-v1')throw new Error('PRODUCTION_WRITE_BLOCKED')}
+export function previewWriteGuard(){
+  const explicit=process.env.TAALLAMT_ENV?.trim().toLowerCase();
+  const vercelEnv=process.env.VERCEL_ENV?.trim().toLowerCase();
+  const vercelRef=process.env.VERCEL_GIT_COMMIT_REF?.trim();
+  const netlifyContext=process.env.CONTEXT?.trim().toLowerCase();
+  if(explicit==='staging')return;
+  if(vercelEnv==='preview'||netlifyContext==='deploy-preview'||netlifyContext==='branch-deploy'||netlifyContext==='dev')return;
+  if(vercelEnv==='production'&&vercelRef==='build/taallamt-flex-v1')return;
+  throw new Error('PRODUCTION_WRITE_BLOCKED');
+}
