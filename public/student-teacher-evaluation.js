@@ -125,6 +125,6 @@
     weekPanel.dataset.teacherEvaluation='true';installStyle();renderEvaluation(weekPanel,await fetchState());return true;
   }
 
-  const boot=()=>{let attempts=0;const timer=setInterval(()=>{attempts++;apply().then(done=>{if(done||attempts>20)clearInterval(timer)});},120);};
+  const boot=()=>{let attempts=0;const timer=setInterval(()=>{attempts++;apply().then(done=>{if(done||attempts>20)clearInterval(timer)});},120);setInterval(()=>void apply(),12000);window.addEventListener('focus',()=>void apply());document.addEventListener('visibilitychange',()=>{if(!document.hidden)void apply()});};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
