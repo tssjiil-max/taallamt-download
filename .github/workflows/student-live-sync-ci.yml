@@ -15,34 +15,45 @@ jobs:
         run: npm test
       - name: Full project build
         run: npm run build
-      - name: Diagnose Netlify staging API routing
+      - name: Final live Netlify staging smoke
         env:
           TAALLAMT_STAGING_URL: https://taallamt-staging.netlify.app
         run: |
           node --input-type=module <<'NODE'
           const base=process.env.TAALLAMT_STAGING_URL;
-          async function raw(path){
-            const r=await fetch(base+path,{redirect:'follow'});
+          async function req(path,options={}){
+            const r=await fetch(base+path,{redirect:'follow',...options});
             const text=await r.text();
             let json=null; try{json=JSON.parse(text)}catch{}
-            return {status:r.status,text,json};
+            if(!r.ok) throw new Error(`${path} -> HTTP ${r.status}: ${text.slice(0,180)}`);
+            return {r,text,json};
           }
-          const home=await raw('/');
-          const lesson=await raw('/teacher/lesson');
-          if(home.status!==200||!home.text.includes('id="root"')) throw new Error('HOME_INVALID');
-          if(lesson.status!==200||!lesson.text.includes('id="root"')) throw new Error('LESSON_INVALID');
-          const publicStatus=await raw('/api/backend-status');
-          const directStatus=await raw('/.netlify/functions/api?path=backend-status');
-          console.log('PUBLIC_BACKEND',JSON.stringify({status:publicStatus.status,error:publicStatus.json?.error}));
-          console.log('DIRECT_BACKEND',JSON.stringify({status:directStatus.status,ok:directStatus.json?.ok,environment:directStatus.json?.environment,workspaceId:directStatus.json?.workspaceId,firebaseAdminConfigured:directStatus.json?.firebaseAdminConfigured,base64ServiceAccount:directStatus.json?.base64ServiceAccount,error:directStatus.json?.error}));
-          if(directStatus.status!==200||directStatus.json?.ok!==true) throw new Error('DIRECT_BACKEND_FAILED');
-          const action=await raw('/.netlify/functions/api?path=action-smoke');
-          console.log('DIRECT_ACTION_SMOKE',JSON.stringify({status:action.status,ok:action.json?.ok,checks:action.json?.checks,cleanup:action.json?.cleanup,productionProtected:action.json?.productionProtected,error:action.json?.error}));
-          if(action.status!==200||action.json?.ok!==true||action.json?.cleanup!==true) throw new Error('DIRECT_ACTION_SMOKE_FAILED');
-          const state=await raw('/.netlify/functions/api?path=student-state&action=smoke');
-          console.log('DIRECT_STATE_SMOKE',JSON.stringify({status:state.status,ok:state.json?.ok,write:state.json?.write,read:state.json?.read,delete:state.json?.delete,error:state.json?.error}));
-          if(state.status!==200||state.json?.ok!==true) throw new Error('DIRECT_STATE_SMOKE_FAILED');
-          console.log('ROUTING_DIAGNOSIS',JSON.stringify({home:true,lesson:true,publicApiStatus:publicStatus.status,directFunction:true,firebaseWriteReadCleanup:true}));
+          const home=await req('/');
+          const lesson=await req('/teacher/lesson');
+          if(!home.text.includes('id="root"')) throw new Error('HOME_ROOT_MISSING');
+          if(!lesson.text.includes('id="root"')) throw new Error('LESSON_ROOT_MISSING');
+
+          const status=(await req('/api/backend-status')).json;
+          if(status?.ok!==true||status?.environment!=='staging'||status?.workspaceId!=='second-4'||status?.firebaseAdminConfigured!==true) throw new Error('BACKEND_STATUS_INVALID '+JSON.stringify(status));
+
+          const action=(await req('/api/action-smoke')).json;
+          if(action?.ok!==true||action?.cleanup!==true||action?.productionProtected!==true||!action?.checks||Object.values(action.checks).some(v=>v!==true)) throw new Error('ACTION_SMOKE_INVALID '+JSON.stringify({ok:action?.ok,checks:action?.checks,cleanup:action?.cleanup}));
+
+          const stateSmoke=(await req('/api/student-state?action=smoke')).json;
+          if(stateSmoke?.ok!==true||stateSmoke?.write!==true||stateSmoke?.read!==true||stateSmoke?.delete!==true||stateSmoke?.autoGrade?.verified!==true||stateSmoke?.autoGrade?.cleaned!==true) throw new Error('STUDENT_STATE_SMOKE_INVALID '+JSON.stringify(stateSmoke));
+
+          const snapshot=(await req('/api/student-state?studentId=s2-4-02')).json;
+          if(snapshot?.ok!==true||snapshot?.student?.id!=='s2-4-02') throw new Error('STUDENT_SNAPSHOT_INVALID');
+          for(const key of ['assessments','homework','homeworkEvidence','communications','announcements']) if(!Array.isArray(snapshot[key])) throw new Error(`STUDENT_SNAPSHOT_${key.toUpperCase()}_INVALID`);
+
+          const preview=(await req('/api/learning-automation?action=preview')).json;
+          if(preview?.ok!==true||!preview?.content) throw new Error('LEARNING_PREVIEW_INVALID');
+
+          const assistantResponse=await fetch(base+'/api/lesson-assistant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'teacher',question:'أعطني سؤالًا شفهيًا قصيرًا مناسبًا لهذا الهدف.',context:{subject:'islamic',subjectLabel:'الدراسات الإسلامية',unit:'أسماء الله وصفاته',lesson:'الله السميع البصير',skill:'تمييز أثر الإيمان بالاسمين',gradeLabel:'الثاني',classLabel:'4'}})});
+          const assistantText=await assistantResponse.text(); let assistant={}; try{assistant=JSON.parse(assistantText)}catch{}
+          if(!(assistantResponse.ok&&typeof assistant.answer==='string'&&assistant.answer.trim()) && !(assistantResponse.status===503&&assistant?.error==='ASSISTANT_UNAVAILABLE')) throw new Error(`ASSISTANT_INVALID HTTP ${assistantResponse.status}: ${assistantText.slice(0,180)}`);
+
+          console.log('STAGING_SMOKE_OK '+JSON.stringify({home:true,lesson:true,backend:true,firebase:true,actionSmoke:true,studentState:true,studentSnapshot:true,learningPreview:true,assistant:assistantResponse.ok?'remote':'local-fallback'}));
           NODE
       - name: Pack source for Netlify staging
         run: tar --exclude='.git' --exclude='node_modules' --exclude='dist' -czf /tmp/taallamt-netlify-source.tgz .
