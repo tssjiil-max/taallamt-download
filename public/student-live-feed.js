@@ -10,8 +10,6 @@
   const fetchJson=async url=>{const r=await fetch(url,{cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d.error||`HTTP_${r.status}`);return d};
 
   async function state(){const id=studentId();return id?fetchJson(`/api/student-state?studentId=${encodeURIComponent(id)}`):null}
-  async function announcements(){const id=studentId();return id?fetchJson(`/api/teacher-announcements?studentId=${encodeURIComponent(id)}`):{announcements:[]}}
-
   function close(){document.querySelector('.studentPatchModal')?.remove()}
   function rows(items,emptyText){
     const body=document.createElement('div');body.className='studentPatchRows';
@@ -47,8 +45,8 @@
 
   async function openAnnouncements(){
     try{
-      const data=await announcements();
-      const items=(data.announcements||[]).map(item=>({
+      const data=await state();
+      const items=(data?.announcements||[]).map(item=>({
         title:item.title||'إعلان',
         body:item.body||'',
         meta:dateText(item.updatedAt||item.date)
