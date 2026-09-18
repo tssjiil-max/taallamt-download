@@ -56,8 +56,10 @@ jobs:
           console.log('STAGING_SMOKE_OK '+JSON.stringify({home:true,lesson:true,backend:true,firebase:true,actionSmoke:true,studentState:true,studentSnapshot:true,learningPreview:true,assistant:assistantResponse.ok?'remote':'local-fallback'}));
           NODE
       - name: Pack source for Netlify staging
+        if: always()
         run: tar --exclude='.git' --exclude='node_modules' --exclude='dist' -czf /tmp/taallamt-netlify-source.tgz .
       - name: Upload Netlify source artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: taallamt-netlify-source
