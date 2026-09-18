@@ -11,9 +11,9 @@
   async function push(item){
     if(!item?.id||!item?.title)return;
     const signature=stable(item);if(synced.get(item.id)===signature)return;
-    const response=await fetch('/api/teacher-announcements',{
+    const response=await fetch('/api/student-state',{
       method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({...item,targetType:item?.targetType==='student'?'student':'class',studentId:item?.targetType==='student'?item?.studentId:undefined})
+      body:JSON.stringify({...item,action:'announcement',targetType:item?.targetType==='student'?'student':'class',studentId:item?.targetType==='student'?item?.studentId:undefined})
     });
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
