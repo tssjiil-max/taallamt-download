@@ -22,5 +22,7 @@
     if(!Array.isArray(items))return;
     for(const item of items){try{await push(item)}catch(error){console.warn('teacher announcement sync',error)}}
   }
+  document.addEventListener('click',event=>{const target=event.target;if(!(target instanceof Element))return;const button=target.closest('button');const label=button?.textContent?.trim()||'';if(['نشر','حفظ كمسودة','أرشفة'].includes(label))setTimeout(sync,80)});
+  window.addEventListener('storage',event=>{if(event.key===KEY)sync()});
   sync();setTimeout(sync,500);setInterval(sync,2500);window.addEventListener('focus',sync);
 })();
