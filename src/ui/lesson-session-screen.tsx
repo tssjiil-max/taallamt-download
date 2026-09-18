@@ -19,11 +19,12 @@ export function LessonSessionScreen(){
   const [reply,setReply]=React.useState(()=>replyAsShakabambo(context,'','teacher'));
   const [assistantBusy,setAssistantBusy]=React.useState(false);
   const [assistantNotice,setAssistantNotice]=React.useState('');
+  const [remoteUnavailable,setRemoteUnavailable]=React.useState(false);
   React.useEffect(()=>{let live=true;loadCurrentLessonContext().then(value=>{if(live)setContext(value)});return()=>{live=false}},[]);
-  React.useEffect(()=>{setStrategy('');setStarted(false);setStepIndex(0);setPrompt('');setAssistantNotice('');setReply(replyAsShakabambo(context,'','teacher'));},[context.subject,context.lesson,context.skills.join('|')]);
+  React.useEffect(()=>{setStrategy('');setStarted(false);setStepIndex(0);setPrompt('');setAssistantNotice('');setRemoteUnavailable(false);setReply(replyAsShakabambo(context,'','teacher'));},[context.subject,context.lesson,context.skills.join('|')]);
   const plan=React.useMemo(()=>buildLessonPlan(context,{strategy:strategy||undefined,includeTechnology,includeTimeManagement:includeTime}),[strategy,includeTechnology,includeTime,context]);
   const step=plan.steps[Math.min(stepIndex,plan.steps.length-1)];
-  const ask=async(text:string)=>{const q=text.trim();if(!q||assistantBusy)return;setPrompt(q);setAssistantBusy(true);setAssistantNotice('');const localReply=replyAsShakabambo(context,q,audience);try{setReply(await askShakabamboRemote(context,q,audience));}catch{setReply(localReply);setAssistantNotice('تعذر تشغيل شكابمبو الآن عبر الاتصال الذكي، فاستخدمت المساعدة المحلية المرتبطة بالحصة.');}finally{setAssistantBusy(false)}};
+  const ask=async(text:string)=>{const q=text.trim();if(!q||assistantBusy)return;setPrompt(q);const localReply=replyAsShakabambo(context,q,audience);if(remoteUnavailable){setReply(localReply);setAssistantNotice('شكابمبو يعمل الآن بالمساعدة المحلية المرتبطة بالحصة.');return}setAssistantBusy(true);setAssistantNotice('');try{setReply(await askShakabamboRemote(context,q,audience));}catch{setRemoteUnavailable(true);setReply(localReply);setAssistantNotice('تعذر تشغيل شكابمبو الآن عبر الاتصال الذكي، فانتقلت المساعدة تلقائيًا للوضع المحلي لهذه الحصة.');}finally{setAssistantBusy(false)}};
   const saveTemplate=()=>{try{localStorage.setItem('taallamt:lesson-template',JSON.stringify({context,plan,savedAt:new Date().toISOString()}));setReply('تم حفظ هذه الحصة كنموذج لك فقط. لم يتغير أي تقييم أو بيانات طالب.')}catch{setReply('تعذر حفظ الحصة على هذا الجهاز.')}};
 
   return <main className="lessonSession" dir="rtl">
