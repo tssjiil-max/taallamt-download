@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {CURRENT_LESSON,lessonCandidatesFromPreview,resolveLessonFromPreview} from './current-lesson';
+import {CURRENT_LESSON,lessonCandidatesFromPreview,loadLessonWorkspace,resolveLessonFromPreview} from './current-lesson';
 
 describe('resolveLessonFromPreview',()=>{
   it('reads the scheduled lesson, unit, skill and date from the existing learning preview',()=>{
@@ -35,5 +35,20 @@ describe('resolveLessonFromPreview',()=>{
     expect(choices).toHaveLength(2);
     expect(choices.map(item=>item.lesson)).toEqual(['صلة الرحم','الآيات 1 - 15']);
     expect(choices.every(item=>item.date==='2026-09-18')).toBe(true);
+  });
+  it('requests the existing learning preview for an explicitly selected future date',async()=>{
+    let requested='';
+    const fakeFetch=async(url:string)=>{
+      requested=url;
+      return {ok:true,json:async()=>({
+        localDate:'2026-09-21',
+        scheduledSubjects:['arabic'],
+        content:{arabic:{subject:'arabic',title:'لغتي',unit:'أقاربي',lesson:'صلة الرحم',skill:'القراءة الجهرية'}}
+      })} as Response;
+    };
+    const workspace=await loadLessonWorkspace('2026-09-21',fakeFetch as typeof fetch);
+    expect(requested).toContain('date=2026-09-21');
+    expect(workspace.current?.date).toBe('2026-09-21');
+    expect(workspace.current?.subject).toBe('arabic');
   });
 });
