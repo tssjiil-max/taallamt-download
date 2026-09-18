@@ -85,7 +85,7 @@ function TeacherStudents(){
 }
 
 function Teacher(){
- const [currentLesson,setCurrentLesson]=React.useState(CURRENT_LESSON);
+ const [currentLesson,setCurrentLesson]=React.useState<typeof CURRENT_LESSON|null|undefined>(undefined);
  React.useEffect(()=>{let live=true;loadCurrentLessonContext().then(value=>{if(live)setCurrentLesson(value)});return()=>{live=false}},[]);
  const subjects=[
   {k:'lughati' as const,t:'لغتي',p:32},
@@ -116,10 +116,10 @@ function Teacher(){
   </section>
 
   <section className="nowCard">
-    <div className="nowHeading"><h2><UiIcon name="clock" size={27}/>حصتي الآن</h2><div className="timePills"><span>10:00 - 10:45</span><b>الحصة 3</b></div></div>
+    <div className="nowHeading"><h2><UiIcon name="clock" size={27}/>حصتي الآن</h2>{currentLesson&&<div className="timePills"><span>{currentLesson.date||'اليوم'}</span><b>{currentLesson.period||'الحصة الحالية'}</b></div>}</div>
     <div className="nowBody">
-      <button className="startLesson" onClick={()=>go('/teacher/lesson')}><UiIcon name="play" size={23}/>ابدأ الحصة</button>
-      <div className="lessonDetails"><h3><SubjectIcon kind={currentLesson.subject==='arabic'?'lughati':currentLesson.subject==='quran'?'quran':currentLesson.subject==='islamic'?'islamic':'writing'}/>{currentLesson.subjectTitle}</h3><p>الوحدة: {currentLesson.unit}</p><p>الدرس: {currentLesson.lesson}</p><p><b>المهارات:</b> {currentLesson.skills.join(' – ')}</p></div>
+      <button className="startLesson" onClick={()=>go('/teacher/lesson')}><UiIcon name="play" size={23}/>{currentLesson?'ابدأ الحصة':'اختيار حصة'}</button>
+      {currentLesson===undefined?<div className="lessonDetails"><h3>جارٍ تحديد الحصة...</h3><p>أتحقق من الجدول والتوزيع قبل عرض الدرس.</p></div>:currentLesson?<div className="lessonDetails"><h3><SubjectIcon kind={currentLesson.subject==='arabic'?'lughati':currentLesson.subject==='quran'?'quran':currentLesson.subject==='islamic'?'islamic':'writing'}/>{currentLesson.subjectTitle}</h3><p>الوحدة: {currentLesson.unit}</p><p>الدرس: {currentLesson.lesson}</p><p><b>المهارات:</b> {currentLesson.skills.join(' – ')}</p></div>:<div className="lessonDetails"><h3>لا توجد حصة حالية محددة</h3><p>اختر حصة من الدروس الفعلية المتاحة في توزيع هذا الأسبوع.</p></div>}
     </div>
   </section>
 
