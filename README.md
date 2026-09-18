@@ -18,4 +18,4 @@ students, curriculum, timetable, weekly-plan, comprehensive-assessment, focused-
 
 > التطبيق القديم محفوظ في فرع archive/android-app-v3.8.3-2026-09-11.
 
-<!-- staging runtime refresh: trusted GitHub identity -->
+<!-- staging runtime refresh: Firebase private key secret -->
