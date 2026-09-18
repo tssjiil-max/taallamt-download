@@ -57,8 +57,11 @@
   }
   document.addEventListener('click',event=>{
     const target=event.target;if(!(target instanceof Element))return;const button=target.closest('.student .automationTask[data-auto-grade="1"],.student .serverTask[data-auto-grade="1"]');if(!button)return;
-    const id=button.dataset.homeworkId,item=(state?.homework||[]).find(x=>x.id===id);if(!item)return;
-    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();openHomework(item);
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    const id=button.dataset.homeworkId;
+    const open=()=>{const item=(state?.homework||[]).find(x=>x.id===id);if(item)openHomework(item)};
+    if((state?.homework||[]).some(x=>x.id===id)){open();return}
+    void refresh().then(open);
   },true);
   const observer=new MutationObserver(()=>requestAnimationFrame(bindTasks));observer.observe(document.getElementById('root')||document.body,{childList:true,subtree:true});
   refresh();setTimeout(refresh,500);window.addEventListener('focus',refresh);setInterval(refresh,12000);
