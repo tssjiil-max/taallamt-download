@@ -4,14 +4,16 @@
   const synced=new Map();
   const stable=item=>JSON.stringify({
     id:String(item?.id||''),title:String(item?.title||''),body:String(item?.body||''),
-    date:String(item?.date||''),status:String(item?.status||'draft'),targetType:'class'
+    date:String(item?.date||''),status:String(item?.status||'draft'),
+    targetType:item?.targetType==='student'?'student':'class',
+    studentId:item?.targetType==='student'?String(item?.studentId||''):''
   });
   async function push(item){
     if(!item?.id||!item?.title)return;
     const signature=stable(item);if(synced.get(item.id)===signature)return;
     const response=await fetch('/api/teacher-announcements',{
       method:'POST',headers:{'content-type':'application/json'},
-      body:JSON.stringify({...item,targetType:'class'})
+      body:JSON.stringify({...item,targetType:item?.targetType==='student'?'student':'class',studentId:item?.targetType==='student'?item?.studentId:undefined})
     });
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
