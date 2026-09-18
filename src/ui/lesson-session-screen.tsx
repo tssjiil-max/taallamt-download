@@ -21,8 +21,11 @@ export function LessonSessionScreen(){
   const [assistantBusy,setAssistantBusy]=React.useState(false);
   const [assistantNotice,setAssistantNotice]=React.useState('');
   const [remoteUnavailable,setRemoteUnavailable]=React.useState(false);
+  const [futureDate,setFutureDate]=React.useState('');
+  const [choosingOtherDate,setChoosingOtherDate]=React.useState(false);
+  const [workspaceBusy,setWorkspaceBusy]=React.useState(false);
 
-  React.useEffect(()=>{let live=true;loadLessonWorkspace().then(value=>{if(!live)return;setWorkspace(value);setContext(value.current)});return()=>{live=false}},[]);
+  React.useEffect(()=>{let live=true;loadLessonWorkspace().then(value=>{if(!live)return;setWorkspace(value);setContext(value.current);if(value.preview?.localDate)setFutureDate(value.preview.localDate)});return()=>{live=false}},[]);
   React.useEffect(()=>{if(!context)return;setStrategy('');setStarted(false);setStepIndex(0);setPrompt('');setAssistantNotice('');setRemoteUnavailable(false);setReply(replyAsShakabambo(context,'','teacher'));},[context?.subject,context?.lesson,context?.skills.join('|')]);
 
   const plan=React.useMemo(()=>context?buildLessonPlan(context,{strategy:strategy||undefined,includeTechnology,includeTimeManagement:includeTime}):null,[strategy,includeTechnology,includeTime,context]);
@@ -39,6 +42,7 @@ export function LessonSessionScreen(){
     catch{setRemoteUnavailable(true);setReply(localReply);setAssistantNotice('تعذر تشغيل شكابمبو الآن عبر الاتصال الذكي، فانتقلت المساعدة تلقائيًا للوضع المحلي لهذه الحصة.')}
     finally{setAssistantBusy(false)}
   };
+  const openDate=async()=>{if(!futureDate||workspaceBusy)return;setWorkspaceBusy(true);try{const value=await loadLessonWorkspace(futureDate);setWorkspace(value);setContext(value.current);setChoosingOtherDate(false)}finally{setWorkspaceBusy(false)}};
   const saveTemplate=()=>{if(!context||!plan)return;try{localStorage.setItem('taallamt:lesson-template',JSON.stringify({context,plan,savedAt:new Date().toISOString()}));setReply('تم حفظ هذه الحصة كنموذج لك فقط. لم يتغير أي تقييم أو بيانات طالب.')}catch{setReply('تعذر حفظ الحصة على هذا الجهاز.')}};
 
   if(!workspace)return <main className="lessonSession lessonSelectState" dir="rtl"><section className="shakabamboIntro"><img src={mascot} alt="شكابمبو"/><div><b>شكابمبو يحدد الحصة...</b><p>أقرأ الجدول والتوزيع والدرس والمهارة قبل تجهيز الحصة.</p></div></section></main>;
@@ -52,8 +56,9 @@ export function LessonSessionScreen(){
       </header>
       <section className="shakabamboIntro">
         <img src={mascot} alt="شكابمبو"/>
-        <div><b>{workspace.status==='selection_required'?'ما فيه حصة حالية محددة':'تعذر تحديد درس هذه الحصة تلقائيًا'}</b><p>{workspace.choices.length?'اختر درسًا موجودًا فعلًا في توزيع هذا الأسبوع، وأنا أجهّزه معك.':'لن أخمّن درسًا غير موجود. ارجع للمعلم أو جرّب عند توفر بيانات الجدول.'}</p></div>
+        <div><b>{workspace.status==='selection_required'?'ما فيه حصة حالية محددة':'تعذر تحديد درس هذه الحصة تلقائيًا'}</b><p>{workspace.choices.length?'اختر من المواد المجدولة لهذا اليوم، أو من دروس الأسبوع إذا لم توجد حصة مجدولة.':'لن أخمّن درسًا غير موجود. اختر تاريخًا آخر أو ارجع لمصدر الجدول.'}</p></div>
       </section>
+      <section className="lessonSetup futureLessonPicker"><h2>اختيار حصة أخرى</h2><div><input type="date" value={futureDate} onChange={e=>setFutureDate(e.target.value)} aria-label="تاريخ الحصة"/><button disabled={!futureDate||workspaceBusy} onClick={()=>void openDate()}>{workspaceBusy?'جارٍ القراءة...':'عرض الحصة'}</button></div></section>
       {workspace.choices.length>0&&<section className="lessonSetup lessonChoiceGrid">
         <h2>دروس الأسبوع المتاحة</h2>
         <div className="lessonChoiceList">{workspace.choices.map(item=><button key={item.subject+item.lesson} onClick={()=>setContext(item)}><b>{item.subjectTitle}</b><span>{item.lesson}</span><small>{item.skills[0]}</small></button>)}</div>
@@ -88,6 +93,8 @@ export function LessonSessionScreen(){
           <button className={includeTime?'selected':''} onClick={()=>setIncludeTime(v=>!v)}>إدارة الوقت</button>
         </div>
         {chooseStrategy&&<div className="strategyPicker"><b>اختر استراتيجية مناسبة لهذه الحصة</b><div>{strategyAlternatives(context).map(item=><button key={item} className={(strategy||plan.strategy)===item?'selected':''} onClick={()=>setStrategy(item)}>{item}</button>)}</div></div>}
+        <button className="chooseOtherLesson" onClick={()=>setChoosingOtherDate(v=>!v)}>اختيار حصة أخرى</button>
+        {choosingOtherDate&&<div className="futureLessonInline"><input type="date" value={futureDate} onChange={e=>setFutureDate(e.target.value)} aria-label="تاريخ حصة أخرى"/><button disabled={!futureDate||workspaceBusy} onClick={()=>void openDate()}>{workspaceBusy?'جارٍ القراءة...':'عرض'}</button></div>}
         <button className="prepareLesson" onClick={()=>{setStarted(true);setStepIndex(0);setReply(replyAsShakabambo(context,'ما أول شيء أفعله؟','teacher'))}}>✨ جهّز الحصة لي</button>
       </section>
     </>:<>
