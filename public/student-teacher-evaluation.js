@@ -48,14 +48,29 @@
   }
 
   function curriculumMap(state){return new Map((state?.curriculum||[]).map(target=>[String(target.id),target]));}
-  function latestAcademicMap(state){
+  const riyadhDate=value=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(value instanceof Date?value:new Date(value))}catch{return''}};
+  const todayKey=()=>riyadhDate(new Date());
+  const assessmentIsToday=assessment=>{
+    const raw=assessment?.enteredAt||assessment?.createdAt||assessment?.sessionDate||'';
+    if(!raw)return false;
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(raw))?String(raw)===todayKey():riyadhDate(raw)===todayKey();
+  };
+  function todayAcademicMap(state){
     const map=new Map();
-    for(const assessment of state?.assessments||[]){for(const item of assessment?.academic||[]){if(item?.targetId&&!map.has(item.targetId))map.set(item.targetId,item);}}
+    for(const assessment of (state?.assessments||[]).filter(assessmentIsToday)){
+      for(const item of assessment?.academic||[]){if(item?.targetId&&!map.has(item.targetId))map.set(item.targetId,item);}
+    }
     return map;
   }
-  function latestBehavior(state){
-    for(const assessment of state?.assessments||[]){for(const item of assessment?.behavior||[]){if(item?.kind!=='value')return item;}}
-    return null;
+  function todayBehaviorCounts(state){
+    const counts={distinguished:0,consistent:0,needs_followup:0};
+    for(const assessment of (state?.assessments||[]).filter(assessmentIsToday)){
+      for(const item of assessment?.behavior||[]){
+        if(item?.kind==='value')continue;
+        if(Object.prototype.hasOwnProperty.call(counts,item?.code))counts[item.code]+=1;
+      }
+    }
+    return counts;
   }
   function latestValueMap(state){
     const map=new Map();
@@ -98,19 +113,25 @@
   }
 
   function renderEvaluation(panel,state){
-    const heading=document.createElement('h3');heading.textContent='تقييم المعلم';
+    const heading=document.createElement('h3');heading.textContent='تقييمي اليوم';
     const body=document.createElement('div');body.className='studentTeacherEvaluation';
-    if(!state){const empty=document.createElement('div');empty.className='studentTeacherEvalEmpty';empty.textContent=studentId()?'تعذر تحميل تقييم المعلم الآن.':'اختر الطالب لعرض تقييم المعلم.';body.appendChild(empty);panel.replaceChildren(heading,body);return;}
 
-    const academic=latestAcademicMap(state),targets=currentDistributionTargets(state);
-    if(!targets.length){const empty=document.createElement('div');empty.className='studentTeacherEvalEmpty';empty.textContent='لم تُنشر مهارات توزيع هذا الأسبوع بعد.';body.appendChild(empty);}
-    for(const target of targets){const result=academic.get(target.targetId)?.result;body.appendChild(evalRow(target.subject,target.title,ACADEMIC_LABELS[result]||'لم يُقيّم بعد',result||''));}
+    const academic=state?todayAcademicMap(state):new Map();
+    let mastered=0,needsPractice=0;
+    for(const item of academic.values()){
+      if(item?.result==='mastered')mastered+=1;
+      else if(item?.result==='needs_practice'||item?.result==='not_mastered')needsPractice+=1;
+    }
+    const academicTitle=document.createElement('b');academicTitle.textContent='التقييم الأكاديمي';body.appendChild(academicTitle);
+    body.appendChild(evalRow('أتقن','',String(mastered),'mastered'));
+    body.appendChild(evalRow('يحتاج تدريب','',String(needsPractice),'needs_practice'));
 
-    const behavior=latestBehavior(state);const behaviorCode=behavior?.code||'';body.appendChild(evalRow('السلوك','تقييم المعلم',BEHAVIOR_LABELS[behaviorCode]||behavior?.label||'لم يُقيّم بعد',behaviorCode));
+    const behaviorTitle=document.createElement('b');behaviorTitle.textContent='السلوك العام';body.appendChild(behaviorTitle);
+    const behavior=state?todayBehaviorCounts(state):{distinguished:0,consistent:0,needs_followup:0};
+    body.appendChild(evalRow('متميز','',String(behavior.distinguished),'distinguished'));
+    body.appendChild(evalRow('مستمر','',String(behavior.consistent),'consistent'));
+    body.appendChild(evalRow('يحتاج متابعة','',String(behavior.needs_followup),'needs_followup'));
 
-    const valueMap=latestValueMap(state),values=valueNamesFromState(state);
-    if(values.length){for(const valueName of values){const item=valueMap.get(valueName);const code=item?.code||'';body.appendChild(evalRow(`القيم: ${valueName}`,'حسب توزيع المنهج',BEHAVIOR_LABELS[code]||item?.label||'لم يُقيّم بعد',code));}}
-    else body.appendChild(evalRow('القيم','لا توجد قيمة محددة في توزيع هذا الأسبوع','لم يُقيّم بعد',''));
     panel.replaceChildren(heading,body);
   }
 
@@ -118,11 +139,10 @@
     const student=document.querySelector('.student');if(!student)return false;
     const day=student.querySelector('.studentDay');if(!day)return false;
     const panels=[...day.querySelectorAll('.dayPanel')];
-    const taskPanel=panels.find(panel=>(panel.querySelector('h3')?.textContent||'').includes('مهامي اليوم'));
-    const weekPanel=panels.find(panel=>(panel.querySelector('h3')?.textContent||'').includes('هذا الأسبوع'))||panels.find(panel=>panel!==taskPanel&&panel.dataset.teacherEvaluation!=='true');
-    if(!taskPanel||!weekPanel)return false;
-    if(day.firstElementChild!==taskPanel)day.insertBefore(taskPanel,weekPanel);
-    weekPanel.dataset.teacherEvaluation='true';installStyle();renderEvaluation(weekPanel,await fetchState());return true;
+    const taskPanel=panels.find(panel=>{const text=panel.querySelector('h3')?.textContent||'';return text.includes('الواجبات اليومية')||text.includes('مهامي اليوم')});
+    const evaluationPanel=panels.find(panel=>{const text=panel.querySelector('h3')?.textContent||'';return text.includes('تقييمي اليوم')||text.includes('هذا الأسبوع')||text.includes('خطتي لهذا الأسبوع')})||panels.find(panel=>panel!==taskPanel);
+    if(!taskPanel||!evaluationPanel)return false;
+    evaluationPanel.dataset.teacherEvaluation='true';installStyle();renderEvaluation(evaluationPanel,await fetchState());return true;
   }
 
   const boot=()=>{let attempts=0;const timer=setInterval(()=>{attempts++;apply().then(done=>{if(done||attempts>20)clearInterval(timer)});},120);setInterval(()=>void apply(),12000);window.addEventListener('focus',()=>void apply());document.addEventListener('visibilitychange',()=>{if(!document.hidden)void apply()});};
