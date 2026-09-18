@@ -13,6 +13,7 @@ const checks=[
  ['assistant has no student or guardian writes',!assistant.includes('adminDb')&&!assistant.includes('studentProfiles/')&&!assistant.includes('assessments/')&&!assistant.includes('communications/')],
  ['assistant URL rewrites to learning automation action',vercel.includes('/api/lesson-assistant')&&vercel.includes('/api/learning-automation?action=assistant')],
  ['AI SDK dependency is present',Boolean(pkg.dependencies?.ai)],
+ ['preview accepts an explicit date without a parallel curriculum source',api.includes('req.query?.date')&&api.includes('previewAutomation(previewDate)')],
 ];
 const failed=checks.filter(([,ok])=>!ok);
 if(failed.length){console.error('Lesson assistant server regression failed:');for(const [name] of failed)console.error(`- ${name}`);process.exit(1)}
