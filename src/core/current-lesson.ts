@@ -38,19 +38,18 @@ function contextFromItem(subject:LessonSubject,item:PreviewItem,preview:Learning
 }
 
 export function resolveLessonFromPreview(preview:LearningPreview,fallback:LessonContext=CURRENT_LESSON):LessonContext|null{
-  for(const raw of preview.scheduledSubjects||[]){
-    if(!isSubject(raw))continue;
-    const item=preview.content?.[raw];
-    if(!item)continue;
-    const context=contextFromItem(raw,item,preview,fallback);
-    if(context)return context;
-  }
-  return null;
+  const scheduled=(preview.scheduledSubjects||[]).filter(isSubject);
+  if(scheduled.length!==1)return null;
+  const subject=scheduled[0];
+  const item=preview.content?.[subject];
+  return item?contextFromItem(subject,item,preview,fallback):null;
 }
 
 export function lessonCandidatesFromPreview(preview:LearningPreview,fallback:LessonContext=CURRENT_LESSON):LessonContext[]{
   const result:LessonContext[]=[];
-  for(const subject of subjects){
+  const scheduled=(preview.scheduledSubjects||[]).filter(isSubject);
+  const candidates=scheduled.length?scheduled:subjects;
+  for(const subject of candidates){
     const item=preview.content?.[subject];
     if(!item)continue;
     const context=contextFromItem(subject,item,preview,fallback);
@@ -66,9 +65,10 @@ export interface LessonWorkspaceData{
   status:'resolved'|'selection_required'|'unavailable';
 }
 
-export async function loadLessonWorkspace(fetcher:typeof fetch=fetch):Promise<LessonWorkspaceData>{
+export async function loadLessonWorkspace(date?:string,fetcher:typeof fetch=fetch):Promise<LessonWorkspaceData>{
   try{
-    const response=await fetcher('/api/learning-automation?action=preview',{cache:'no-store'});
+    const dateQuery=date?`&date=${encodeURIComponent(date)}`:'';
+    const response=await fetcher(`/api/learning-automation?action=preview${dateQuery}`,{cache:'no-store'});
     if(!response.ok)return {current:null,choices:[],preview:null,status:'unavailable'};
     const preview=await response.json() as LearningPreview;
     const current=resolveLessonFromPreview(preview,CURRENT_LESSON);
@@ -80,5 +80,5 @@ export async function loadLessonWorkspace(fetcher:typeof fetch=fetch):Promise<Le
 }
 
 export async function loadCurrentLessonContext(fetcher:typeof fetch=fetch):Promise<LessonContext|null>{
-  return (await loadLessonWorkspace(fetcher)).current;
+  return (await loadLessonWorkspace(undefined,fetcher)).current;
 }
