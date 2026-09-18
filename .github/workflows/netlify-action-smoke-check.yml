@@ -23,3 +23,5 @@ jobs:
           if (status.cleanup !== true) process.exit(22);
           if (!status.checks || Object.values(status.checks).some(v => v !== true)) process.exit(23);
           NODE
+
+# trigger: 2
