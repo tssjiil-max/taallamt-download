@@ -1,5 +1,5 @@
 import React from 'react';
-import {CURRENT_LESSON} from '../core/current-lesson';
+import {CURRENT_LESSON,loadCurrentLessonContext} from '../core/current-lesson';
 import {buildLessonPlan,replyAsShakabambo,strategyAlternatives} from '../core/lesson-session';
 import {askShakabamboRemote} from '../core/lesson-assistant-client';
 import './lesson-session-screen.css';
@@ -7,7 +7,7 @@ import './lesson-session-screen.css';
 const mascot='/student-assets/student-main-logo.webp';
 
 export function LessonSessionScreen(){
-  const context=CURRENT_LESSON;
+  const [context,setContext]=React.useState(CURRENT_LESSON);
   const [strategy,setStrategy]=React.useState<string>('');
   const [chooseStrategy,setChooseStrategy]=React.useState(false);
   const [includeTechnology,setIncludeTechnology]=React.useState(false);
@@ -19,6 +19,8 @@ export function LessonSessionScreen(){
   const [reply,setReply]=React.useState(()=>replyAsShakabambo(context,'','teacher'));
   const [assistantBusy,setAssistantBusy]=React.useState(false);
   const [assistantNotice,setAssistantNotice]=React.useState('');
+  React.useEffect(()=>{let live=true;loadCurrentLessonContext().then(value=>{if(live)setContext(value)});return()=>{live=false}},[]);
+  React.useEffect(()=>{setStrategy('');setStarted(false);setStepIndex(0);setPrompt('');setAssistantNotice('');setReply(replyAsShakabambo(context,'','teacher'));},[context.subject,context.lesson,context.skills.join('|')]);
   const plan=React.useMemo(()=>buildLessonPlan(context,{strategy:strategy||undefined,includeTechnology,includeTimeManagement:includeTime}),[strategy,includeTechnology,includeTime,context]);
   const step=plan.steps[Math.min(stepIndex,plan.steps.length-1)];
   const ask=async(text:string)=>{const q=text.trim();if(!q||assistantBusy)return;setPrompt(q);setAssistantBusy(true);setAssistantNotice('');const localReply=replyAsShakabambo(context,q,audience);try{setReply(await askShakabamboRemote(context,q,audience));}catch{setReply(localReply);setAssistantNotice('تعذر تشغيل شكابمبو الآن عبر الاتصال الذكي، فاستخدمت المساعدة المحلية المرتبطة بالحصة.');}finally{setAssistantBusy(false)}};
@@ -27,7 +29,7 @@ export function LessonSessionScreen(){
   return <main className="lessonSession" dir="rtl">
     <header className="lessonHeader">
       <button className="lessonBack" onClick={()=>location.assign('/teacher')} aria-label="العودة">‹</button>
-      <div className="lessonHeaderText"><span>{context.subjectTitle} · {context.grade} / {context.className}</span><h1>{context.lesson}</h1><p>{context.unit} · {context.period||'الحصة الحالية'}</p></div>
+      <div className="lessonHeaderText"><span>{context.subjectTitle} · {context.grade} / {context.className}</span><h1>{context.lesson}</h1><p>{context.unit} · {context.period||'الحصة الحالية'}{context.date?` · ${context.date}`:''}</p></div>
       <img src={mascot} alt="شكابمبو" className="lessonMascot"/>
     </header>
 
