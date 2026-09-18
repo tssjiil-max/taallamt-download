@@ -63,7 +63,7 @@
     if(!tasks.length){const empty=document.createElement('div');empty.className='automationTaskEmpty';empty.style.cssText='padding:14px 10px;text-align:center;color:#7890a2;font-size:11px;line-height:1.6';empty.textContent='لا توجد مهام منشورة لهذا اليوم حسب توزيع المنهج والجدول.';panel.appendChild(empty);return true}
     for(const task of tasks){
       const done=task.completed||evidenceStatus(state,task.id)==='completed';
-      const button=document.createElement('button');button.type='button';button.className=`taskItem automationTask ${done?'done':''}`;button.dataset.homeworkId=String(task.id||'');button.dataset.planned=task.planned?'true':'false';
+      const button=document.createElement('button');button.type='button';button.className=`taskItem automationTask ${done?'done':''}`;button.dataset.homeworkId=String(task.id||'');button.dataset.planned=task.planned?'true':'false';button.dataset.autoGrade=task.autoGrading?.enabled?'1':'0';
       const circle=document.createElement('span');circle.className='taskCircle';circle.textContent=done?'✓':'';
       const text=document.createElement('div');text.className='taskText';const title=document.createElement('b');title.textContent=task.title||'مهمة اليوم';const sub=document.createElement('span');sub.textContent=taskSubtitle(task);text.append(title,sub);button.append(circle,text);
       button.addEventListener('click',()=>void completeTask(button,task,state));panel.appendChild(button);
