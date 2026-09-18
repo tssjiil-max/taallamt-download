@@ -8,6 +8,7 @@ describe('resolveLessonFromPreview',()=>{
       scheduledSubjects:['islamic'],
       content:{islamic:{subject:'islamic',title:'الدراسات الإسلامية',unit:'أسماء الله وصفاته',lesson:'الله السميع البصير',skill:'تمييز أثر الإيمان بالاسمين'}}
     },CURRENT_LESSON);
+    if(!context)throw new Error('expected a scheduled lesson');
     expect(context.subject).toBe('islamic');
     expect(context.subjectTitle).toBe('الدراسات الإسلامية');
     expect(context.unit).toBe('أسماء الله وصفاته');
