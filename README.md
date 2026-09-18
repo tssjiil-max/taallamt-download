@@ -17,3 +17,5 @@
 students, curriculum, timetable, weekly-plan, comprehensive-assessment, focused-followup, behavior, remediation, achievements, portfolio, communication, rewards, shikabombo-ai.
 
 > التطبيق القديم محفوظ في فرع archive/android-app-v3.8.3-2026-09-11.
+
+<!-- staging runtime refresh: production-scoped Firebase secret -->
