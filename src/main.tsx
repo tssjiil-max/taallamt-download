@@ -86,7 +86,26 @@ function TeacherStudents(){
 
 function Teacher(){
  const [currentLesson,setCurrentLesson]=React.useState<typeof CURRENT_LESSON|null|undefined>(undefined);
+ const [latestAnnouncement,setLatestAnnouncement]=React.useState<any>(null);
  React.useEffect(()=>{let live=true;loadCurrentLessonContext().then(value=>{if(live)setCurrentLesson(value)});return()=>{live=false}},[]);
+ React.useEffect(()=>{
+  let live=true;
+  const load=async()=>{
+   try{
+    const response=await fetch('/api/teacher-announcements',{cache:'no-store'}),data=await response.json();
+    if(!response.ok||!data.ok)throw new Error('ANNOUNCEMENTS_UNAVAILABLE');
+    const published=(data.announcements||[]).filter((item:any)=>item.status==='published'&&(item.targetType||'class')==='class');
+    if(live)setLatestAnnouncement(published[0]||null);
+   }catch{
+    try{
+     const value=JSON.parse(localStorage.getItem('teacherAnnouncements')||'[]');
+     const published=(Array.isArray(value)?value:[]).filter((item:any)=>item.status==='published'&&(item.targetType||'class')==='class').sort((a:any,b:any)=>String(b.date||'').localeCompare(String(a.date||'')));
+     if(live)setLatestAnnouncement(published[0]||null);
+    }catch{if(live)setLatestAnnouncement(null)}
+   }
+  };
+  void load();const timer=setInterval(load,12000);return()=>{live=false;clearInterval(timer)};
+ },[]);
  const subjects=[
   {k:'lughati' as const,t:'لغتي',p:32},
   {k:'quran' as const,t:'القرآن الكريم',p:25},
@@ -139,7 +158,7 @@ function Teacher(){
       <StatusLine tone="green" label="تم تقييم اليوم" value="24"/>
     </Panel>
     <Panel title="الإعلانات" icon="megaphone" action="عرض الكل" onAction={()=>go('/teacher/announcements')}>
-      <div className="announcement"><span className="announcementDot"/><div><b>اجتماع أولياء الأمور يوم الأحد</b><small>2026 - 09 - 05</small></div></div>
+      {latestAnnouncement?<div className="announcement"><span className="announcementDot"/><div><b>{latestAnnouncement.title}</b><small>{latestAnnouncement.date||''}</small></div></div>:<div className="announcement"><div><b>لا توجد إعلانات منشورة</b></div></div>}
     </Panel>
   </section>
   <TeacherNav/>
