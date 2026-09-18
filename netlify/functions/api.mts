@@ -48,9 +48,19 @@ async function requestBody(request:Request){
   return text;
 }
 
+function routeFromPathname(pathname:string){
+  const prefixes=['/.netlify/functions/api/','/api/'];
+  for(const prefix of prefixes){
+    if(!pathname.startsWith(prefix))continue;
+    const value=pathname.slice(prefix.length).split('/')[0]||'';
+    try{return decodeURIComponent(value)}catch{return value}
+  }
+  return '';
+}
+
 export default async (request:Request,_context:Context)=>{
   const url=new URL(request.url);
-  let route=url.searchParams.get('path')||'';
+  let route=url.searchParams.get('path')||routeFromPathname(url.pathname);
   url.searchParams.delete('path');
   if(route==='lesson-assistant'){
     route='learning-automation';
