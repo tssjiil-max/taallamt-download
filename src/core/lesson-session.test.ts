@@ -30,4 +30,28 @@ describe('lesson session',()=>{
     expect(answer).toContain('بر الوالدين');
     expect(answer.length).toBeLessThan(220);
   });
+
+  it('can tell the teacher the active objectives without inventing new content',()=>{
+    const answer=replyAsShakabambo(islamic,'وش أهداف الدرس؟','teacher');
+    expect(answer).toContain('يبين صور بر الوالدين');
+    expect(answer).toContain('يستنتج أثر البر في حياة المسلم');
+  });
+
+  it('handles a child why-question by connecting it to the lesson instead of fabricating textbook text',()=>{
+    const answer=replyAsShakabambo(islamic,'ليش نبر الوالدين؟','student');
+    expect(answer).toContain('بر الوالدين');
+    expect(answer).toMatch(/هدف|نتعلم|نفكر|أثر/);
+    expect(answer).not.toMatch(/قال الله|قال الرسول|الحديث يقول|الكتاب يقول/);
+  });
+
+  it('offers subject-aware differentiation and feedback help',()=>{
+    const quran:LessonContext={subject:'quran',subjectTitle:'القرآن الكريم',unit:'سورة الليل',lesson:'الآيات 1 - 9',skills:['الحفظ','صحة القراءة'],grade:'الثاني',className:'4'};
+    expect(replyAsShakabambo(quran,'كيف أراعي الفروق الفردية؟','teacher')).toMatch(/تسميع|مقطع|دعم/);
+    expect(replyAsShakabambo(quran,'أعطني تغذية راجعة','teacher')).toMatch(/خطأ|إعادة|محاولة/);
+  });
+
+  it('states the boundary when an exact source answer is not present in lesson context',()=>{
+    const answer=replyAsShakabambo(islamic,'ما نص الحديث الموجود في الدرس؟','student');
+    expect(answer).toMatch(/غير موجود|مصدر الدرس|المعلم/);
+  });
 });
