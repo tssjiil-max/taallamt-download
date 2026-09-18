@@ -1,8 +1,8 @@
 const clampStars=(value)=>Math.max(0,Math.min(30,Number.isFinite(Number(value))?Number(value):0));
-const SHAKABUMBO_PROFILE='/student-assets/student-profile.webp';
+const SHAKABUMBO_PROFILE='/student-shakabumbo-shield.svg';
 const SHAKABUMBO_MAIN='/student-assets/student-main-logo.webp';
 const SHAKABUMBO_REWARD='/student-assets/student-reward-star.webp';
-const SHAKABUMBO_NAV=SHAKABUMBO_MAIN;
+const SHAKABUMBO_NAV='/student-assets/student-center-logo.svg';
 const SUBJECT_ASSETS={
   'لغتي':'/student-assets/subject-lughati.webp',
   'القرآن الكريم':'/student-assets/subject-quran.webp',

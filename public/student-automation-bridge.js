@@ -56,14 +56,16 @@
 
   function renderTodayTasks(preview,state){
     const id=studentId();if(!id)return false;
-    const panels=[...document.querySelectorAll('.student .dayPanel')],panel=panels.find(item=>(item.querySelector('h3')?.textContent||'').includes('مهامي اليوم'));
+    const panels=[...document.querySelectorAll('.student .dayPanel')],panel=panels.find(item=>{const text=item.querySelector('h3')?.textContent||'';return text.includes('الواجبات اليومية')||text.includes('مهامي اليوم')});
     if(!panel)return false;
+    const heading=panel.querySelector('h3');
+    if(heading&&!heading.textContent.includes('الواجبات اليومية')){const icon=heading.querySelector('svg');heading.textContent='';if(icon)heading.append(icon);heading.append(document.createTextNode('الواجبات اليومية'))}
     const tasks=mergedTodayTasks(preview,state);
     panel.querySelectorAll('.taskItem,.automationTaskEmpty').forEach(node=>node.remove());
     if(!tasks.length){const empty=document.createElement('div');empty.className='automationTaskEmpty';empty.style.cssText='padding:14px 10px;text-align:center;color:#7890a2;font-size:11px;line-height:1.6';empty.textContent='لا توجد مهام منشورة لهذا اليوم حسب توزيع المنهج والجدول.';panel.appendChild(empty);return true}
     for(const task of tasks){
       const done=task.completed||evidenceStatus(state,task.id)==='completed';
-      const button=document.createElement('button');button.type='button';button.className=`taskItem automationTask ${done?'done':''}`;button.dataset.homeworkId=String(task.id||'');button.dataset.planned=task.planned?'true':'false';
+      const button=document.createElement('button');button.type='button';button.className=`taskItem automationTask ${done?'done':''}`;button.dataset.homeworkId=String(task.id||'');button.dataset.planned=task.planned?'true':'false';button.dataset.autoGrade=task.autoGrading?.enabled?'1':'0';
       const circle=document.createElement('span');circle.className='taskCircle';circle.textContent=done?'✓':'';
       const text=document.createElement('div');text.className='taskText';const title=document.createElement('b');title.textContent=task.title||'مهمة اليوم';const sub=document.createElement('span');sub.textContent=taskSubtitle(task);text.append(title,sub);button.append(circle,text);
       button.addEventListener('click',()=>void completeTask(button,task,state));panel.appendChild(button);
@@ -111,6 +113,6 @@
   }
 
   const observer=new MutationObserver(()=>{if(latest)requestAnimationFrame(()=>enhanceSubjectModals(latest.preview,latest.state))});
-  const start=()=>{observer.observe(document.body,{childList:true,subtree:true});void refresh();setTimeout(()=>void refresh(),700);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh()})};
+  const start=()=>{observer.observe(document.body,{childList:true,subtree:true});void refresh();setTimeout(()=>void refresh(),700);setInterval(()=>void refresh(),12000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh()})};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

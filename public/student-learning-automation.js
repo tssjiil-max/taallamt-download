@@ -7,7 +7,10 @@
   async function hydrateWeekly(){
     try{
       const data=await api('/api/learning-automation?action=preview'),content=data.content||{};
-      const panels=[...document.querySelectorAll('.student .dayPanel')],panel=panels.find(p=>(p.querySelector('h3')?.textContent||'').includes('هذا الأسبوع')||(p.querySelector('h3')?.textContent||'').includes('خطتي لهذا الأسبوع'));
+      const panels=[...document.querySelectorAll('.student .dayPanel')];
+      const hasLockedDailyHomework=panels.some(p=>{const text=p.querySelector('h3')?.textContent||'';return text.includes('الواجبات اليومية')||text.includes('مهامي اليوم')});
+      if(hasLockedDailyHomework&&panels.length===2)return;
+      const panel=panels.find(p=>p.dataset.teacherEvaluation!=='true'&&((p.querySelector('h3')?.textContent||'').includes('هذا الأسبوع')||(p.querySelector('h3')?.textContent||'').includes('خطتي لهذا الأسبوع')));
       if(!panel)return;
       const heading=panel.querySelector('h3');if(heading&&!heading.textContent.includes('خطتي')){const icon=heading.querySelector('svg');heading.textContent='';if(icon)heading.append(icon);heading.append(document.createTextNode('خطتي لهذا الأسبوع'))}
       panel.querySelectorAll('.scheduleItem').forEach(row=>{
