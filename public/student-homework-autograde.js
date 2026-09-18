@@ -18,9 +18,10 @@
   function bindTasks(){
     if(!state)return;
     const homework=state.homework||[];
-    document.querySelectorAll('.student .serverTask').forEach(button=>{
+    document.querySelectorAll('.student .automationTask,.student .serverTask').forEach(button=>{
       const title=button.querySelector('.taskText b')?.textContent?.trim()||'';
-      const item=homework.find(x=>x.title===title);if(!item)return;
+      const homeworkId=button.dataset.homeworkId||'';
+      const item=homework.find(x=>x.id===homeworkId)||homework.find(x=>x.title===title);if(!item)return;
       button.dataset.homeworkId=item.id;
       const enabled=Boolean(item.autoGrading?.enabled);button.dataset.autoGrade=enabled?'1':'0';
       button.querySelector('.autoGradeBadge')?.remove();
@@ -55,7 +56,7 @@
     textarea?.focus();
   }
   document.addEventListener('click',event=>{
-    const target=event.target;if(!(target instanceof Element))return;const button=target.closest('.student .serverTask[data-auto-grade="1"]');if(!button)return;
+    const target=event.target;if(!(target instanceof Element))return;const button=target.closest('.student .automationTask[data-auto-grade="1"],.student .serverTask[data-auto-grade="1"]');if(!button)return;
     const id=button.dataset.homeworkId,item=(state?.homework||[]).find(x=>x.id===id);if(!item)return;
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();openHomework(item);
   },true);
