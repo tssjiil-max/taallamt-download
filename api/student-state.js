@@ -24,13 +24,57 @@ function sanitizeProfile(data){
   const {guardianInviteToken,guardianDevices,...safe}=data;
   return safe;
 }
+const cleanText=value=>String(value||'').trim();
+const announcementStatus=value=>['draft','published','archived'].includes(value)?value:'draft';
+function sanitizeAnnouncement(item){
+  return {
+    id:cleanText(item?.id),
+    title:cleanText(item?.title),
+    body:cleanText(item?.body),
+    date:cleanText(item?.date),
+    status:announcementStatus(item?.status),
+    classId:item?.classId||CLASS_ID,
+    targetType:['class','student','students'].includes(item?.targetType)?item.targetType:'class',
+    studentId:cleanText(item?.studentId)||undefined,
+    studentIds:Array.isArray(item?.studentIds)?item.studentIds.map(cleanText).filter(Boolean):undefined,
+    updatedAt:item?.updatedAt||item?.createdAt||''
+  };
+}
+function announcementVisibleToStudent(item,studentId){
+  if(item.status!=='published'||item.classId!==CLASS_ID)return false;
+  if(item.targetType==='class')return true;
+  if(item.targetType==='student')return item.studentId===studentId;
+  if(item.targetType==='students')return Array.isArray(item.studentIds)&&item.studentIds.includes(studentId);
+  return false;
+}
+async function saveAnnouncement(body){
+  const id=cleanText(body.id),title=cleanText(body.title);
+  if(!id)throw new Error('ANNOUNCEMENT_ID_REQUIRED');
+  if(!title)throw new Error('TITLE_REQUIRED');
+  const targetType=['class','student','students'].includes(body.targetType)?body.targetType:'class';
+  const record={
+    id,title,body:cleanText(body.body).slice(0,2000),date:cleanText(body.date)||now().slice(0,10),
+    status:announcementStatus(body.status),classId:CLASS_ID,targetType,updatedAt:now()
+  };
+  if(targetType==='student'){
+    const targetStudentId=cleanText(body.studentId);if(!getStudent(targetStudentId))throw new Error('STUDENT_NOT_FOUND');
+    record.studentId=targetStudentId;
+  }else if(targetType==='students'){
+    const studentIds=[...new Set((Array.isArray(body.studentIds)?body.studentIds:[]).map(cleanText).filter(id=>getStudent(id)))];
+    if(!studentIds.length)throw new Error('STUDENTS_REQUIRED');
+    record.studentIds=studentIds;
+  }
+  const db=adminDb(),ref=db.doc(`${base()}/announcements/${id}`),existing=await ref.get();
+  await ref.set({...record,...(!existing.exists?{createdAt:now()}:{})},{merge:true});
+  return {saved:true,announcement:sanitizeAnnouncement({...record,createdAt:existing.exists?existing.data()?.createdAt:now()})};
+}
 
 async function studentSnapshot(studentId){
   const db=adminDb(),student=getStudent(studentId);
   if(!student)throw new Error('STUDENT_NOT_FOUND');
   const root=base();
   const ledgerRef=db.doc(`${root}/rewardLedgers/${studentId}_${monthKey()}`);
-  const [ledger,profile,assessments,remediation,portfolio,evidence,communications,curriculum,weeklyPlan]=await Promise.all([
+  const [ledger,profile,assessments,remediation,portfolio,evidence,communications,curriculum,weeklyPlan,announcements]=await Promise.all([
     ledgerRef.get(),
     db.doc(`${root}/studentProfiles/${studentId}`).get(),
     db.collection(`${root}/assessments`).where('studentId','==',studentId).get(),
@@ -39,7 +83,8 @@ async function studentSnapshot(studentId){
     db.collection(`${root}/homeworkEvidence`).where('studentId','==',studentId).get(),
     db.collection(`${root}/communications`).where('studentId','==',studentId).get(),
     db.collection(`${root}/curriculumTargets`).get(),
-    db.collection(`${root}/weeklyPlans`).where('publishStatus','==','published').get()
+    db.collection(`${root}/weeklyPlans`).where('publishStatus','==','published').get(),
+    db.collection(`${root}/announcements`).get()
   ]);
   const assessmentRows=items(assessments).sort(desc);
   const needsFollowupCount=assessmentRows.reduce((total,row)=>total+(row.behavior||[]).filter(item=>item?.code==='needs_followup').length,0);
@@ -51,6 +96,7 @@ async function studentSnapshot(studentId){
   const weeklyPlanAll=items(weeklyPlan).filter(x=>x.publishStatus==='published').sort((a,b)=>String(b.weekKey||'').localeCompare(String(a.weekKey||'')));
   const latestWeekKey=weeklyPlanAll[0]?.weekKey;
   const weeklyPlanRows=latestWeekKey?weeklyPlanAll.filter(x=>x.weekKey===latestWeekKey):[];
+  const announcementRows=items(announcements).map(sanitizeAnnouncement).filter(item=>announcementVisibleToStudent(item,studentId)).sort((a,b)=>String(b.updatedAt||b.date).localeCompare(String(a.updatedAt||a.date))).slice(0,30);
   return {
     ok:true,student,profile:profile.exists?sanitizeProfile(profile.data()):null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
     needsFollowupCount,
@@ -59,6 +105,7 @@ async function studentSnapshot(studentId){
     portfolio:items(portfolio).sort(desc).slice(0,30),
     homework,homeworkEvidence:evidenceRows.slice(0,30),
     communications:items(communications).sort(desc).slice(0,30),
+    announcements:announcementRows,
     curriculum:curriculumRows,
     weeklyPlan:weeklyPlanRows
   };
@@ -247,6 +294,9 @@ export default async function handler(req,res){
   try{
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke')return res.status(200).json(await stagingSmoke());
     const body=req.method==='GET'?{}:jsonBody(req);
+    if(req.method==='POST'&&String(body.action||'')==='announcement'){
+      previewWriteGuard();return res.status(200).json({ok:true,...await saveAnnouncement(body)});
+    }
     const studentId=String((req.method==='GET'?req.query?.studentId:body.studentId)||'');
     const student=getStudent(studentId);if(!student)return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
     if(req.method==='GET'){
