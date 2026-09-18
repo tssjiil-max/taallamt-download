@@ -1,5 +1,5 @@
 (()=>{
-  if(location.pathname!=='/teacher/announcements')return;
+  if(!location.pathname.startsWith('/teacher'))return;
   const KEY='teacherAnnouncements';
   const synced=new Map();
   const stable=item=>JSON.stringify({
