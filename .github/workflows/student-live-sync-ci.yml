@@ -15,3 +15,11 @@ jobs:
         run: npm test
       - name: Full project build
         run: npm run build
+      - name: Pack source for Netlify staging
+        run: tar --exclude='.git' --exclude='node_modules' --exclude='dist' -czf /tmp/taallamt-netlify-source.tgz .
+      - name: Upload Netlify source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: taallamt-netlify-source
+          path: /tmp/taallamt-netlify-source.tgz
+          retention-days: 1
