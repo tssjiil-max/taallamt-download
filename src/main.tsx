@@ -2,7 +2,7 @@ import React from 'react';
 import {createRoot} from 'react-dom/client';
 import './ui.css';
 import {LessonSessionScreen} from './ui/lesson-session-screen';
-import {CURRENT_LESSON} from './core/current-lesson';
+import {CURRENT_LESSON,loadCurrentLessonContext} from './core/current-lesson';
 
 const asset=(p:string)=>`/${p}`;
 
@@ -85,6 +85,8 @@ function TeacherStudents(){
 }
 
 function Teacher(){
+ const [currentLesson,setCurrentLesson]=React.useState(CURRENT_LESSON);
+ React.useEffect(()=>{let live=true;loadCurrentLessonContext().then(value=>{if(live)setCurrentLesson(value)});return()=>{live=false}},[]);
  const subjects=[
   {k:'lughati' as const,t:'لغتي',p:32},
   {k:'quran' as const,t:'القرآن الكريم',p:25},
@@ -117,7 +119,7 @@ function Teacher(){
     <div className="nowHeading"><h2><UiIcon name="clock" size={27}/>حصتي الآن</h2><div className="timePills"><span>10:00 - 10:45</span><b>الحصة 3</b></div></div>
     <div className="nowBody">
       <button className="startLesson" onClick={()=>go('/teacher/lesson')}><UiIcon name="play" size={23}/>ابدأ الحصة</button>
-      <div className="lessonDetails"><h3><SubjectIcon kind={CURRENT_LESSON.subject==='arabic'?'lughati':CURRENT_LESSON.subject==='quran'?'quran':CURRENT_LESSON.subject==='islamic'?'islamic':'writing'}/>{CURRENT_LESSON.subjectTitle}</h3><p>الوحدة: {CURRENT_LESSON.unit}</p><p>الدرس: {CURRENT_LESSON.lesson}</p><p><b>المهارات:</b> {CURRENT_LESSON.skills.join(' – ')}</p></div>
+      <div className="lessonDetails"><h3><SubjectIcon kind={currentLesson.subject==='arabic'?'lughati':currentLesson.subject==='quran'?'quran':currentLesson.subject==='islamic'?'islamic':'writing'}/>{currentLesson.subjectTitle}</h3><p>الوحدة: {currentLesson.unit}</p><p>الدرس: {currentLesson.lesson}</p><p><b>المهارات:</b> {currentLesson.skills.join(' – ')}</p></div>
     </div>
   </section>
 
