@@ -56,8 +56,10 @@
 
   function renderTodayTasks(preview,state){
     const id=studentId();if(!id)return false;
-    const panels=[...document.querySelectorAll('.student .dayPanel')],panel=panels.find(item=>(item.querySelector('h3')?.textContent||'').includes('مهامي اليوم'));
+    const panels=[...document.querySelectorAll('.student .dayPanel')],panel=panels.find(item=>{const text=item.querySelector('h3')?.textContent||'';return text.includes('الواجبات اليومية')||text.includes('مهامي اليوم')});
     if(!panel)return false;
+    const heading=panel.querySelector('h3');
+    if(heading&&!heading.textContent.includes('الواجبات اليومية')){const icon=heading.querySelector('svg');heading.textContent='';if(icon)heading.append(icon);heading.append(document.createTextNode('الواجبات اليومية'))}
     const tasks=mergedTodayTasks(preview,state);
     panel.querySelectorAll('.taskItem,.automationTaskEmpty').forEach(node=>node.remove());
     if(!tasks.length){const empty=document.createElement('div');empty.className='automationTaskEmpty';empty.style.cssText='padding:14px 10px;text-align:center;color:#7890a2;font-size:11px;line-height:1.6';empty.textContent='لا توجد مهام منشورة لهذا اليوم حسب توزيع المنهج والجدول.';panel.appendChild(empty);return true}
