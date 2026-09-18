@@ -90,21 +90,14 @@ function Teacher(){
  React.useEffect(()=>{let live=true;loadCurrentLessonContext().then(value=>{if(live)setCurrentLesson(value)});return()=>{live=false}},[]);
  React.useEffect(()=>{
   let live=true;
-  const load=async()=>{
+  const load=()=>{
    try{
-    const response=await fetch('/api/teacher-announcements',{cache:'no-store'}),data=await response.json();
-    if(!response.ok||!data.ok)throw new Error('ANNOUNCEMENTS_UNAVAILABLE');
-    const published=(data.announcements||[]).filter((item:any)=>item.status==='published'&&(item.targetType||'class')==='class');
+    const value=JSON.parse(localStorage.getItem('teacherAnnouncements')||'[]');
+    const published=(Array.isArray(value)?value:[]).filter((item:any)=>item.status==='published'&&(item.targetType||'class')==='class').sort((a:any,b:any)=>String(b.date||'').localeCompare(String(a.date||'')));
     if(live)setLatestAnnouncement(published[0]||null);
-   }catch{
-    try{
-     const value=JSON.parse(localStorage.getItem('teacherAnnouncements')||'[]');
-     const published=(Array.isArray(value)?value:[]).filter((item:any)=>item.status==='published'&&(item.targetType||'class')==='class').sort((a:any,b:any)=>String(b.date||'').localeCompare(String(a.date||'')));
-     if(live)setLatestAnnouncement(published[0]||null);
-    }catch{if(live)setLatestAnnouncement(null)}
-   }
+   }catch{if(live)setLatestAnnouncement(null)}
   };
-  void load();const timer=setInterval(load,12000);return()=>{live=false;clearInterval(timer)};
+  load();const timer=setInterval(load,2500);window.addEventListener('storage',load);return()=>{live=false;clearInterval(timer);window.removeEventListener('storage',load)};
  },[]);
  const subjects=[
   {k:'lughati' as const,t:'لغتي',p:32},
