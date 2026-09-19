@@ -125,6 +125,13 @@
     weekPanel.dataset.teacherEvaluation='true';installStyle();renderEvaluation(weekPanel,await fetchState());return true;
   }
 
-  const boot=()=>{let attempts=0;const timer=setInterval(()=>{attempts++;apply().then(done=>{if(done||attempts>20)clearInterval(timer)});},120);};
+  const boot=()=>{
+    let attempts=0,busy=false;
+    const tryApply=async()=>{
+      if(busy)return;busy=true;attempts++;
+      try{const done=await apply();if(!done&&attempts<=20)window.setTimeout(()=>{void tryApply()},120)}finally{busy=false}
+    };
+    void tryApply();
+  };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
