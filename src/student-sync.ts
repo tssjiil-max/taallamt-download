@@ -17,6 +17,7 @@ const STUDENTS=[
 ].map((name,index)=>({id:`s2-4-${String(index+1).padStart(2,'0')}`,number:index+1,name,grade:'الثاني',className:'4'}));
 const TARGETS=['subject:arabic','subject:quran','subject:islamic','subject:spelling_handwriting'];
 const TARGET_TITLES:Record<string,string>={'subject:arabic':'لغتي','subject:quran':'القرآن الكريم','subject:islamic':'الدراسات الإسلامية','subject:spelling_handwriting':'الإملاء والخط'};
+const STUDENT_REFRESH_THROTTLE_MS=30000;
 const teacherStudentId=()=>location.pathname.match(/^\/teacher\/student\/(s2-4-\d{2})\/?$/)?.[1]||null;
 const publicStudentId=()=>new URLSearchParams(location.search).get('studentId');
 const byNumber=(n:number)=>STUDENTS[n-1]||null;
@@ -106,8 +107,17 @@ function applyStudentState(state:StudentState){saveIdentity(state);if(state.prof
 
 function installStudentLive(){
  if(!location.pathname.startsWith('/student'))return;const studentId=publicStudentId();if(!studentId)return;
- let busy=false;const refresh=async()=>{if(busy||document.hidden)return;busy=true;try{applyStudentState(await apiGet(studentId))}catch(e){console.error('student live',e)}finally{busy=false}};
- refresh();window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});window.setInterval(refresh,10000);
+ let busy=false,lastRefreshAt=0;
+ const refresh=async(force=false)=>{
+  if(busy||document.hidden)return;
+  if(!force&&Date.now()-lastRefreshAt<STUDENT_REFRESH_THROTTLE_MS)return;
+  lastRefreshAt=Date.now();busy=true;
+  try{applyStudentState(await apiGet(studentId))}catch(e){console.error('student live',e)}finally{busy=false}
+ };
+ void refresh(true);
+ const refreshOnReturn=()=>{void refresh(false)};
+ window.addEventListener('focus',refreshOnReturn);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOnReturn()});
 }
 
 function selectedAcademic(panel:Element){
