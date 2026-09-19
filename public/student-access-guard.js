@@ -42,25 +42,19 @@
       if(method==='GET'&&parsed?.pathname==='/api/student-state'){
         parsed.searchParams.set('guardianAccess','1');
         parsed.searchParams.set('inviteToken',invite);
-        return originalFetch(parsed.pathname+parsed.search,init);
+        const response=await originalFetch(parsed.pathname+parsed.search,init);
+        if(response.ok){
+          document.documentElement.classList.remove('studentAccessPending');
+          document.querySelector('.studentAccessGate')?.remove();
+        }else if(response.status===403){
+          gate('الرابط غير صالح','اطلب من المعلم مشاركة رابط الطالب الصحيح مرة أخرى.');
+        }else{
+          gate('تعذر تحميل البيانات','حاول فتح الصفحة مرة أخرى بعد قليل.');
+        }
+        return response;
       }
       return originalFetch(input,init);
     };
-
-    (async()=>{
-      try{
-        const probe=new URL('/api/student-state',location.origin);
-        probe.searchParams.set('studentId',studentId);
-        probe.searchParams.set('guardianAccess','1');
-        probe.searchParams.set('inviteToken',invite);
-        const response=await originalFetch(probe.pathname+probe.search,{cache:'no-store'});
-        const data=await response.json().catch(()=>({}));
-        if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
-        document.documentElement.classList.remove('studentAccessPending');
-      }catch{
-        gate('الرابط غير صالح','اطلب من المعلم مشاركة رابط الطالب الصحيح مرة أخرى.');
-      }
-    })();
   }
 
   if(TEACHER_MATCH){
