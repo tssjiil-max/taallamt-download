@@ -66,15 +66,15 @@ async function studentSnapshot(studentId){
 
 async function shareGuardianAccess(studentId,body){
   const requested=String(body.inviteToken||'').trim();
-  if(!validAccessToken(requested))throw new Error('ACCESS_TOKEN_INVALID');
+  if(requested&&!validAccessToken(requested))throw new Error('ACCESS_TOKEN_INVALID');
   const db=adminDb(),ref=db.doc(`${base()}/studentProfiles/${studentId}`),timestamp=now();
   return db.runTransaction(async tx=>{
     const snap=await tx.get(ref),profile=snap.exists?snap.data():{};
     const current=String(profile?.guardianInviteToken||'');
-    if(current&&current!==requested)throw new Error('ACCESS_SHARE_FORBIDDEN');
     const devices=normalizeGuardianDevices(profile);
-    if(!current)tx.set(ref,{studentId,guardianInviteToken:requested,guardianDevices:devices,guardianAccessUpdatedAt:timestamp,updatedAt:timestamp},{merge:true});
-    return {inviteToken:current||requested,devicesCount:devices.length,maxDevices:MAX_GUARDIAN_DEVICES};
+    const invite=current||requested||accessToken();
+    if(!current)tx.set(ref,{studentId,guardianInviteToken:invite,guardianDevices:devices,guardianAccessUpdatedAt:timestamp,updatedAt:timestamp},{merge:true});
+    return {inviteToken:invite,devicesCount:devices.length,maxDevices:MAX_GUARDIAN_DEVICES};
   });
 }
 
@@ -273,7 +273,7 @@ export default async function handler(req,res){
     return res.status(200).json({ok:true,...result,state:await studentSnapshot(studentId)});
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
-    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message==='ACCESS_DEVICE_LIMIT'?409:['ACCESS_INVITE_INVALID','ACCESS_DEVICE_INVALID','ACCESS_DEVICE_NOT_LINKED','ACCESS_SHARE_FORBIDDEN'].includes(message)?403:message.endsWith('_REQUIRED')||message.endsWith('_EMPTY')||message.endsWith('_INVALID')?400:500;
+    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message==='ACCESS_DEVICE_LIMIT'?409:['ACCESS_INVITE_INVALID','ACCESS_DEVICE_INVALID','ACCESS_DEVICE_NOT_LINKED'].includes(message)?403:message.endsWith('_REQUIRED')||message.endsWith('_EMPTY')||message.endsWith('_INVALID')?400:500;
     console.error('student-state',message);
     return res.status(status).json({ok:false,error:message});
   }
