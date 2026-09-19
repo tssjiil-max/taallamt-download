@@ -3,7 +3,6 @@
   const STUDENT_PATH=location.pathname.startsWith('/student');
   const TEACHER_MATCH=location.pathname.match(/^\/teacher\/student\/(s2-4-\d{2})\/?$/);
   const tokenKey=(studentId)=>`taallamtGuardianDevice:${studentId}`;
-  const inviteKey=(studentId)=>`taallamtGuardianInvite:${studentId}`;
 
   const randomToken=()=>{
     const bytes=new Uint8Array(24);crypto.getRandomValues(bytes);
@@ -119,19 +118,17 @@
       button.addEventListener('click',async()=>{
         button.disabled=true;const oldText=button.textContent;button.textContent='جارٍ تجهيز الرابط...';
         try{
-          let invite=localStorage.getItem(inviteKey(studentId))||'';
-          if(!invite){invite=randomToken();localStorage.setItem(inviteKey(studentId),invite);}
-          const data=await accessPost(studentId,'access_share',{inviteToken:invite});
-          invite=data.inviteToken||invite;localStorage.setItem(inviteKey(studentId),invite);
+          const data=await accessPost(studentId,'access_share',{});
+          const invite=String(data.inviteToken||'');
+          if(!invite)throw new Error('ACCESS_INVITE_MISSING');
           const url=`${location.origin}/student?studentId=${encodeURIComponent(studentId)}&invite=${encodeURIComponent(invite)}`;
           const shareData={title:'متابعة الطالب',text:'رابط متابعة الطالب في تعلّمت',url};
           if(navigator.share){try{await navigator.share(shareData);}catch(error){if(error?.name!=='AbortError')throw error;}}
           else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);alert('تم نسخ رابط الطالب.');}
           else{window.prompt('انسخ رابط الطالب:',url);}
           button.textContent=`مشاركة رابط الطالب · ${Number(data.devicesCount)||0}/2 جهاز`;
-        }catch(error){
-          if(error?.code==='ACCESS_SHARE_FORBIDDEN'){alert('تم إنشاء رابط حماية لهذا الطالب من قبل على جهاز معلم آخر. استخدم جهاز المعلم الذي أنشأ الرابط أول مرة.');}
-          else alert('تعذر تجهيز رابط الطالب الآن. حاول مرة أخرى.');
+        }catch{
+          alert('تعذر تجهيز رابط الطالب الآن. حاول مرة أخرى.');
           button.textContent=oldText;
         }finally{button.disabled=false;}
       });
