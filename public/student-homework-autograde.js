@@ -1,7 +1,8 @@
 (()=>{
   if(!location.pathname.startsWith('/student'))return;
   const studentId=()=>new URLSearchParams(location.search).get('studentId')||(()=>{try{return localStorage.getItem('activeStudentId')||''}catch{return ''}})();
-  let state=null,busy=false;
+  const REFRESH_THROTTLE_MS=30000;
+  let state=null,busy=false,lastRefreshAt=0;
   const style=document.createElement('style');style.textContent=`
     .autoGradeBadge{display:inline-flex;align-items:center;margin-inline-start:6px;padding:2px 7px;border-radius:999px;background:#eaf6ff;color:#0876bd;font-size:10px;font-weight:900}
     .studentAutoGradeOverlay{position:fixed;inset:0;z-index:10020;background:rgba(15,49,76,.4);display:grid;place-items:center;padding:18px}
@@ -32,8 +33,8 @@
       if(evidence?.correct===true){button.classList.add('done');const circle=button.querySelector('.taskCircle');if(circle)circle.textContent='✓'}
     });
   }
-  async function refresh(){
-    const sid=studentId();if(!sid||busy)return;busy=true;
+  async function refresh(force=false){
+    const sid=studentId();if(!sid||busy)return;if(!force&&Date.now()-lastRefreshAt<REFRESH_THROTTLE_MS)return;lastRefreshAt=Date.now();busy=true;
     try{const r=await fetch(`/api/student-state?studentId=${encodeURIComponent(sid)}`,{cache:'no-store'}),data=await r.json();if(r.ok&&data.ok){state=data;bindTasks()}}catch{}finally{busy=false}
   }
   function openHomework(item){
@@ -49,7 +50,7 @@
         const sid=studentId(),r=await fetch('/api/homework-complete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:sid,homeworkId:item.id,answer})}),data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'REQUEST_FAILED');
         const grade=data.grade||{};result.hidden=false;result.className=`studentAutoGradeResult ${grade.correct?'ok':'bad'}`;result.textContent=`درجتك: ${grade.score??'—'} / ${grade.maxScore??max} · ${grade.feedback||''}`;
         submit.textContent=grade.correct?'تم التصحيح ✓':'حاول مرة أخرى';submit.disabled=Boolean(grade.correct);
-        await refresh();window.dispatchEvent(new Event('focus'));
+        await refresh(true);window.dispatchEvent(new Event('focus'));
       }catch{result.hidden=false;result.className='studentAutoGradeResult bad';result.textContent='تعذر التصحيح الآن. حاول مرة أخرى.';submit.textContent='إرسال للتصحيح';submit.disabled=false}
     });
     textarea?.focus();
@@ -60,5 +61,5 @@
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();openHomework(item);
   },true);
   const observer=new MutationObserver(()=>requestAnimationFrame(bindTasks));observer.observe(document.getElementById('root')||document.body,{childList:true,subtree:true});
-  refresh();setTimeout(refresh,500);window.addEventListener('focus',refresh);setInterval(refresh,12000);
+  void refresh(true);window.addEventListener('focus',()=>{void refresh(false)});
 })();
