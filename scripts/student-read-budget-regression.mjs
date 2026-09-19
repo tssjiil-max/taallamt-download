@@ -19,7 +19,7 @@ assert.equal(teacherHomework.includes('setInterval(refresh,10000)'),false,'teach
 assert.equal(studentHomework.includes('setInterval(refresh,12000)'),false,'student homework autograde must not poll student-state every 12 seconds');
 assert.equal(studentHomework.includes('setTimeout(refresh,500)'),false,'student homework autograde must not issue a duplicate startup read');
 assert.equal(studentEvaluation.includes('const timer=setInterval'),false,'student evaluation boot must not launch overlapping student-state reads');
-assert.equal(budget.includes("url.pathname==='/api/student-state'"),true,'student-state reads must pass through the shared read budget');
+assert.equal(budget.includes("url.pathname!=='/api/student-state'"),true,'student-state reads must pass through the shared read budget');
 assert.equal(budget.includes('inflight.has(key)'),true,'concurrent student-state reads must be coalesced');
 assert.equal(budget.includes('cache.clear()'),true,'state-changing requests must invalidate the short read cache');
 assert.equal(index.indexOf('/student-state-read-budget.js')<index.indexOf('/student-access-guard.js'),true,'read budget must load before guardian access wraps fetch');
