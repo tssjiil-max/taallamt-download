@@ -1,4 +1,4 @@
-/* Student page palette only: mirror teacher colors without changing layout, sizing, content, data, or behavior. */
+/* Student page palette only: mirror teacher colors without changing content, data, Firebase, or behavior. */
 @media screen {
   .student.screen{
     --student-ink:#123a72!important;
@@ -11,6 +11,7 @@
     --student-line:#e4edf2!important;
     --student-card:#ffffff!important;
     --student-bg:#f6fbff!important;
+    --student-section-border:#b9dcf4!important;
     background:linear-gradient(180deg,#e9f7ff 0,#f8fdff 230px,#f6fbff 100%)!important;
     color:#123a72!important;
   }
@@ -33,14 +34,14 @@
   .student .mascotBubble{color:#2d5d84!important}
 
   .student .studentProfile{
-    border-color:#dcebf4!important;
+    border-color:var(--student-section-border)!important;
     background:linear-gradient(145deg,#ffffff 0%,#f9fdff 58%,#eef7ff 100%)!important;
     box-shadow:0 10px 28px rgba(39,108,146,.10)!important;
   }
   .student .studentProfile::after{background:rgba(22,143,230,.08)!important}
   .student .studentCleanPhoto{
     background:linear-gradient(180deg,#eef8ff,#f6fbff)!important;
-    border-color:#dcebf4!important;
+    border-color:var(--student-section-border)!important;
   }
   .student .studentCleanDetails .studentDetailLabel{color:#70809a!important}
   .student .studentCleanDetails .studentDetailValue{color:#123a72!important}
@@ -50,45 +51,56 @@
   .student .studentDateMeta .studentClock{color:#315e94!important}
 
   .student .miniCards>div{
-    border-color:#e5f0f5!important;
+    border-color:var(--student-section-border)!important;
     background:#fbfdff!important;
   }
   .student .miniCards b{color:#315e94!important}
   .student .miniCards small,.student .miniCards span{color:#70809a!important}
 
+  .student .studentSubject{border-color:var(--student-section-border)!important}
   .student .studentSubject{
-    border-color:#e4eef3!important;
     background:#fff!important;
     box-shadow:0 5px 16px rgba(37,98,132,.07)!important;
   }
   .student .studentSubject h3,
   .student .studentSubject b{color:#163f77!important}
   .student .studentSubject .subjectBar{background:#edf1f5!important}
+  .student .studentSubject .studentSubjectMascot{
+    width:90px!important;
+    height:84px!important;
+  }
 
+  .student .dayPanel{border-color:var(--student-section-border)!important}
   .student .dayPanel{
-    border-color:#e4eef3!important;
     background:#fff!important;
     box-shadow:0 5px 16px rgba(37,98,132,.07)!important;
   }
-  .student .dayPanel h3{color:#0b60b8!important;border-bottom-color:#edf2f5!important}
+  .student .dayPanel h3{color:#0b60b8!important;border-bottom-color:#dbeaf4!important}
   .student .scheduleItem,.student .taskItem{
-    border-color:#e9f1f5!important;
+    border-color:#d8eaf6!important;
     background:#f8fcff!important;
   }
   .student .scheduleText b,.student .taskText b{color:#315e94!important}
   .student .scheduleText span,.student .taskText span{color:#70809a!important}
 
   .student .rewards{
-    border-color:#e4edf2!important;
+    border-color:var(--student-section-border)!important;
     background:linear-gradient(145deg,#ffffff,#fff 55%,#fff9ee)!important;
     box-shadow:0 6px 18px rgba(45,109,145,.07)!important;
   }
   .student .rewardStars>b{color:#76501f!important}
 
   .student .studentNav{
-    border-top-color:#e6eef3!important;
+    border:1px solid var(--student-section-border)!important;
+    border-bottom:0!important;
     background:rgba(255,255,255,.97)!important;
     box-shadow:0 -8px 24px rgba(25,78,109,.10)!important;
   }
   .student .studentNav .active{background:#eef7ff!important;color:#176cc5!important}
+}
+@media(max-width:375px){
+  .student .studentSubject .studentSubjectMascot{
+    width:81px!important;
+    height:77px!important;
+  }
 }
