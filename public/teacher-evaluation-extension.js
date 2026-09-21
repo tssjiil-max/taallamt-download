@@ -1,6 +1,5 @@
 (()=>{
   const match=()=>location.pathname.match(/^\/teacher\/student\/(s2-4-\d{2})\/?$/);
-  const SUBJECT_TARGETS=['subject:arabic','subject:quran','subject:islamic','subject:spelling_handwriting'];
   const asArray=value=>Array.isArray(value)?value:value===undefined||value===null?[]:[value];
   const textValue=value=>typeof value==='string'?value.trim():value&&typeof value==='object'?String(value.label||value.name||value.title||value.valueName||value.value||'').trim():'';
   const unique=list=>[...new Set(list.map(textValue).filter(Boolean))];
@@ -35,11 +34,6 @@
     if(root.dataset.evaluationExtended==='true')return true;
     root.dataset.evaluationExtended='true';installStyle();const studentId=route[1];
 
-    root.querySelectorAll('.tsaSubjectRow[data-subject] .tsaChoices').forEach(choices=>{
-      if(choices.querySelector('[data-eval-extension="not_mastered"]'))return;
-      const button=document.createElement('button');button.type='button';button.dataset.value='not_mastered';button.dataset.evalExtension='not_mastered';button.textContent='لم يتقن';choices.appendChild(button);
-    });
-
     const behaviorRow=root.querySelector('.tsaBehaviorRow');
     if(behaviorRow&&!root.querySelector('.tsaValueRow')){
       const valueRow=document.createElement('article');valueRow.className='tsaValueRow';
@@ -55,10 +49,7 @@
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       const row=button.closest('.tsaSubjectRow,.tsaValueRow');if(!row)return;const previous=row.querySelector('.tsaChoices button.selected');setSelected(row,button);row.querySelectorAll('.tsaChoices button').forEach(choice=>{choice.disabled=true;});
       try{
-        if(button.dataset.evalExtension==='not_mastered'){
-          const targetId=SUBJECT_TARGETS[Number(row.dataset.subject)];if(!targetId)throw new Error('ASSESSMENT_TARGET_INVALID');
-          await saveExtension(studentId,{action:'academic',targetId,result:'not_mastered'});
-        }else if(button.dataset.evalExtension==='value'){
+        if(button.dataset.evalExtension==='value'){
           if(!currentValues.length)throw new Error('VALUE_REQUIRED');
           await saveExtension(studentId,{action:'value',code:button.dataset.value,valueNames:currentValues});
         }

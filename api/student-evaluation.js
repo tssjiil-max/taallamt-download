@@ -5,7 +5,7 @@ const base=()=>`workspaces/${WORKSPACE_ID}`;
 const now=()=>new Date().toISOString();
 const uid=prefix=>`${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
 const jsonBody=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
-const academicResults=['mastered','needs_practice','not_mastered'];
+const academicResults=['mastered','needs_practice'];
 const behaviorChoices={distinguished:{label:'متميز',tone:'positive'},consistent:{label:'مستمر',tone:'positive'},needs_followup:{label:'يحتاج متابعة',tone:'needs_attention'}};
 
 function cleanValues(value){

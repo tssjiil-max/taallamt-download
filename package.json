@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/student-name-regression.mjs && node scripts/student-page-regression.mjs && node scripts/student-vector-assets-regression.mjs && node scripts/learning-automation-regression.mjs && node scripts/homework-autograde-regression.mjs && node scripts/lesson-assistant-server-regression.mjs && tsc && vite build",
+    "build": "node scripts/netlify-api-routing-regression.mjs && node scripts/student-name-regression.mjs && node scripts/student-page-regression.mjs && node scripts/student-live-sync-regression.mjs && node scripts/student-vector-assets-regression.mjs && node scripts/learning-automation-regression.mjs && node scripts/homework-autograde-regression.mjs && node scripts/lesson-assistant-server-regression.mjs && tsc && vite build",
     "test": "vitest run",
     "preview": "vite preview"
   },
@@ -16,6 +16,7 @@
     "ai": "latest"
   },
   "devDependencies": {
+    "@netlify/functions": "latest",
     "@vitejs/plugin-react": "latest",
     "vite": "latest",
     "typescript": "latest",

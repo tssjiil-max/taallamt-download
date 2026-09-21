@@ -86,7 +86,19 @@ function TeacherStudents(){
 
 function Teacher(){
  const [currentLesson,setCurrentLesson]=React.useState<typeof CURRENT_LESSON|null|undefined>(undefined);
+ const [latestAnnouncement,setLatestAnnouncement]=React.useState<any>(null);
  React.useEffect(()=>{let live=true;loadCurrentLessonContext().then(value=>{if(live)setCurrentLesson(value)});return()=>{live=false}},[]);
+ React.useEffect(()=>{
+  let live=true;
+  const load=()=>{
+   try{
+    const value=JSON.parse(localStorage.getItem('teacherAnnouncements')||'[]');
+    const published=(Array.isArray(value)?value:[]).filter((item:any)=>item.status==='published'&&(item.targetType||'class')==='class').sort((a:any,b:any)=>String(b.date||'').localeCompare(String(a.date||'')));
+    if(live)setLatestAnnouncement(published[0]||null);
+   }catch{if(live)setLatestAnnouncement(null)}
+  };
+  load();const timer=setInterval(load,2500);window.addEventListener('storage',load);return()=>{live=false;clearInterval(timer);window.removeEventListener('storage',load)};
+ },[]);
  const subjects=[
   {k:'lughati' as const,t:'لغتي',p:32},
   {k:'quran' as const,t:'القرآن الكريم',p:25},
@@ -139,14 +151,46 @@ function Teacher(){
       <StatusLine tone="green" label="تم تقييم اليوم" value="24"/>
     </Panel>
     <Panel title="الإعلانات" icon="megaphone" action="عرض الكل" onAction={()=>go('/teacher/announcements')}>
-      <div className="announcement"><span className="announcementDot"/><div><b>اجتماع أولياء الأمور يوم الأحد</b><small>2026 - 09 - 05</small></div></div>
+      {latestAnnouncement?<div className="announcement"><span className="announcementDot"/><div><b>{latestAnnouncement.title}</b><small>{latestAnnouncement.date||''}</small></div></div>:<div className="announcement"><div><b>لا توجد إعلانات منشورة</b></div></div>}
     </Panel>
   </section>
   <TeacherNav/>
  </main>
 }
 
-function TeacherAnnouncements(){const [items,setItems]=React.useState(()=>{try{return JSON.parse(localStorage.getItem('teacherAnnouncements')||'null')||[{id:'a1',title:'اجتماع أولياء الأمور يوم الأحد',body:'',date:'2026-09-05',status:'published'}]}catch{return []}});const [form,setForm]=React.useState<any>(null);const save=(n:any[])=>{setItems(n);localStorage.setItem('teacherAnnouncements',JSON.stringify(n))};const submit=()=>{if(!form?.title?.trim())return;save(items.some((x:any)=>x.id===form.id)?items.map((x:any)=>x.id===form.id?form:x):[form,...items]);setForm(null)};return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>الإعلانات</h1><p>إنشاء ومراجعة إعلانات الفصل</p></div></header><section className="settingsCard"><button className="primaryAction" onClick={()=>setForm({id:'a'+Date.now(),title:'',body:'',date:new Date().toISOString().slice(0,10),status:'draft'})}>+ إعلان جديد</button>{form&&<div className="inlineForm"><label>عنوان الإعلان<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>نص الإعلان<textarea value={form.body} onChange={e=>setForm({...form,body:e.target.value})}/></label><label>تاريخ النشر<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></label><div className="formActions"><button onClick={()=>{setForm({...form,status:'draft'});setTimeout(submit,0)}}>حفظ كمسودة</button><button onClick={()=>{const n={...form,status:'published'};save(items.some((x:any)=>x.id===n.id)?items.map((x:any)=>x.id===n.id?n:x):[n,...items]);setForm(null)}}>نشر</button><button onClick={()=>setForm(null)}>إلغاء</button></div></div>}<div className="announcementList">{items.filter((x:any)=>x.status!=='archived').map((a:any)=><article key={a.id}><div><b>{a.title}</b><p>{a.body||'بدون نص إضافي'}</p><small>{a.date} · {a.status==='published'?'منشور':'مسودة'}</small></div><div><button onClick={()=>setForm(a)}>تعديل</button><button onClick={()=>save(items.map((x:any)=>x.id===a.id?{...x,status:'archived'}:x))}>أرشفة</button></div></article>)}</div></section><TeacherNav/></main>}
+function TeacherAnnouncements(){
+ const [items,setItems]=React.useState<any[]>(()=>{try{const value=JSON.parse(localStorage.getItem('teacherAnnouncements')||'[]');return Array.isArray(value)?value:[]}catch{return []}});
+ const [form,setForm]=React.useState<any>(null);
+ const save=(next:any[])=>{setItems(next);localStorage.setItem('teacherAnnouncements',JSON.stringify(next))};
+ const upsert=(item:any)=>save(items.some((x:any)=>x.id===item.id)?items.map((x:any)=>x.id===item.id?item:x):[item,...items]);
+ const commit=(status:'draft'|'published')=>{
+   if(!form?.title?.trim())return;
+   const targetType=form.targetType==='student'?'student':'class';
+   if(targetType==='student'&&!form.studentId)return;
+   const next={...form,status,targetType,studentId:targetType==='student'?form.studentId:undefined};
+   upsert(next);setForm(null);
+ };
+ const targetLabel=(item:any)=>{
+   if(item.targetType!=='student')return 'الفصل كامل';
+   return CLASS_STUDENTS.find(student=>student.id===item.studentId)?.name||'طالب محدد';
+ };
+ return <main className="teacherSectionScreen" dir="rtl">
+  <header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>الإعلانات</h1><p>إنشاء ومراجعة إعلانات الفصل والطلاب</p></div></header>
+  <section className="settingsCard">
+   <button className="primaryAction" onClick={()=>setForm({id:'a'+Date.now(),title:'',body:'',date:new Date().toISOString().slice(0,10),status:'draft',targetType:'class',studentId:''})}>+ إعلان جديد</button>
+   {form&&<div className="inlineForm">
+    <label>عنوان الإعلان<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label>
+    <label>نص الإعلان<textarea value={form.body} onChange={e=>setForm({...form,body:e.target.value})}/></label>
+    <label>تاريخ النشر<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></label>
+    <label>المستلم<select value={form.targetType||'class'} onChange={e=>setForm({...form,targetType:e.target.value,studentId:e.target.value==='student'?(form.studentId||CLASS_STUDENTS[0]?.id||''):''})}><option value="class">الفصل كامل</option><option value="student">طالب محدد</option></select></label>
+    {form.targetType==='student'&&<label>الطالب<select value={form.studentId||CLASS_STUDENTS[0]?.id||''} onChange={e=>setForm({...form,studentId:e.target.value})}>{CLASS_STUDENTS.map(student=><option key={student.id} value={student.id}>{student.name}</option>)}</select></label>}
+    <div className="formActions"><button onClick={()=>commit('draft')}>حفظ كمسودة</button><button onClick={()=>commit('published')}>نشر</button><button onClick={()=>setForm(null)}>إلغاء</button></div>
+   </div>}
+   <div className="announcementList">{items.filter((x:any)=>x.status!=='archived').map((a:any)=><article key={a.id}><div><b>{a.title}</b><p>{a.body||'بدون نص إضافي'}</p><small>{a.date} · {a.status==='published'?'منشور':'مسودة'} · {targetLabel(a)}</small></div><div><button onClick={()=>setForm({...a,targetType:a.targetType||'class',studentId:a.studentId||''})}>تعديل</button><button onClick={()=>save(items.map((x:any)=>x.id===a.id?{...x,status:'archived'}:x))}>أرشفة</button></div></article>)}</div>
+  </section>
+  <TeacherNav/>
+ </main>
+}
 function TeacherTasks(){const tasks=[['إدخال تقييم لغتي - الوحدة 2','تقييمات لم تكتمل','/teacher/students'],['مراجعة خطط علاجية (3 طلاب)','خطط علاجية','/teacher/library'],['إرسال واجبات الدراسات','واجبات وأعمال اليوم','/teacher/students']];return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>مهامي اليوم</h1><p>المهام الظاهرة حاليًا في لوحة المعلم</p></div></header><section className="settingsCard"><div className="taskFullList">{tasks.map((t,i)=><button key={t[0]} onClick={()=>go(t[2])}><span>{i+1}</span><div><b>{t[0]}</b><small>{t[1]}</small></div><UiIcon name="chevron" size={18}/></button>)}</div><p className="dataNote">لم تتم إضافة بيانات وهمية أو تغيير مخطط البيانات.</p></section><TeacherNav/></main>}
 
 function TeacherLibrary(){

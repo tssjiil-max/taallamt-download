@@ -18,9 +18,10 @@
   function bindTasks(){
     if(!state)return;
     const homework=state.homework||[];
-    document.querySelectorAll('.student .serverTask').forEach(button=>{
+    document.querySelectorAll('.student .automationTask,.student .serverTask').forEach(button=>{
       const title=button.querySelector('.taskText b')?.textContent?.trim()||'';
-      const item=homework.find(x=>x.title===title);if(!item)return;
+      const homeworkId=button.dataset.homeworkId||'';
+      const item=homework.find(x=>x.id===homeworkId)||homework.find(x=>x.title===title);if(!item)return;
       button.dataset.homeworkId=item.id;
       const enabled=Boolean(item.autoGrading?.enabled);button.dataset.autoGrade=enabled?'1':'0';
       button.querySelector('.autoGradeBadge')?.remove();
@@ -55,9 +56,12 @@
     textarea?.focus();
   }
   document.addEventListener('click',event=>{
-    const target=event.target;if(!(target instanceof Element))return;const button=target.closest('.student .serverTask[data-auto-grade="1"]');if(!button)return;
-    const id=button.dataset.homeworkId,item=(state?.homework||[]).find(x=>x.id===id);if(!item)return;
-    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();openHomework(item);
+    const target=event.target;if(!(target instanceof Element))return;const button=target.closest('.student .automationTask[data-auto-grade="1"],.student .serverTask[data-auto-grade="1"]');if(!button)return;
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    const id=button.dataset.homeworkId;
+    const open=()=>{const item=(state?.homework||[]).find(x=>x.id===id);if(item)openHomework(item)};
+    if((state?.homework||[]).some(x=>x.id===id)){open();return}
+    void refresh().then(open);
   },true);
   const observer=new MutationObserver(()=>requestAnimationFrame(bindTasks));observer.observe(document.getElementById('root')||document.body,{childList:true,subtree:true});
   refresh();setTimeout(refresh,500);window.addEventListener('focus',refresh);setInterval(refresh,12000);
