@@ -1,7 +1,7 @@
 (()=>{
   const nativeFetch=window.fetch.bind(window);
-  const CACHE_MS=5000;
-  const ERROR_CACHE_MS=2000;
+  const CACHE_MS=30000;
+  const ERROR_CACHE_MS=5000;
   const cache=new Map();
   const inflight=new Map();
 
