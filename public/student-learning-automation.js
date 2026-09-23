@@ -1,7 +1,7 @@
 (()=>{
   if(!location.pathname.startsWith('/student'))return;
   const studentId=()=>new URLSearchParams(location.search).get('studentId')||(()=>{try{return localStorage.getItem('activeStudentId')}catch{return ''}})();
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const subjectMap={'القرآن الكريم':'quran','لغتي':'arabic','الدراسات الإسلامية':'islamic','الإملاء والخط':'spelling'};
   const api=async url=>{const r=await fetch(url,{cache:'no-store'});const d=await r.json();if(!r.ok||d.ok===false)throw new Error(d.error||`HTTP_${r.status}`);return d};
   let previewCache=null,previewAt=0,previewBusy=null;
