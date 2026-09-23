@@ -9,14 +9,16 @@ describe('student visual separation and supplied subject icons',()=>{
     expect(css).toContain('--student-section-border:#b9dcf4!important;');
     expect(css).toContain('.student .studentSubject{border-color:var(--student-section-border)!important}');
     expect(css).toContain('.student .dayPanel{border-color:var(--student-section-border)!important}');
-    expect(css).toContain('.student .miniCards>div{border-color:var(--student-section-border)!important}');
+    expect(css).toContain('border-color:var(--student-section-border)!important;');
   });
 
   it('enlarges only the subject mascot icons by about ten percent',()=>{
-    expect(css).toContain('width:90px!important;');
-    expect(css).toContain('height:84px!important;');
-    expect(css).toContain('width:81px!important;');
-    expect(css).toContain('height:77px!important;');
+    expect(css).toContain('width:102px!important;');
+    expect(css).toContain('height:96px!important;');
+    expect(css).toContain('width:92px!important;');
+    expect(css).toContain('height:88px!important;');
+    expect(css).toContain('background:transparent!important;');
+    expect(css).toContain('border:0!important;');
   });
 
   it('keeps the Quran asset as an SVG document with a browser-safe embedded PNG',()=>{

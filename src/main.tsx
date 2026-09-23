@@ -137,6 +137,7 @@ function Teacher(){
       <div className="announcement"><span className="announcementDot"/><div><b>اجتماع أولياء الأمور يوم الأحد</b><small>2026 - 09 - 05</small></div></div>
     </Panel>
   </section>
+  <p className="teacherFooterCredit">برمجة سلطان الصاعدي</p>
   <TeacherNav/>
  </main>
 }
@@ -208,6 +209,7 @@ function Student(){
     <div className="rewardStars"><b><UiIcon name="star" size={17}/>اجمع 30 نجمة لتحصل على مكافأتك!</b><div className="starGrid">{Array.from({length:30},(_,i)=><span className={i<12?'on':''} key={i}><UiIcon name="star" size={18}/><small>{i+1}</small></span>)}</div></div>
     <div className="nextReward"><UiIcon name="gift" size={46}/><span>مكافأة قادمة</span><strong>0 / 30</strong></div>
   </section>
+  <p className="studentCredit">برمجة سلطان الصاعدي</p>
   <StudentNav/>
  </main>
 }
