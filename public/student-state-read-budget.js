@@ -1,6 +1,7 @@
 (()=>{
   const nativeFetch=window.fetch.bind(window);
-  const CACHE_MS=30000;
+  const STATE_CACHE_MS=30000;
+  const PREVIEW_CACHE_MS=15000;
   const ERROR_CACHE_MS=5000;
   const cache=new Map();
   const inflight=new Map();
@@ -10,7 +11,12 @@
   };
   const methodOf=(input,init)=>String(init?.method||((typeof Request!=='undefined'&&input instanceof Request)?input.method:'GET')||'GET').toUpperCase();
   const toResponse=record=>new Response(record.body,{status:record.status,statusText:record.statusText,headers:record.headers});
-  const clearStateCache=()=>cache.clear();
+  const clearStateCache=()=>{for(const key of cache.keys())if(key.startsWith('/api/student-state'))cache.delete(key)};
+  const cacheTtl=url=>{
+    if(url.pathname==='/api/student-state')return STATE_CACHE_MS;
+    if(url.pathname==='/api/learning-automation'&&url.searchParams.get('action')==='preview')return PREVIEW_CACHE_MS;
+    return 0;
+  };
 
   window.fetch=async(input,init)=>{
     const url=parseUrl(input),method=methodOf(input,init);
@@ -22,7 +28,8 @@
       return response;
     }
 
-    if(url.pathname!=='/api/student-state')return nativeFetch(input,init);
+    const ttl=cacheTtl(url);
+    if(!ttl)return nativeFetch(input,init);
 
     const key=`${url.pathname}${url.search}`;
     const cached=cache.get(key);
@@ -35,7 +42,7 @@
       const response=await nativeFetch(input,init);
       const body=await response.text();
       const headers={};response.headers.forEach((value,name)=>{headers[name]=value});
-      const record={body,status:response.status,statusText:response.statusText,headers,expiresAt:Date.now()+(response.ok?CACHE_MS:ERROR_CACHE_MS)};
+      const record={body,status:response.status,statusText:response.statusText,headers,expiresAt:Date.now()+(response.ok?ttl:ERROR_CACHE_MS)};
       cache.set(key,record);
       return record;
     })();
