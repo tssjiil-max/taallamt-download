@@ -65,7 +65,21 @@
   }
   .student .studentSubject h3,
   .student .studentSubject b{color:#163f77!important}
+  .student .studentSubject>b{display:none!important}
+  .student .studentSubject .studentSubjectMascot{order:1!important}
+  .student .studentSubject::after{
+    content:attr(data-subject-name);
+    order:2!important;
+    display:block!important;
+    color:#163f77!important;
+    font-size:9.4px!important;
+    font-weight:800!important;
+    line-height:1.15!important;
+    white-space:nowrap!important;
+  }
+  .student .studentSubject>strong{order:3!important}
   .student .studentSubject .subjectBar{
+    order:4!important;
     width:76%!important;
     height:5px!important;
     min-height:5px!important;
@@ -116,4 +130,5 @@
     width:92px!important;
     height:88px!important;
   }
+  .student .studentSubject::after{font-size:8.4px!important}
 }
