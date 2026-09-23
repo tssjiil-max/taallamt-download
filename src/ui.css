@@ -158,7 +158,6 @@ button:focus-visible{outline:2px solid #1689e8;outline-offset:2px}
   .studentProfile{margin-left:7px;margin-right:7px}.profileIdentity{grid-template-columns:68px 1fr}.boyAvatar{width:66px;height:66px}.profileQuote{width:66px}.subjects,.studentDay{padding-left:7px;padding-right:7px;gap:5px}.studentSubject b{font-size:8.4px}.dayPanel{padding:6px}.scheduleText b,.taskText b{font-size:7.4px}.rewards{margin-left:7px;margin-right:7px;grid-template-columns:68px 1fr 52px}.rewardMascot img{width:61px}.rewardStars>b{font-size:6.2px}.starGrid .uiIcon{width:13px;height:13px}
 }
 
-
 /* ---------- teacher library + settings: additive only ---------- */
 .teacherSectionScreen{width:100%;max-width:430px;min-height:100vh;margin:0 auto;padding-bottom:88px;background:#f6fbff;color:#123a72}
 .sectionHeader{height:96px;padding:20px 18px;display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#eaf8ff,#c9edfc);border-bottom:2px solid #2495d9}
@@ -177,3 +176,5 @@ button:focus-visible{outline:2px solid #1689e8;outline-offset:2px}
 .announcementList article{display:flex;justify-content:space-between;gap:8px;padding:11px 0;border-top:1px solid #edf2f6}.announcementList article>div:first-child{display:grid;gap:4px}.announcementList p{margin:0;font-size:10px;color:#526e8c}.announcementList small{font-size:8px;color:#8091a3}.announcementList article>div:last-child{display:flex;gap:5px;align-items:center}
 .taskFullList{display:grid}.taskFullList>button,.settingsMenu>button{border:0;background:#fff;display:grid;grid-template-columns:28px 1fr 20px;gap:8px;align-items:center;text-align:right;padding:12px 5px;border-bottom:1px solid #edf2f6;color:#244b77}.taskFullList span{width:25px;height:25px;border-radius:8px;background:#eef7ff;display:grid;place-items:center;font-size:9px}.taskFullList div,.settingsMenu span{display:grid;gap:3px}.taskFullList small,.settingsMenu small{font-size:8px;color:#8091a3}.dataNote{font-size:9px;color:#7a8ca0;padding-top:10px}
 .settingsMenu{margin:14px 12px;background:#fff;border-radius:14px;box-shadow:0 2px 9px rgba(45,109,145,.08);padding:5px 12px}.settingsMenu>button{width:100%}.studentRowActions{display:flex;gap:3px}.settingsStudents>div{grid-template-columns:28px 1fr 116px}
+.studentCredit{margin:14px 0 88px;text-align:center;color:#607a9b;font-size:11px;font-weight:700}
+.teacherFooterCredit{margin:14px 0 88px;text-align:center;color:#607a9b;font-size:11px;font-weight:700}
