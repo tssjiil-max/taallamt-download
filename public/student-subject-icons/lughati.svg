@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="لغتي">
+<circle cx="60" cy="60" r="54" fill="#e8f5ff"/>
+<path d="M20 35q19-8 40 3v54q-21-11-40-3zM100 35q-19-8-40 3v54q21-11 40-3z" fill="#fff" stroke="#2476bd" stroke-width="4" stroke-linejoin="round"/>
+<path d="M60 39v53M28 48q12-3 24 2M28 60q12-3 24 2M68 50q12-5 24-2M68 62q12-5 24-2" fill="none" stroke="#6cb9e9" stroke-width="3" stroke-linecap="round"/>
+<path d="M42 73h8M38 78h14" stroke="#2476bd" stroke-width="3" stroke-linecap="round"/>
+<circle cx="84" cy="22" r="7" fill="#ffd059"/><path d="M84 9v5M84 30v5M71 22h5M92 22h5" stroke="#eaa82e" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
