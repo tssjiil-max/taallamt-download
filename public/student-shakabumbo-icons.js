@@ -3,10 +3,10 @@ const ICONS={
   main:'/shakabumbo-icons/02_main_logo.svg',
   star:'/shakabumbo-icons/07_star_of_day.svg',
   subjects:{
-    'لغتي':'/shakabumbo-icons/03_lughati.svg',
-    'الإملاء والخط':'/shakabumbo-icons/04_imlaa_khatt.svg',
-    'القرآن الكريم':'/shakabumbo-icons/05_quran.svg',
-    'الدراسات الإسلامية':'/shakabumbo-icons/06_islamic_studies.svg'
+    'لغتي':'/student-subject-icons/lughati.svg',
+    'الإملاء والخط':'/student-subject-icons/writing.svg',
+    'القرآن الكريم':'/student-subject-icons/quran.svg',
+    'الدراسات الإسلامية':'/student-subject-icons/islamic.svg'
   }
 };
 
