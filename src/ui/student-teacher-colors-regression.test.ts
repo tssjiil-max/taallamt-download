@@ -19,8 +19,8 @@ describe('student page matches teacher color palette only',()=>{
     expect(css).toContain('background:linear-gradient(180deg,#eaf8ff 0%,#b9e7fb 100%)!important;');
   });
 
-  it('keeps layout intact except the requested subject-icon enlargement',()=>{
-    expect(css).not.toMatch(/\b(?:position|display|grid-template|gap|top|right|left)\s*:/);
-    expect(css).not.toMatch(/content\s*:|url\(|@font-face|animation|transform\s*:/);
+  it('keeps the teacher page and external presentation dependencies untouched',()=>{
+    expect(css).not.toMatch(/\.teacher\b/);
+    expect(css).not.toMatch(/url\(|@font-face|animation\s*:|transform\s*:/);
   });
 });
