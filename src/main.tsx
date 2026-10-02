@@ -110,17 +110,9 @@ function Teacher(){
     <TeacherStat tone="green" icon="people" title="عدد الطلاب" value={String(CLASS_STUDENTS.length)}/>
   </section>
 
-  <section className="nowCard">
-    <div className="nowHeading"><h2><UiIcon name="clock" size={27}/>حصتي الآن</h2><div className="timePills"><span>10:00 - 10:45</span><b>الحصة 3</b></div></div>
-    <div className="nowBody">
-      <button className="startLesson" onClick={()=>alert('تم بدء الحصة')}><UiIcon name="play" size={23}/>ابدأ الحصة</button>
-      <div className="lessonDetails"><h3><SubjectIcon kind="islamic"/>الدراسات الإسلامية</h3><p>الوحدة الثانية: أخلاق المسلم</p><p>الدرس: بر الوالدين</p><p><b>المهارات:</b> يبين صور بر الوالدين – يستنتج أثر البر في حياة المسلم</p></div>
-    </div>
-  </section>
-
   <section className="teacherPanels">
     <Panel title="تقدم المنهج" icon="chart" action="عرض الكل">
-      <div className="overallProgress"><div className="ring"><span>28%</span><small>من الفصل الأول</small></div><div className="courseList">{subjects.map(s=><CourseProgress key={s.t} {...s}/>)}</div></div>
+      <div className="overallProgress"><div className="courseList">{subjects.map(s=><CourseProgress key={s.t} {...s}/>)}</div></div>
     </Panel>
     <Panel title="متابعة اليوم" icon="target" action="عرض الكل">
       <StatusLine tone="red" label="يحتاجون متابعة" value="6"/>
@@ -137,6 +129,7 @@ function Teacher(){
       <div className="announcement"><span className="announcementDot"/><div><b>اجتماع أولياء الأمور يوم الأحد</b><small>2026 - 09 - 05</small></div></div>
     </Panel>
   </section>
+  <p className="teacherFooterCredit">برمجة سلطان الصاعدي</p>
   <TeacherNav/>
  </main>
 }
@@ -208,6 +201,7 @@ function Student(){
     <div className="rewardStars"><b><UiIcon name="star" size={17}/>اجمع 30 نجمة لتحصل على مكافأتك!</b><div className="starGrid">{Array.from({length:30},(_,i)=><span className={i<12?'on':''} key={i}><UiIcon name="star" size={18}/><small>{i+1}</small></span>)}</div></div>
     <div className="nextReward"><UiIcon name="gift" size={46}/><span>مكافأة قادمة</span><strong>0 / 30</strong></div>
   </section>
+  <p className="studentCredit">برمجة سلطان الصاعدي</p>
   <StudentNav/>
  </main>
 }

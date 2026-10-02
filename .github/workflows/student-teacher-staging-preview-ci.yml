@@ -1,0 +1,51 @@
+name: Student Teacher Staging Preview CI
+on:
+  push:
+    branches:
+      - staging/student-teacher-final-20261002
+  workflow_dispatch:
+
+jobs:
+  validate-and-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm test
+      - run: npm run build
+
+      - name: Upload built staging bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: taallamt-staging-dist
+          path: dist
+          if-no-files-found: error
+
+      - name: Check Vercel preview credentials
+        id: vercel_creds
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "VERCEL_TOKEN is not configured; preview deployment is skipped."
+          fi
+
+      - name: Deploy Vercel Preview
+        id: vercel_preview
+        if: steps.vercel_creds.outputs.available == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_dlvvotFkI3ZHAOOyhlUqNcbJ
+          VERCEL_PROJECT_ID: prj_t16PVX2i0fAP8Ml9zKfeCAoA5xn6
+        run: |
+          npx vercel@latest pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          npx vercel@latest build --token="$VERCEL_TOKEN"
+          DEPLOY_URL="$(npx vercel@latest deploy --prebuilt --token="$VERCEL_TOKEN")"
+          echo "Preview URL: $DEPLOY_URL"
+          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"

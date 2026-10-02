@@ -7,6 +7,8 @@ const teacherHomework=readFileSync('public/teacher-homework-status.js','utf8');
 const studentHomework=readFileSync('public/student-homework-autograde.js','utf8');
 const studentEvaluation=readFileSync('public/student-teacher-evaluation.js','utf8');
 const budget=readFileSync('public/student-state-read-budget.js','utf8');
+const interactions=readFileSync('public/student-interactions.js','utf8');
+const automation=readFileSync('public/student-learning-automation.js','utf8');
 const index=readFileSync('index.html','utf8');
 
 assert.equal(sync.includes('window.setInterval(refresh,10000)'),false,'student page must not poll /api/student-state every 10 seconds');
@@ -19,9 +21,14 @@ assert.equal(teacherHomework.includes('setInterval(refresh,10000)'),false,'teach
 assert.equal(studentHomework.includes('setInterval(refresh,12000)'),false,'student homework autograde must not poll student-state every 12 seconds');
 assert.equal(studentHomework.includes('setTimeout(refresh,500)'),false,'student homework autograde must not issue a duplicate startup read');
 assert.equal(studentEvaluation.includes('const timer=setInterval'),false,'student evaluation boot must not launch overlapping student-state reads');
-assert.equal(budget.includes("url.pathname!=='/api/student-state'"),true,'student-state reads must pass through the shared read budget');
+assert.equal(budget.includes("if(url.pathname==='/api/student-state')return STATE_CACHE_MS;"),true,'student-state GET reads must use the shared read-budget TTL');
 assert.equal(budget.includes('inflight.has(key)'),true,'concurrent student-state reads must be coalesced');
-assert.equal(budget.includes('cache.clear()'),true,'state-changing requests must invalidate the short read cache');
+assert.equal(budget.includes('const clearStateCache=()=>'),true,'shared read budget must define targeted student-state cache invalidation');
+assert.equal(budget.includes("if(['/api/student-state','/api/homework-complete','/api/star-adjust','/api/student-evaluation'].includes(url.pathname))clearStateCache();"),true,'state-changing requests must invalidate the student-state cache');
+assert.equal(interactions.includes('setInterval(applyTaskStatus,10000)'),false,'student task status must not poll student-state every 10 seconds');
+assert.equal(budget.includes('const STATE_CACHE_MS=30000'),true,'shared student-state success cache must cover the focus throttle window');
+assert.equal(automation.includes('previewBusy'),true,'weekly preview requests must be coalesced');
+assert.equal(automation.includes('studentLibraryRetry'),true,'library failures must offer a retry action');
 assert.equal(index.indexOf('/student-state-read-budget.js')<index.indexOf('/student-access-guard.js'),true,'read budget must load before guardian access wraps fetch');
 
 console.log('Student read-budget regression checks passed.');
