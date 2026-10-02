@@ -17,6 +17,13 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      - name: Upload built staging bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: taallamt-staging-dist
+          path: dist
+          if-no-files-found: error
+
       - name: Check Vercel preview credentials
         id: vercel_creds
         env:
