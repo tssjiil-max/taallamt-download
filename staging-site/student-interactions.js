@@ -1,0 +1,25 @@
+(()=>{
+  if(!location.pathname.startsWith('/student'))return;
+  const studentId=new URLSearchParams(location.search).get('studentId');if(!studentId)return;
+  const fetchState=async()=>{const r=await fetch(`/api/student-state?studentId=${encodeURIComponent(studentId)}`,{cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'تعذر التحميل');return d};
+  const completeHomework=async homeworkId=>{const r=await fetch('/api/homework-complete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId,homeworkId})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'تعذر تأكيد التنفيذ');return d};
+  function popup(title,lines){document.querySelector('.studentLivePopup')?.remove();const wrap=document.createElement('div');wrap.className='studentLivePopup';Object.assign(wrap.style,{position:'fixed',inset:'0',zIndex:'10020',background:'rgba(0,0,0,.36)',display:'grid',placeItems:'center',padding:'18px'});const box=document.createElement('section');Object.assign(box.style,{width:'min(390px,94vw)',background:'#fff',borderRadius:'18px',padding:'17px',color:'#244c75',boxShadow:'0 12px 38px rgba(0,0,0,.22)'});const h=document.createElement('h3');h.textContent=title;Object.assign(h.style,{margin:'0 0 10px',color:'#0b62bc'});box.appendChild(h);lines.forEach(x=>{const p=document.createElement('p');p.textContent=x;Object.assign(p.style,{margin:'7px 0',lineHeight:'1.55',fontSize:'13px'});box.appendChild(p)});const close=document.createElement('button');close.textContent='إغلاق';Object.assign(close.style,{width:'100%',height:'42px',marginTop:'12px',border:'0',borderRadius:'11px',background:'#168fe6',color:'#fff',fontWeight:'800'});close.onclick=()=>wrap.remove();box.appendChild(close);wrap.appendChild(box);wrap.onclick=e=>{if(e.target===wrap)wrap.remove()};document.body.appendChild(wrap)}
+  async function resolveTask(button){
+    if(button.dataset.homeworkId)return button.dataset.homeworkId;
+    const state=await fetchState();
+    const title=button.querySelector('.taskText b')?.textContent?.trim()||'';
+    const item=(state.homework||[]).find(x=>x.title===title);
+    if(!item)return '';
+    button.dataset.homeworkId=item.id;
+    const done=(state.homeworkEvidence||[]).some(x=>x.homeworkId===item.id&&x.status==='completed');
+    button.dataset.confirmed=done?'true':'false';
+    button.classList.toggle('done',done);
+    return item.id;
+  }
+  document.addEventListener('click',async e=>{
+    const target=e.target;
+    if(!(target instanceof Element))return;
+    const serverTask=target.closest('.serverTask');
+    if(serverTask){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();if(serverTask.dataset.confirmed==='true'){popup('المهمة',['تم تأكيد تنفيذ هذه المهمة مسبقًا ✅']);return}try{serverTask.disabled=true;const homeworkId=await resolveTask(serverTask);if(!homeworkId)throw new Error('تعذر تحديد المهمة');await completeHomework(homeworkId);serverTask.classList.add('done');serverTask.dataset.confirmed='true';popup('تم التأكيد',['تم تسجيل تنفيذ المهمة وإرسال التأكيد للمعلم ✅'])}catch(err){popup('تعذر التأكيد',[err instanceof Error?err.message:'تعذر تأكيد التنفيذ'])}finally{serverTask.disabled=false}return}
+  },true);
+})();

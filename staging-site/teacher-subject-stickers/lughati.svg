@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" role="img" aria-labelledby="title desc">
+<title id="title">لُغَتِي</title><desc id="desc">ملصق مادة لُغَتِي للصف الثاني الابتدائي</desc>
+<defs><filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#475569" flood-opacity=".20"/></filter></defs>
+<rect x="10" y="6" width="220" height="288" rx="20" fill="#fff" stroke="#d5d9de" stroke-width="2" filter="url(#s)"/>
+<text x="120" y="108" text-anchor="middle" direction="rtl" font-family="Tahoma,Arial,sans-serif" font-size="46" font-weight="800" fill="#ef4444">لُغَتِي</text>
+<path d="M10 156 Q120 222 230 156 L230 181 Q120 244 10 181 Z" fill="#ef4444"/>
+<text x="120" y="263" text-anchor="middle" direction="rtl" font-family="Tahoma,Arial,sans-serif" font-size="17" font-weight="800" fill="#111827">الصَّفُّ الثَّانِي الاِبْتِدَائِيُّ</text>
+</svg>
