@@ -11,6 +11,7 @@ const teacherEvaluation=existsSync('public/teacher-evaluation-extension.js')?rea
 const evaluationApi=existsSync('api/student-evaluation.js')?readFileSync('api/student-evaluation.js','utf8'):'';
 const studentSync=readFileSync('src/student-sync.ts','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
+const main=readFileSync('src/main.tsx','utf8');
 const indexHtml=readFileSync('index.html','utf8');
 
 const checks=[
@@ -64,6 +65,10 @@ const checks=[
   ['teacher evaluation extension exists and is loaded',teacherEvaluation.length>0&&indexHtml.includes('/teacher-evaluation-extension.js')],
   ['teacher academic assessment offers not mastered',teacherEvaluation.includes("dataset.value='not_mastered'")&&teacherEvaluation.includes('لم يتقن')],
   ['teacher assessment includes values row driven by current weekly plan',teacherEvaluation.includes('tsaValueRow')&&teacherEvaluation.includes('weeklyValueNames')&&teacherEvaluation.includes("action:'value'")],
+  ['student photo accepts JPG PNG and WebP only',patch.includes('ALLOWED_PHOTO_TYPES')&&patch.includes('image/jpeg')&&patch.includes('image/png')&&patch.includes('image/webp')],
+  ['student photo is resized before saving',patch.includes('resizeStudentPhoto')&&patch.includes('canvas.toDataURL')],
+  ['student photo limit is five megabytes',patch.includes('5 * 1024 * 1024')],
+  ['teacher and student pages include the programming credit',main.includes('studentCredit')&&main.includes('teacherFooterCredit')&&main.includes('برمجة سلطان الصاعدي')],
 ];
 
 const failed=checks.filter(([,ok])=>!ok);

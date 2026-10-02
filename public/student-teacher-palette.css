@@ -61,13 +61,40 @@
   .student .studentSubject{
     background:#fff!important;
     box-shadow:0 5px 16px rgba(37,98,132,.07)!important;
+    overflow:visible!important;
   }
   .student .studentSubject h3,
   .student .studentSubject b{color:#163f77!important}
-  .student .studentSubject .subjectBar{background:#edf1f5!important}
+  .student .studentSubject>b{display:none!important}
+  .student .studentSubject .studentSubjectMascot{order:1!important}
+  .student .studentSubject::after{
+    content:attr(data-subject-name);
+    order:2!important;
+    display:block!important;
+    color:#163f77!important;
+    font-size:9.4px!important;
+    font-weight:800!important;
+    line-height:1.15!important;
+    white-space:nowrap!important;
+  }
+  .student .studentSubject>strong{order:3!important}
+  .student .studentSubject .subjectBar{
+    order:4!important;
+    width:76%!important;
+    height:5px!important;
+    min-height:5px!important;
+    margin:2px auto 0!important;
+    background:#edf1f5!important;
+  }
   .student .studentSubject .studentSubjectMascot{
-    width:90px!important;
-    height:84px!important;
+    width:102px!important;
+    height:96px!important;
+    max-width:none!important;
+    margin:-3px auto 0!important;
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+    object-fit:contain!important;
   }
 
   .student .dayPanel{border-color:var(--student-section-border)!important}
@@ -100,7 +127,8 @@
 }
 @media(max-width:375px){
   .student .studentSubject .studentSubjectMascot{
-    width:81px!important;
-    height:77px!important;
+    width:92px!important;
+    height:88px!important;
   }
+  .student .studentSubject::after{font-size:8.4px!important}
 }
