@@ -1,0 +1,97 @@
+name: Publish Student Teacher Staging
+
+on:
+  push:
+    branches:
+      - feature/student-teacher-staging-20261003
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/student-teacher-staging-20261003
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm test
+      - run: npm run build
+      - name: Prepare hosted staging files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, shutil
+
+          root = Path('.')
+          dist = root / 'dist'
+          out = root / 'staging-site'
+          if out.exists():
+              shutil.rmtree(out)
+          shutil.copytree(dist, out)
+
+          base = 'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site'
+          static_prefixes = [
+              '/assets/',
+              '/student-assets/',
+              '/shakabumbo-icons/',
+              '/guardian-icons/',
+              '/teacher-icons/',
+              '/teacher-subject-stickers/',
+              '/subject-icons/',
+          ]
+
+          for p in out.rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in {'.html','.js','.css','.svg'}:
+                  continue
+              try:
+                  s = p.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              for prefix in static_prefixes:
+                  s = s.replace(prefix, base + prefix)
+              s = s.replace('"/assessment-group-policy.js"', f'"{base}/assessment-group-policy.js"')
+              s = s.replace("'/assessment-group-policy.js'", f"'{base}/assessment-group-policy.js'")
+              p.write_text(s, encoding='utf-8')
+
+          index_path = out / 'index.html'
+          index = index_path.read_text(encoding='utf-8')
+
+          def absolutize(m):
+              attr, value = m.group(1), m.group(2)
+              if value.startswith('/') and not value.startswith('//'):
+                  return f'{attr}="{base}{value}"'
+              return m.group(0)
+
+          index = re.sub(r'(src|href)="([^"]+)"', absolutize, index)
+
+          marker = '<body>'
+          def routed(route):
+              pre = (
+                  '<script>'
+                  'window.__TAALLAMT_STAGING_ORIGINAL__=location.href;'
+                  f"history.replaceState(null,'','{route}');"
+                  '</script>'
+              )
+              restore = (
+                  '<script>'
+                  "setTimeout(function(){try{history.replaceState(null,'',window.__TAALLAMT_STAGING_ORIGINAL__)}catch(e){}},1200);"
+                  '</script>'
+              )
+              return index.replace(marker, marker + pre, 1).replace('</body>', restore + '</body>', 1)
+
+          (out / 'teacher.html').write_text(routed('/teacher'), encoding='utf-8')
+          (out / 'student.html').write_text(routed('/student'), encoding='utf-8')
+          PY
+      - name: Commit hosted staging
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f staging-site
+          git commit -m "chore: publish student teacher staging site"
+          git push origin HEAD:feature/student-teacher-staging-20261003
