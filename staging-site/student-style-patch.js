@@ -4,7 +4,7 @@ const SHAKABUMBO_MAIN='https://raw.githack.com/tssjiil-max/taallamt-download/fea
 const SHAKABUMBO_REWARD='https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/student-assets/student-reward-star.webp';
 const SHAKABUMBO_NAV=SHAKABUMBO_MAIN;
 const SUBJECT_ASSETS={
-  'لغتي':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/student-assets/subject-lughati.webp',
+  'لغتي':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/03_lughati.svg',
   'القرآن الكريم':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/student-assets/subject-quran.webp',
   'الدراسات الإسلامية':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/student-assets/subject-islamic.webp',
   'الإملاء والخط':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/student-assets/subject-writing.webp'
