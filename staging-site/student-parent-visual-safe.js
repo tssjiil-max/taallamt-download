@@ -2,7 +2,7 @@
   if(!location.pathname.startsWith('/student'))return;
 
   const SUBJECT_ASSETS={
-    'لغتي':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/03_lughati.svg',
+    'لغتي':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/03_lughati.svg?v=20261003c',
     'الإملاء والخط':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/04_imlaa_khatt.svg',
     'القرآن الكريم':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/05_quran.svg',
     'الدراسات الإسلامية':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/06_islamic_studies.svg'
