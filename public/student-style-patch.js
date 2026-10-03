@@ -4,7 +4,7 @@ const SHAKABUMBO_MAIN='/student-assets/student-main-logo.webp';
 const SHAKABUMBO_REWARD='/student-assets/student-reward-star.webp';
 const SHAKABUMBO_NAV=SHAKABUMBO_MAIN;
 const SUBJECT_ASSETS={
-  'لغتي':'/student-assets/subject-lughati.webp',
+  'لغتي':'/shakabumbo-icons/03_lughati.svg',
   'القرآن الكريم':'/student-assets/subject-quran.webp',
   'الدراسات الإسلامية':'/student-assets/subject-islamic.webp',
   'الإملاء والخط':'/student-assets/subject-writing.webp'
