@@ -2,7 +2,7 @@
   if(!location.pathname.startsWith('/student'))return;
 
   const SUBJECT_ASSETS={
-    'لغتي':'/shakabumbo-icons/03_lughati.svg',
+    'لغتي':'/shakabumbo-icons/03_lughati_fixed_20261003.svg',
     'الإملاء والخط':'/shakabumbo-icons/04_imlaa_khatt.svg',
     'القرآن الكريم':'/shakabumbo-icons/05_quran.svg',
     'الدراسات الإسلامية':'/shakabumbo-icons/06_islamic_studies.svg'
