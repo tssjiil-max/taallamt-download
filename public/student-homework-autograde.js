@@ -56,7 +56,7 @@
     textarea?.focus();
   }
   document.addEventListener('click',event=>{
-    const target=event.target;if(!(target instanceof Element))return;const button=target.closest('.student .serverTask[data-auto-grade="1"]');if(!button)return;
+    const target=event.target;if(!(target instanceof Element))return;const button=target.closest('.student .serverTask[data-auto-grade="1"],.student .automationTask[data-auto-grade="1"]');if(!button)return;
     const id=button.dataset.homeworkId,item=(state?.homework||[]).find(x=>x.id===id);if(!item)return;
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();openHomework(item);
   },true);

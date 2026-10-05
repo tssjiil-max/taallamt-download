@@ -17,3 +17,16 @@
 students, curriculum, timetable, weekly-plan, comprehensive-assessment, focused-followup, behavior, remediation, achievements, portfolio, communication, rewards, shikabombo-ai.
 
 > التطبيق القديم محفوظ في فرع archive/android-app-v3.8.3-2026-09-11.
+
+## ربط صفحة المعلم بصفحة الطالب
+
+ما يسجله المعلم يصل لصفحة الطالب، وما ينجزه الطالب يعود للوحة المعلم، دون إدخال مكرر:
+
+- **الخطة الأسبوعية:** تُنشر تلقائيًا (مهمة السبت المجدولة)، وتظهر في لوحة المعلم «خطة الأسبوع» وفي صفحة الطالب ضمن «تقييم المعلم» ونافذة كل مادة.
+- **الواجبات:** واجب اليوم يُنشر تلقائيًا حسب التوزيع، والمعلم يرسل واجبًا لطالب واحد أو «للجميع» من لوحة «واجبات اليوم». الواجب غير المنجز يبقى في «مهامي اليوم» حتى ينجزه الطالب، والإنجاز يظهر للمعلم بعدد المنجزين وأسمائهم.
+- **متابعة الطالب:** التقييم والسلوك والملاحظات والخطط العلاجية تظهر للطالب، ولوحة المعلم تحسب «يحتاجون متابعة» مع سبب كل حالة.
+- **استدراك النشر:** إذا فتح المعلم اللوحة ولم تُنشر خطة الأسبوع أو واجبات اليوم بعد، تُنشر مرة واحدة (العملية آمنة للتكرار).
+
+التنفيذ: `server/class-link.js` (نموذج القراءة للفصل وإرسال واجب للجميع) عبر `api/learning-automation.js` بالإجراءات `overview` و`ensure` و`class_homework` — بدون دوال Vercel جديدة. الواجهة: `public/teacher-dashboard-live.js` و`public/teacher-student-link.js` و`public/student-automation-bridge.js`.
+
+الفحص: `node scripts/teacher-student-link-regression.mjs`.

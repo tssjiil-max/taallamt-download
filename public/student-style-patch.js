@@ -4,7 +4,7 @@ const SHAKABUMBO_MAIN='/student-assets/student-main-logo.webp';
 const SHAKABUMBO_REWARD='/student-assets/student-reward-star.webp';
 const SHAKABUMBO_NAV=SHAKABUMBO_MAIN;
 const SUBJECT_ASSETS={
-  'لغتي':'/shakabumbo-icons/03_lughati.svg',
+  'لغتي':null,
   'القرآن الكريم':'/student-assets/subject-quran.webp',
   'الدراسات الإسلامية':'/student-assets/subject-islamic.webp',
   'الإملاء والخط':'/student-assets/subject-writing.webp'
@@ -88,7 +88,8 @@ function installStrictStudentVisualGuard(){if(document.getElementById('student-v
 `;document.head.appendChild(style)}
 function purgeRequestedIcons(student){student.querySelectorAll('.studentSubject img:not(.studentSubjectMascot),.studentSubject svg,.studentSubject picture,.studentSubject .subjectIcon,.scheduleItem .subjectIcon,.taskItem .subjectIcon').forEach(node=>node.remove())}
 function removeRenderedSubjectTitle(card,subject){card.querySelectorAll('b,h1,h2,h3,h4,h5,h6,p,span').forEach(el=>{if(el.childElementCount===0&&(el.textContent||'').trim()===subject)el.remove()});[...card.childNodes].forEach(node=>{if(node.nodeType===Node.TEXT_NODE&&node.textContent.trim()===subject)node.remove()})}
-function installSubjectIcons(student){student.querySelectorAll('.studentSubject').forEach(card=>{const subject=card.dataset.subjectName||Object.keys(SUBJECT_ASSETS).find(name=>(card.textContent||'').includes(name));if(!subject)return;card.dataset.subjectName=subject;removeRenderedSubjectTitle(card,subject);ensureImg(card,'.studentSubjectMascot','studentSubjectMascot',SUBJECT_ASSETS[subject],subject)})}
+function ensureSubjectImgOnly(card,subject){let img=card.querySelector('.studentSubjectMascot');if(!img){img=document.createElement('img');img.className='studentSubjectMascot';card.prepend(img)}img.alt=subject||'';return img}
+function installSubjectIcons(student){student.querySelectorAll('.studentSubject').forEach(card=>{const subject=card.dataset.subjectName||Object.keys(SUBJECT_ASSETS).find(name=>(card.textContent||'').includes(name));if(!subject)return;card.dataset.subjectName=subject;removeRenderedSubjectTitle(card,subject);const asset=SUBJECT_ASSETS[subject];if(!asset){ensureSubjectImgOnly(card,subject);return}ensureImg(card,'.studentSubjectMascot','studentSubjectMascot',asset,subject)})}
 function installSingleNavMascot(student){const host=student.querySelector('.studentNav .mascotNav>span');if(!host)return;let img=host.querySelector('.studentNavMascot');[...host.children].forEach(child=>{if(child!==img)child.remove()});if(!img){img=document.createElement('img');img.className='studentNavMascot';host.appendChild(img)}ensureImg(host,'.studentNavMascot','studentNavMascot',SHAKABUMBO_NAV,'شكابمبو')}
 function toast(message){let box=document.querySelector('.studentPatchToast');if(!box){box=document.createElement('div');box.className='studentPatchToast';document.body.appendChild(box)}box.textContent=message;setTimeout(()=>box?.remove(),2600)}
 function panel(title,body){document.querySelector('.studentPatchModal')?.remove();const wrap=document.createElement('div');wrap.className='studentPatchModal';const card=document.createElement('section');const close=document.createElement('button');close.className='studentPatchClose';close.type='button';close.textContent='×';close.addEventListener('click',()=>wrap.remove());const h=document.createElement('h3');h.textContent=title;card.append(close,h,body);wrap.appendChild(card);wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove()});document.body.appendChild(wrap)}
@@ -99,9 +100,10 @@ function actionGrid(items){const body=document.createElement('div');body.classNa
 function closeStudentPanel(){document.querySelector('.studentPatchModal')?.remove()}
 function scrollStudentTo(selector){closeStudentPanel();document.querySelector(selector)?.scrollIntoView({behavior:'smooth',block:'start'})}
 function bindStudentInfoCards(student){student.querySelectorAll('.miniCards [data-student-info]').forEach(card=>{if(card.dataset.studentActionBound==='true')return;card.dataset.studentActionBound='true';card.setAttribute('role','button');card.tabIndex=0;const open=()=>openStudentPanel(card.dataset.studentInfo);card.addEventListener('click',open);card.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open()}})})}
-function targetTitleMap(state){return new Map((state?.curriculum||[]).map(target=>[target.id,target]))}
+const SUBJECT_LEVEL_TARGETS=[['subject:arabic','لغتي'],['subject:quran','القرآن الكريم'],['subject:islamic','الدراسات الإسلامية'],['subject:spelling_handwriting','الإملاء والخط']].map(([id,title])=>[id,{id,title}]);
+function targetTitleMap(state){return new Map([...SUBJECT_LEVEL_TARGETS,...(state?.curriculum||[]).map(target=>[target.id,target])])}
 function latestAcademicMap(state){const latest=new Map();for(const assessment of state?.assessments||[]){for(const item of assessment.academic||[]){if(item?.targetId&&!latest.has(item.targetId))latest.set(item.targetId,item)}}return latest}
-function resultLabel(result){return result==='mastered'?'أتقن ✅':result==='needs_practice'?'يحتاج تدريب':'لم يسجل تقييم'}
+function resultLabel(result){return result==='mastered'?'أتقن ✅':result==='needs_practice'?'يحتاج تدريب':result==='not_mastered'?'لم يتقن':'لم يسجل تقييم'}
 function subjectTargetRows(state,subject){const keys=SUBJECT_KEYS[subject]||[];return (state?.curriculum||[]).filter(target=>keys.includes(String(target.subject||'')))}
 function updateHobbySummary(hobbies){const card=document.querySelector('.student .miniCards [data-student-info="hobbies"]');if(!card)return;let summary=card.querySelector('span,small');if(!summary){summary=document.createElement('span');card.appendChild(summary)}summary.textContent=hobbies.length?hobbies.slice(0,2).join('　'):'اختر هواياتك'}
 async function hydrateStudentProfile(student){if(student.dataset.studentProfileHydrated==='true')return;student.dataset.studentProfileHydrated='true';const state=await loadState();if(!state)return;const savedPhoto=state.profile?.photoDataUrl;if(savedPhoto){const img=student.querySelector('.studentCleanPhotoImage');if(img){img.src=savedPhoto;img.style.opacity='1'}}const hobbies=listValue(state.profile?.hobbies);if(hobbies.length)updateHobbySummary(hobbies)}

@@ -2,7 +2,8 @@
   if(!location.pathname.startsWith('/student'))return;
 
   const SUBJECT_ASSETS={
-    'لغتي':'/shakabumbo-icons/03_lughati.svg?v=20261003c',
+    // «لغتي» has ONE final source: this entry. student-style-patch.js and student-shakabumbo-icons.js must not set it.
+    'لغتي':'/shakabumbo-icons/03_lughati.svg?v=20261005a',
     'الإملاء والخط':'/shakabumbo-icons/04_imlaa_khatt.svg',
     'القرآن الكريم':'/shakabumbo-icons/05_quran.svg',
     'الدراسات الإسلامية':'/shakabumbo-icons/06_islamic_studies.svg'

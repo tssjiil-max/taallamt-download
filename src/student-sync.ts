@@ -85,6 +85,7 @@ function renderSubjectProgress(state:StudentState){
 function renderServerTasks(state:StudentState){
   const panels=[...document.querySelectorAll<HTMLElement>('.student .dayPanel')];const tasks=panels.find(p=>(p.querySelector('h3')?.textContent||'').includes('مهامي اليوم'));if(!tasks)return;
   tasks.querySelectorAll('.serverTask').forEach(n=>n.remove());
+  if(tasks.dataset.automationDate)return; // the automation bridge already renders today's and carried-over homework in this panel
   state.homework.slice(0,4).reverse().forEach(item=>{const isDone=state.homeworkEvidence.some(e=>e.homeworkId===item.id&&e.status==='completed');const button=document.createElement('button');button.type='button';button.className=`taskItem serverTask ${isDone?'done':''}`;const circle=document.createElement('span');circle.className='taskCircle';circle.textContent=isDone?'✓':'';const text=document.createElement('div');text.className='taskText';const b=document.createElement('b');b.textContent=item.title;const s=document.createElement('span');s.textContent=`${item.subject||'المادة'} · ${item.kind==='training'?'تدريب منزلي من المعلم':'واجب من المعلم'}`;text.append(b,s);button.append(circle,text);button.addEventListener('click',async()=>{try{const r=await fetch('/api/homework-complete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:state.student.id,homeworkId:item.id})});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'REQUEST_FAILED');button.classList.add('done');circle.textContent='✓';toast('تم تأكيد تنفيذ المهمة ✓','ok')}catch(e){toast(readableError(e),'error')}});tasks.insertBefore(button,tasks.children[1]||null)});
 }
 function renderWeeklyPanel(state:StudentState){
@@ -100,8 +101,11 @@ function renderWeeklyPanel(state:StudentState){
 }
 function renderTeacherUpdates(state:StudentState){
  const student=document.querySelector('.student');const rewards=student?.querySelector('.rewards');if(!student||!rewards)return;
- let box=student.querySelector<HTMLElement>('.studentTeacherUpdates');if(!state.communications.length){box?.remove();return}if(!box){box=document.createElement('section');box.className='studentTeacherUpdates';rewards.parentElement?.insertBefore(box,rewards)}box.replaceChildren();const h=document.createElement('h3');h.textContent='تحديثات المعلم';box.appendChild(h);
- state.communications.slice(0,3).forEach(item=>{const a=document.createElement('article'),b=document.createElement('b'),p=document.createElement('p');b.textContent=item.reason||'تحديث';p.textContent=item.summary;a.append(b,p);box?.appendChild(a)});
+ const plans=(state.remediation||[]).filter(plan=>['active','needs_more_support'].includes(String(plan.status||''))).slice(0,2);
+ let box=student.querySelector<HTMLElement>('.studentTeacherUpdates');if(!state.communications.length&&!plans.length){box?.remove();return}if(!box){box=document.createElement('section');box.className='studentTeacherUpdates';rewards.parentElement?.insertBefore(box,rewards)}box.replaceChildren();const h=document.createElement('h3');h.textContent='تحديثات المعلم';box.appendChild(h);
+ const addRow=(title:string,body:string)=>{const a=document.createElement('article'),b=document.createElement('b'),p=document.createElement('p');b.textContent=title;p.textContent=body;a.append(b,p);box?.appendChild(a)};
+ state.communications.slice(0,3).forEach(item=>addRow(item.reason||'تحديث',item.summary));
+ plans.forEach(plan=>addRow('خطة علاجية جارية',String(plan.summary||'تدريب إضافي مع المعلم على مهارة تحتاج دعمًا.')));
 }
 function applyStudentState(state:StudentState){saveIdentity(state);if(state.profile?.photoDataUrl){const img=document.querySelector<HTMLImageElement>('.studentCleanPhotoImage');if(img)img.src=state.profile.photoDataUrl}requestAnimationFrame(()=>{renderSubjectProgress(state);renderWeeklyPanel(state);renderServerTasks(state);renderTeacherUpdates(state)});window.setTimeout(()=>{renderSubjectProgress(state);renderWeeklyPanel(state);renderServerTasks(state);renderTeacherUpdates(state)},250)}
 

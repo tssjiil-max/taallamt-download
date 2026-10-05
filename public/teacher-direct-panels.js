@@ -31,17 +31,24 @@
   document.head.appendChild(style);
 
   const [title,subtitle]=titles[view];
-  root.innerHTML=`
+  let lastHtml='<div class="teacherDirectStatus">جارٍ التحميل...</div>',lastCount='جارٍ تحميل البيانات...';
+  function mount(){
+    root.innerHTML=`
     <main class="teacherStudentsScreen" dir="rtl">
       <header class="teacherStudentsHeader">
         <button class="teacherStudentsBack" type="button" aria-label="العودة">‹</button>
         <div><h1>${title}</h1><p>${subtitle}</p></div>
       </header>
-      <div class="teacherDirectCount" id="teacherDirectCount">جارٍ تحميل البيانات...</div>
-      <section class="teacherDirectBody" id="teacherDirectBody"><div class="teacherDirectStatus">جارٍ التحميل...</div></section>
+      <div class="teacherDirectCount" id="teacherDirectCount"></div>
+      <section class="teacherDirectBody" id="teacherDirectBody"></section>
     </main>`;
-
-  root.querySelector('.teacherStudentsBack')?.addEventListener('click',()=>{location.href='/teacher';});
+    root.querySelector('#teacherDirectCount').textContent=lastCount;
+    root.querySelector('#teacherDirectBody').innerHTML=lastHtml;
+    root.querySelector('.teacherStudentsBack')?.addEventListener('click',()=>{location.href='/teacher';});
+  }
+  mount();
+  // The app shell may render the dashboard into #root after this script ran; put this view back when that happens.
+  new MutationObserver(()=>{if(!root.querySelector('#teacherDirectBody'))mount();}).observe(root,{childList:true});
 
   async function getState(student){
     const response=await fetch(`/api/student-state?studentId=${encodeURIComponent(student.id)}`,{cache:'no-store'});
@@ -51,6 +58,7 @@
   }
 
   function setContent(html,countText){
+    lastHtml=html;lastCount=countText;
     const body=root.querySelector('#teacherDirectBody');
     const count=root.querySelector('#teacherDirectCount');
     if(body)body.innerHTML=html;
@@ -134,7 +142,28 @@
     }
   });
 
+  // One class-level read instead of one read per student. Falls back to the per-student path if it is unavailable.
+  async function loadOverview(){
+    const response=await fetch('/api/learning-automation?action=overview',{cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok||!Array.isArray(data.students))throw new Error(data.error||`HTTP_${response.status}`);
+    return data;
+  }
+  function renderFromOverview(overview){
+    const asState=row=>({student:{id:row.id,number:row.number,name:row.name},stars:row.stars});
+    if(view==='stars'){void renderStars(overview.students.map(asState));return;}
+    if(view==='followup'){
+      const rows=overview.students.filter(row=>row.needsFollowup).map(row=>rowBase(asState(row),(row.followupReasons||[]).join(' · ')||'يحتاج متابعة','فتح المتابعة','followup'));
+      setContent(rows.length?rows.join(''):'<div class="teacherDirectStatus">لا يوجد طلاب يحتاجون متابعة حاليًا.</div>',`${rows.length} طالب يحتاج متابعة`);return;
+    }
+    const withMessages=overview.students.filter(row=>row.messages>0&&row.lastMessage);
+    const total=withMessages.reduce((sum,row)=>sum+row.messages,0);
+    const rows=withMessages.map(row=>rowBase(asState(row),`${row.lastMessage.reason}: ${row.lastMessage.summary}${row.messages>1?` · ${row.messages} رسائل`:''}`,'فتح الرسائل','homework'));
+    setContent(rows.length?rows.join(''):'<div class="teacherDirectStatus">لا توجد رسائل مسجلة حاليًا.</div>',`${total} رسالة · ${rows.length} طالب`);
+  }
+
   (async()=>{
+    try{renderFromOverview(await loadOverview());return;}catch(error){console.warn('teacher direct overview',error);}
     const settled=await Promise.allSettled(STUDENTS.map(getState));
     const states=settled.filter(item=>item.status==='fulfilled').map(item=>item.value);
     if(!states.length){setContent('<div class="teacherDirectStatus">تعذر تحميل بيانات الطلاب.</div>','تعذر تحميل البيانات');return;}

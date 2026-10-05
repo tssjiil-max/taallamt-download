@@ -1,0 +1,25 @@
+/* Teacher -> student link on the student page: where the teacher's follow-up notes sit and how they read.
+   Student page only; uses the page's existing palette variables. */
+@media screen {
+  .student>.studentTeacherUpdates{
+    order:4!important;
+    margin:0 12px 10px!important;
+    padding:10px 12px!important;
+    border:1px solid var(--student-section-border,#b9dcf4)!important;
+    border-radius:18px!important;
+    background:#fff!important;
+    box-shadow:0 5px 16px rgba(37,98,132,.07)!important;
+    color:#315e94!important;
+  }
+  .student .studentTeacherUpdates h3{margin:0 0 6px!important;padding-bottom:7px!important;border-bottom:1px solid #dbeaf4!important;font-size:17.5px!important;font-weight:800!important;line-height:1.3!important;color:#0b60b8!important}
+  .student .studentTeacherUpdates article{padding:7px 0!important;border-top:1px solid #e3edf4!important}
+  .student .studentTeacherUpdates article:first-of-type{border-top:0!important}
+  .student .studentTeacherUpdates b{font-size:13.5px!important;font-weight:700!important;line-height:1.35!important;color:#315e94!important}
+  .student .studentTeacherUpdates p{margin:2px 0 0!important;font-size:12px!important;font-weight:500!important;line-height:1.55!important;color:#70809a!important}
+}
+@media(max-width:375px){
+  .student>.studentTeacherUpdates{margin-left:9px!important;margin-right:9px!important}
+  .student .studentTeacherUpdates h3{font-size:16px!important}
+  .student .studentTeacherUpdates b{font-size:12.5px!important}
+  .student .studentTeacherUpdates p{font-size:11.5px!important}
+}
