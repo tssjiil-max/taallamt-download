@@ -23,9 +23,30 @@ function studentName(){const s=readStudent();const raw=s.studentName||s.fullName
 function studentId(){return new URLSearchParams(location.search).get('studentId')||readStudent().id||localStorage.getItem('activeStudentId')||''}
 function ensureInfoCard(container,key,title){let card=container.querySelector(`[data-student-info="${key}"]`);if(card)return card;card=document.createElement('div');card.dataset.studentInfo=key;const heading=document.createElement('b');heading.textContent=title;card.appendChild(heading);container.appendChild(card);return card}
 async function cleanAndCropAsset(src){
-  // Keep the original asset URL. Canvas conversion of cross-origin GitHack assets
-  // can fail and leave a broken image in browsers with restricted CORS.
-  return src;
+  if(CLEAN_ASSET_CACHE.has(src))return CLEAN_ASSET_CACHE.get(src);
+  const job=(async()=>{
+    const response=await fetch(src,{cache:'force-cache'});
+    if(!response.ok)throw new Error(`asset ${response.status}: ${src}`);
+    const bitmap=await createImageBitmap(await response.blob());
+    const w=bitmap.width,h=bitmap.height;
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0);bitmap.close?.();
+    const image=ctx.getImageData(0,0,w,h),data=image.data;
+    const candidate=new Uint8Array(w*h),seen=new Uint8Array(w*h),queue=new Int32Array(w*h);let head=0,tail=0;
+    for(let i=0,p=0;i<w*h;i++,p+=4){const a=data[p+3];candidate[i]=(a>0&&data[p]<=24&&data[p+1]<=24&&data[p+2]<=24)?1:0}
+    const push=(idx)=>{if(candidate[idx]&&!seen[idx]){seen[idx]=1;queue[tail++]=idx}};
+    for(let x=0;x<w;x++){push(x);push((h-1)*w+x)}for(let y=0;y<h;y++){push(y*w);push(y*w+w-1)}
+    while(head<tail){const i=queue[head++],x=i%w,y=(i/w)|0;if(x>0)push(i-1);if(x+1<w)push(i+1);if(y>0)push(i-w);if(y+1<h)push(i+w)}
+    let minX=w,minY=h,maxX=-1,maxY=-1;
+    for(let i=0,p=0;i<w*h;i++,p+=4){if(seen[i])data[p+3]=0;if(data[p+3]>2){const x=i%w,y=(i/w)|0;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y}}
+    ctx.putImageData(image,0,0);
+    if(maxX<minX||maxY<minY)return src;
+    const pad=Math.max(2,Math.round(Math.max(maxX-minX+1,maxY-minY+1)*0.015));
+    const sx=Math.max(0,minX-pad),sy=Math.max(0,minY-pad),ex=Math.min(w,maxX+pad+1),ey=Math.min(h,maxY+pad+1);
+    const crop=document.createElement('canvas');crop.width=ex-sx;crop.height=ey-sy;crop.getContext('2d').drawImage(canvas,sx,sy,crop.width,crop.height,0,0,crop.width,crop.height);
+    return crop.toDataURL('image/png');
+  })().catch(()=>src);
+  CLEAN_ASSET_CACHE.set(src,job);return job;
 }
 function ensureImg(parent,selector,className,src,alt){if(!parent)return null;let img=parent.querySelector(selector);if(!img){img=document.createElement('img');img.className=className;parent.prepend(img)}img.alt=alt||'';if(img.dataset.cleanSource!==src){img.dataset.cleanSource=src;img.style.opacity='0';cleanAndCropAsset(src).then(clean=>{if(img.isConnected&&img.dataset.cleanSource===src){img.src=clean;img.style.opacity='1'}})}return img}
 function installCleanStudentTop(student){
@@ -68,7 +89,7 @@ function installStrictStudentVisualGuard(){if(document.getElementById('student-v
 function purgeRequestedIcons(student){student.querySelectorAll('.studentSubject img:not(.studentSubjectMascot),.studentSubject svg,.studentSubject picture,.studentSubject .subjectIcon,.scheduleItem .subjectIcon,.taskItem .subjectIcon').forEach(node=>node.remove())}
 function removeRenderedSubjectTitle(card,subject){card.querySelectorAll('b,h1,h2,h3,h4,h5,h6,p,span').forEach(el=>{if(el.childElementCount===0&&(el.textContent||'').trim()===subject)el.remove()});[...card.childNodes].forEach(node=>{if(node.nodeType===Node.TEXT_NODE&&node.textContent.trim()===subject)node.remove()})}
 function installSubjectIcons(student){student.querySelectorAll('.studentSubject').forEach(card=>{const subject=card.dataset.subjectName||Object.keys(SUBJECT_ASSETS).find(name=>(card.textContent||'').includes(name));if(!subject)return;card.dataset.subjectName=subject;removeRenderedSubjectTitle(card,subject);ensureImg(card,'.studentSubjectMascot','studentSubjectMascot',SUBJECT_ASSETS[subject],subject)})}
-function installSingleNavMascot(student){const host=student.querySelector('.studentNav .mascotNav>span');if(!host)return;let img=host.querySelector('.studentNavMascot');if(!img){img=document.createElement('img');img.className='studentNavMascot';host.appendChild(img)}ensureImg(host,'.studentNavMascot','studentNavMascot',SHAKABUMBO_NAV,'شكابمبو')}
+function installSingleNavMascot(student){const host=student.querySelector('.studentNav .mascotNav>span');if(!host)return;let img=host.querySelector('.studentNavMascot');[...host.children].forEach(child=>{if(child!==img)child.remove()});if(!img){img=document.createElement('img');img.className='studentNavMascot';host.appendChild(img)}ensureImg(host,'.studentNavMascot','studentNavMascot',SHAKABUMBO_NAV,'شكابمبو')}
 function toast(message){let box=document.querySelector('.studentPatchToast');if(!box){box=document.createElement('div');box.className='studentPatchToast';document.body.appendChild(box)}box.textContent=message;setTimeout(()=>box?.remove(),2600)}
 function panel(title,body){document.querySelector('.studentPatchModal')?.remove();const wrap=document.createElement('div');wrap.className='studentPatchModal';const card=document.createElement('section');const close=document.createElement('button');close.className='studentPatchClose';close.type='button';close.textContent='×';close.addEventListener('click',()=>wrap.remove());const h=document.createElement('h3');h.textContent=title;card.append(close,h,body);wrap.appendChild(card);wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove()});document.body.appendChild(wrap)}
 async function loadState(){const id=studentId();if(!id)return null;try{const r=await fetch(`/api/student-state?studentId=${encodeURIComponent(id)}`,{cache:'no-store'});const data=await r.json();return data?.ok?data:null}catch{return null}}
