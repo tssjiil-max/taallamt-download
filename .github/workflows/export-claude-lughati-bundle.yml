@@ -1,0 +1,30 @@
+name: Export Claude Lughati Bundle
+on:
+  push:
+    branches:
+      - feature/student-teacher-staging-20261003
+
+jobs:
+  export:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare bundle
+        run: |
+          mkdir -p claude-lughati-bundle/public/shakabumbo-icons
+          mkdir -p claude-lughati-bundle/scripts
+          cp index.html claude-lughati-bundle/
+          cp package.json claude-lughati-bundle/
+          cp public/student-shakabumbo-icons.js claude-lughati-bundle/public/
+          cp public/student-style-patch.js claude-lughati-bundle/public/
+          cp public/student-parent-visual-safe.js claude-lughati-bundle/public/
+          cp public/student-parent-visual-safe.css claude-lughati-bundle/public/
+          cp public/student-teacher-palette.css claude-lughati-bundle/public/
+          cp public/shakabumbo-icons/03_lughati.svg claude-lughati-bundle/public/shakabumbo-icons/
+          cp scripts/student-parent-visual-safe-regression.mjs claude-lughati-bundle/scripts/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claude-lughati-bundle
+          path: claude-lughati-bundle
+          if-no-files-found: error
