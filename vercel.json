@@ -16,6 +16,8 @@
     }
   ],
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "preview/student-teacher-link-20261005": true
+    }
   }
 }
