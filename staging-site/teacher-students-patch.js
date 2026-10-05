@@ -21,7 +21,7 @@ import {effectiveAssessmentGroup} from 'https://raw.githack.com/tssjiil-max/taal
 
   function setTeacherCount(){
     if(location.pathname.startsWith('/student'))return;
-    document.querySelectorAll('.teacherStat').forEach(card=>{if(card.querySelector('b')?.textContent?.trim()==='عدد الطلاب'){const value=card.querySelector('strong');if(value)value.textContent=String(roster.length);}});
+    document.querySelectorAll('.teacherStat').forEach(card=>{if(card.querySelector('b')?.textContent?.trim()==='عدد الطلاب'){const value=card.querySelector('strong'),next=String(roster.length);if(value&&!value.dataset.liveCount&&value.textContent!==next)value.textContent=next;}});
   }
 
   function selectStudent(student){

@@ -1,0 +1,85 @@
+/* Teacher + student type scale (approved 2026-10-05). Font sizes, weights, line-heights and inline icon sizes only.
+   No colors, backgrounds, borders, shadows, order, spacing, data, or behavior. Loaded last so it wins equal-specificity ties. */
+@media screen {
+  .screen.teacher,
+  .screen.student{font-family:inherit}
+
+  /* ---------- teacher ---------- */
+  .teacher .teacherIdentity b{font-size:19px!important;font-weight:800!important;line-height:1.25!important}
+  .teacher .teacherIdentity span{font-size:12px!important;font-weight:600!important;line-height:1.3!important}
+
+  .teacher .teacherStat b{font-size:11.5px!important;font-weight:700!important;line-height:1.2!important}
+  .teacher .teacherStat strong{font-size:20px!important;font-weight:800!important;line-height:1!important}
+
+  .teacher .panel h3{font-size:14px!important;font-weight:800!important;line-height:1.3!important}
+
+  .teacher .courseProgress b,
+  .teacher .statusLine b,
+  .teacher .announcement b{font-size:12px!important;font-weight:600!important;line-height:1.3!important}
+  .teacher .statusLine strong{font-size:14.5px!important;font-weight:800!important;line-height:1!important}
+  .teacher .courseProgress span,
+  .teacher .announcement small{font-size:10px!important;font-weight:600!important}
+
+  .teacher .teacherNav button>b,
+  .teacher .teacherNav .mascotNav>b{font-size:11px!important;font-weight:700!important}
+
+  /* ---------- student ---------- */
+  .student .studentCleanDetails .studentDetailRow:first-child .studentDetailValue{font-weight:800!important}
+
+  .student .miniCards b{font-size:12px!important;font-weight:700!important}
+
+  .student .dayPanel h3{font-size:17.5px!important;font-weight:800!important;line-height:1.3!important}
+  .student .dayPanel h3 .uiIcon{width:24px!important;height:24px!important}
+
+  .student>.studentDay>.dayPanel:first-child .taskText b,
+  .student .taskText b{font-size:14.5px!important;font-weight:700!important;line-height:1.35!important}
+  .student>.studentDay>.dayPanel:first-child .taskText span,
+  .student .taskText span{font-size:12px!important;font-weight:500!important;line-height:1.3!important}
+
+  .student .studentTeacherEvalRow b{font-size:13.5px!important;font-weight:700!important;line-height:1.35!important}
+  .student .studentTeacherEvalRow small{font-size:11.5px!important;font-weight:600!important;line-height:1.3!important}
+  .student .studentTeacherEvalStatus{font-size:11px!important;font-weight:800!important}
+  .student .studentTeacherEvalEmpty{font-size:12px!important;font-weight:500!important}
+
+  .student .rewardStars>b{font-size:12.5px!important;font-weight:700!important}
+
+  .student .studentNav button>b,
+  .student .studentNav .mascotNav>b{font-size:11px!important;font-weight:700!important}
+}
+
+@media(max-width:407px){
+  .teacher .teacherIdentity b{font-size:16.5px!important}
+  .teacher .teacherIdentity span{font-size:11px!important}
+  .teacher .teacherStat b{font-size:10.8px!important}
+  .teacher .panel h3{font-size:13px!important;font-weight:700!important}
+}
+
+@media(max-width:375px){
+  .teacher .teacherIdentity b{font-size:16px!important}
+  .teacher .teacherIdentity span{font-size:10.5px!important}
+  .teacher .teacherStat b{font-size:10px!important}
+  .teacher .teacherStat strong{font-size:19px!important}
+  .teacher .panel h3{font-size:11.5px!important;font-weight:700!important}
+  .teacher .courseProgress b,
+  .teacher .statusLine b,
+  .teacher .announcement b{font-size:11px!important}
+  .teacher .statusLine strong{font-size:13.5px!important}
+  .teacher .courseProgress span,
+  .teacher .announcement small{font-size:9.4px!important}
+  .teacher .teacherNav button>b,
+  .teacher .teacherNav .mascotNav>b,
+  .student .studentNav button>b,
+  .student .studentNav .mascotNav>b{font-size:10.5px!important}
+
+  .student .miniCards b{font-size:11px!important}
+  .student .dayPanel h3{font-size:16px!important}
+  .student .dayPanel h3 .uiIcon{width:22px!important;height:22px!important}
+  .student>.studentDay>.dayPanel:first-child .taskText b,
+  .student .taskText b{font-size:13.5px!important}
+  .student>.studentDay>.dayPanel:first-child .taskText span,
+  .student .taskText span{font-size:11.5px!important}
+  .student .studentTeacherEvalRow b{font-size:12.5px!important}
+  .student .studentTeacherEvalRow small{font-size:11px!important}
+  .student .studentTeacherEvalStatus{font-size:10.5px!important}
+  .student .rewardStars>b{font-size:11.5px!important}
+}

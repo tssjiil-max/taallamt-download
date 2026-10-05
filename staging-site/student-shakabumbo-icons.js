@@ -3,7 +3,7 @@ const ICONS={
   main:'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/02_main_logo.svg',
   star:'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/07_star_of_day.svg',
   subjects:{
-    'لغتي':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/03_lughati.svg',
+    // «لغتي» is owned by student-parent-visual-safe.js (single final source); do not add it here.
     'الإملاء والخط':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/04_imlaa_khatt.svg',
     'القرآن الكريم':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/05_quran.svg',
     'الدراسات الإسلامية':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/06_islamic_studies.svg'

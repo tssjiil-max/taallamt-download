@@ -2,7 +2,8 @@
   if(!location.pathname.startsWith('/student'))return;
 
   const SUBJECT_ASSETS={
-    'لغتي':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/03_lughati.svg?v=20261003c',
+    // «لغتي» has ONE final source: this entry. student-style-patch.js and student-shakabumbo-icons.js must not set it.
+    'لغتي':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/03_lughati.svg?v=20261005a',
     'الإملاء والخط':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/04_imlaa_khatt.svg',
     'القرآن الكريم':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/05_quran.svg',
     'الدراسات الإسلامية':'https://raw.githack.com/tssjiil-max/taallamt-download/feature/student-teacher-staging-20261003/staging-site/shakabumbo-icons/06_islamic_studies.svg'

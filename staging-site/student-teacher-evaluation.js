@@ -49,9 +49,16 @@
 
   function curriculumMap(state){return new Map((state?.curriculum||[]).map(target=>[String(target.id),target]));}
   function latestAcademicMap(state){
-    const map=new Map();
-    for(const assessment of state?.assessments||[]){for(const item of assessment?.academic||[]){if(item?.targetId&&!map.has(item.targetId))map.set(item.targetId,item);}}
+    const map=new Map();let order=0;
+    for(const assessment of state?.assessments||[]){for(const item of assessment?.academic||[]){order++;if(item?.targetId&&!map.has(item.targetId))map.set(item.targetId,{...item,order});}}
     return map;
+  }
+  // The teacher's quick assessment is saved per subject (subject:arabic …) while the weekly plan lists the
+  // week's own target ids. A row therefore shows whichever of the two the teacher recorded most recently.
+  function resultForTarget(academic,target){
+    const direct=academic.get(target.targetId),subjectLevel=target.subjectTargetId?academic.get(target.subjectTargetId):null;
+    if(direct&&subjectLevel)return (direct.order<=subjectLevel.order?direct:subjectLevel).result;
+    return (direct||subjectLevel)?.result;
   }
   function latestBehavior(state){
     for(const assessment of state?.assessments||[]){for(const item of assessment?.behavior||[]){if(item?.kind!=='value')return item;}}
@@ -84,7 +91,7 @@
     for(const plan of state?.weeklyPlan||[]){
       const key=subjectKey(plan?.subject),ids=asArray(plan?.targetIds).map(String).filter(Boolean);
       if(ids.length){
-        for(const id of ids){if(seen.has(id))continue;seen.add(id);const target=byId.get(id)||{};const targetKey=subjectKey(target.subject||key);rows.push({targetId:id,subject:SUBJECT_NAMES[targetKey]||String(plan.subject||target.subject||'المادة'),title:String(target.title||target.skill||target.name||plan.lesson||plan.title||'مهارة الأسبوع')});}
+        for(const id of ids){if(seen.has(id))continue;seen.add(id);const target=byId.get(id)||{};const targetKey=subjectKey(target.subject||key);rows.push({targetId:id,subjectTargetId:SUBJECT_TARGETS[targetKey]||SUBJECT_TARGETS[key]||'',subject:SUBJECT_NAMES[targetKey]||String(plan.subject||target.subject||'المادة'),title:String(target.title||target.skill||target.name||plan.lesson||plan.title||'مهارة الأسبوع')});}
       }else if(SUBJECT_TARGETS[key]){
         const id=SUBJECT_TARGETS[key];if(seen.has(id))continue;seen.add(id);rows.push({targetId:id,subject:SUBJECT_NAMES[key],title:String(plan.lesson||plan.title||plan.skill||'تقييم المادة حسب توزيع هذا الأسبوع')});
       }
@@ -104,7 +111,7 @@
 
     const academic=latestAcademicMap(state),targets=currentDistributionTargets(state);
     if(!targets.length){const empty=document.createElement('div');empty.className='studentTeacherEvalEmpty';empty.textContent='لم تُنشر مهارات توزيع هذا الأسبوع بعد.';body.appendChild(empty);}
-    for(const target of targets){const result=academic.get(target.targetId)?.result;body.appendChild(evalRow(target.subject,target.title,ACADEMIC_LABELS[result]||'لم يُقيّم بعد',result||''));}
+    for(const target of targets){const result=resultForTarget(academic,target);body.appendChild(evalRow(target.subject,target.title,ACADEMIC_LABELS[result]||'لم يُقيّم بعد',result||''));}
 
     const behavior=latestBehavior(state);const behaviorCode=behavior?.code||'';body.appendChild(evalRow('السلوك','تقييم المعلم',BEHAVIOR_LABELS[behaviorCode]||behavior?.label||'لم يُقيّم بعد',behaviorCode));
 

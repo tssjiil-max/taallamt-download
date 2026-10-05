@@ -10,7 +10,11 @@
   const api=async url=>{const response=await fetch(url,{cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok||data?.ok===false)throw new Error(data?.error||`HTTP_${response.status}`);return data};
   const riyadhDate=value=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value))}catch{return ''}};
   const keyForSubject=value=>{const raw=String(value||'').trim();return subjectMap[raw]||(['quran','arabic','islamic','spelling','handwriting'].includes(raw)?raw:'')};
-  const evidenceStatus=(state,homeworkId)=>state?.homeworkEvidence?.find(item=>item.homeworkId===homeworkId)?.status||'';
+  const evidenceFor=(state,homeworkId)=>state?.homeworkEvidence?.find(item=>item.homeworkId===homeworkId)||null;
+  const evidenceStatus=(state,homeworkId)=>evidenceFor(state,homeworkId)?.status||'';
+  const isDone=(state,homeworkId)=>{const evidence=evidenceFor(state,homeworkId);return evidence?.status==='completed'||evidence?.correct===true};
+  const homeworkDate=item=>String(item?.scheduledDate||'')||riyadhDate(item?.assignedAt);
+  const CARRY_DAYS=7,CARRY_LIMIT=4;
 
   function notify(message){let box=document.querySelector('.studentPatchToast');if(!box){box=document.createElement('div');box.className='studentPatchToast';document.body.appendChild(box)}box.textContent=message;setTimeout(()=>box?.remove(),2600)}
 
@@ -34,12 +38,23 @@
     return [...byId.values()];
   }
 
-  function taskSubtitle(task){
-    const key=task.subjectKey||keyForSubject(task.subject),label=subjectLabels[key]||task.subject||'المادة';
+  // Homework from the last few days that the student has not finished yet stays visible until it is done.
+  function carriedTasks(state,preview){
+    const today=String(preview?.localDate||'');if(!today||!state)return [];
+    const since=new Date(Date.parse(`${today}T00:00:00Z`)-CARRY_DAYS*86400000).toISOString().slice(0,10);
+    return (state.homework||[]).filter(item=>{const date=homeworkDate(item);return date&&date<today&&date>=since&&!isDone(state,item.id)}).slice(0,CARRY_LIMIT).map(item=>({...item,planned:false,carried:true}));
+  }
+
+  function taskSubtitle(task,state){
+    const key=task.subjectKey||keyForSubject(task.subject),label=subjectLabels[key]||(task.kind==='training'?'تدريب منزلي من المعلم':key?task.subject:'واجب من المعلم');
+    const evidence=evidenceFor(state,task.id),graded=evidence?.status==='graded';
+    const extra=task.planned?'':`${task.autoGrading?.enabled&&!graded?' · تصحيح آلي':''}${graded?` · ${evidence.score??0}/${evidence.maxScore??task.autoGrading?.maxScore??10}`:''}`;
+    if(task.carried)return `${label} · واجب سابق لم يُنجز${extra}`;
+    if(!subjectLabels[key])return `${label}${extra}`;
     if(task.taskType==='quran_memorization')return `${label} · حفظ اليوم`;
     if(task.taskType==='quran_review')return `${label} · مراجعة / تسميع`;
     if(task.taskType==='spelling_practice')return `${label} · تدريب الإملاء والخط`;
-    return `${label} · ${task.planned?'من توزيع اليوم':'واجب اليوم'}`;
+    return `${label} · ${task.planned?'من توزيع اليوم':task.kind==='training'?'تدريب منزلي':'واجب اليوم'}${extra}`;
   }
 
   async function completeTask(button,task,state){
@@ -58,14 +73,14 @@
     const id=studentId();if(!id)return false;
     const panels=[...document.querySelectorAll('.student .dayPanel')],panel=panels.find(item=>(item.querySelector('h3')?.textContent||'').includes('مهامي اليوم'));
     if(!panel)return false;
-    const tasks=mergedTodayTasks(preview,state);
+    const tasks=[...mergedTodayTasks(preview,state),...carriedTasks(state,preview)];
     panel.querySelectorAll('.taskItem,.automationTaskEmpty').forEach(node=>node.remove());
     if(!tasks.length){const empty=document.createElement('div');empty.className='automationTaskEmpty';empty.style.cssText='padding:14px 10px;text-align:center;color:#7890a2;font-size:11px;line-height:1.6';empty.textContent='لا توجد مهام منشورة لهذا اليوم حسب توزيع المنهج والجدول.';panel.appendChild(empty);return true}
     for(const task of tasks){
-      const done=task.completed||evidenceStatus(state,task.id)==='completed';
-      const button=document.createElement('button');button.type='button';button.className=`taskItem automationTask ${done?'done':''}`;button.dataset.homeworkId=String(task.id||'');button.dataset.planned=task.planned?'true':'false';
+      const done=task.completed||isDone(state,task.id);
+      const button=document.createElement('button');button.type='button';button.className=`taskItem automationTask ${done?'done':''}`;button.dataset.homeworkId=String(task.id||'');button.dataset.planned=task.planned?'true':'false';button.dataset.carried=task.carried?'true':'false';button.dataset.autoGrade=!task.planned&&task.autoGrading?.enabled?'1':'0';
       const circle=document.createElement('span');circle.className='taskCircle';circle.textContent=done?'✓':'';
-      const text=document.createElement('div');text.className='taskText';const title=document.createElement('b');title.textContent=task.title||'مهمة اليوم';const sub=document.createElement('span');sub.textContent=taskSubtitle(task);text.append(title,sub);button.append(circle,text);
+      const text=document.createElement('div');text.className='taskText';const title=document.createElement('b');title.textContent=task.title||'مهمة اليوم';const sub=document.createElement('span');sub.textContent=taskSubtitle(task,state);text.append(title,sub);button.append(circle,text);
       button.addEventListener('click',()=>void completeTask(button,task,state));panel.appendChild(button);
     }
     panel.dataset.automationDate=String(preview.localDate||'');return true;
@@ -81,6 +96,8 @@
     const key=subjectMap[title],content=key?preview.content?.[key]:null;if(!key||!content)return [];
     const tasks=mergedTodayTasks(preview,state).filter(task=>(task.subjectKey||keyForSubject(task.subject))===key||(key==='spelling'&&keyForSubject(task.subject)==='handwriting'));
     const targetIds=new Set((preview.homework||[]).filter(task=>(task.subjectKey||keyForSubject(task.subject))===key).flatMap(task=>Array.isArray(task.targetIds)?task.targetIds:[]).map(String));
+    // The teacher's quick assessment is stored per subject, so it counts for this subject's weekly target too.
+    targetIds.add(`subject:${key==='spelling'?'spelling_handwriting':key}`);
     const lines=[];
     const unit=content.unit||content.surah||'';const lesson=content.lesson||content.weekly||'';const skill=content.skill||'';
     if(unit||lesson)lines.push(`خطة هذا الأسبوع: ${[unit,lesson].filter(Boolean).join(' — ')}`);
