@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="الدراسات الإسلامية">
+<circle cx="60" cy="60" r="54" fill="#e6f5fa"/>
+<path d="M21 91h78M31 90V55h58v35M41 55V45l19-17 19 17v10" fill="#fff" stroke="#197c93" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M47 90V72a13 13 0 0 1 26 0v18" fill="#75c6d0" stroke="#197c93" stroke-width="3"/>
+<path d="M53 52a10 10 0 1 0 15-13 11 11 0 1 1-15 13z" fill="#e7b649"/>
+<path d="M23 45V29h8v16M89 45V29h8v16" fill="#fff" stroke="#197c93" stroke-width="3" stroke-linejoin="round"/>
+<path d="M20 27h14M86 27h14" stroke="#197c93" stroke-width="3" stroke-linecap="round"/>
+</svg>

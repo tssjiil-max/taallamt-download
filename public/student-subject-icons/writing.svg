@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="الإملاء والخط">
+<circle cx="60" cy="60" r="54" fill="#f5edff"/>
+<rect x="24" y="24" width="65" height="74" rx="6" fill="#fff" stroke="#7847ac" stroke-width="4"/>
+<path d="M35 43h43M35 56h43M35 69h28M35 82h25" stroke="#cfb9e6" stroke-width="3" stroke-linecap="round"/>
+<path d="M48 54q-4-7-8 0t7 4q4-3 6-4" fill="none" stroke="#7847ac" stroke-width="3" stroke-linecap="round"/>
+<path d="M78 78l20-39 8 4-20 39-12 9z" fill="#f6be45" stroke="#7847ac" stroke-width="3" stroke-linejoin="round"/>
+<path d="M74 91l5-12 7 3z" fill="#7847ac"/>
+</svg>
