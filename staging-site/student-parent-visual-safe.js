@@ -53,6 +53,15 @@
         legacyPanel.style.setProperty('display','none','important');
       }
     });
+    student.querySelectorAll('h3').forEach(heading=>{
+      if(heading.textContent.trim()==='تقييم المعلم'){
+        const legacyPanel=heading.closest('.dayPanel')||heading.closest('section');
+        if(legacyPanel){
+          legacyPanel.dataset.referenceLegacyHidden='true';
+          legacyPanel.style.setProperty('display','none','important');
+        }
+      }
+    });
 
     student.querySelectorAll('.studentSubject').forEach(card=>{
       const subject=card.dataset.subjectName||'';
