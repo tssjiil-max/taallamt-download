@@ -230,3 +230,10 @@
     display:none!important;
   }
 }
+@media screen{
+  .student.studentHomeReference .dayPanel:has(.studentTeacherEvaluation),
+  .student.studentHomeReference section:has(> h3):has(.studentTeacherEvaluation),
+  .student.studentHomeReference [data-teacher-evaluation="true"]:not(.homeDataCard){
+    display:none!important;
+  }
+}
