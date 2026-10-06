@@ -37,6 +37,6 @@ assert.ok(js.includes('/api/student-state'),'home cards must read existing stude
 assert.ok(!js.includes('localStorage.setItem'),'visual script must not mutate stored student data');
 assert.ok(js.includes("attributeFilter:['src','data-clean-source']"),'visual script must keep supplied SVG artwork stable after existing student patches run');
 
-for(const label of ['الخطة الأسبوعية','التقييم','الواجبات','النجوم','weeklyPlan','assessments','homeworkEvidence','state.stars'])assert.ok(js.includes(label),`student home should render live ${label}`);
+for(const label of ['الخطة الأسبوعية','التقييم','الواجبات','النجوم','weeklyPlan','assessments','homeworkEvidence','homeState.stars'])assert.ok(js.includes(label),`student home should render live ${label}`);
 assert.ok(css.includes('.studentHomeReference>.studentDay>.homeDataCard.weekly')&&css.includes('.studentHomeReference>.studentDay>.homeDataCard.assessment')&&css.includes('.studentHomeReference>.studentDay>.homeDataCard.homework'),'student card order should match the approved reference');
 console.log('Student/parent visual-safe regression checks passed.');
