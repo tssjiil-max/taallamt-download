@@ -174,3 +174,49 @@
 .student.studentHomeReference>.studentDay .dayPanel:not(.homeDataCard){display:none!important}.student.studentHomeReference>.studentCredit{display:none!important}
 }
 @media(max-width:375px){.student.studentHomeReference>.sHero{height:180px!important;min-height:180px!important}.student.studentHomeReference .studentWelcome{right:14px!important;top:37px!important;gap:8px!important}.student.studentHomeReference .studentMascotWrap{left:5px!important;width:126px!important}.student.studentHomeReference .studentMascotWrap .heroMascot{width:126px!important}.student.studentHomeReference>.studentDay>.homeDataCard{margin-right:9px!important;margin-left:9px!important;padding:14px!important;min-height:216px!important}.student.studentHomeReference .homeSubjectGrid{gap:4px!important}.student.studentHomeReference .homeSubjectItem{min-height:98px!important;padding:6px 2px!important}.student.studentHomeReference .homeSubjectItem img{width:35px!important;height:35px!important}.student.studentHomeReference>.rewards{margin-right:9px!important;margin-left:9px!important}.student.studentHomeReference .homeRewardProgress{gap:6px!important}.student.studentHomeReference .homeRewardProgress>b{font-size:19px!important}}
+
+
+/* Reference alignment correction: keep the icon and title together on the right,
+   place details actions on the left, and pin the four destinations across the phone. */
+@media screen{
+  .student.studentHomeReference>.studentDay>.homeDataCard{
+    direction:ltr!important;
+  }
+  .student.studentHomeReference .homeDataHeading{direction:ltr!important}
+  .student.studentHomeReference .homeDataTitle{
+    direction:rtl!important;
+    grid-column:1!important;
+    text-align:right!important;
+  }
+  .student.studentHomeReference .homeDataIcon{
+    grid-column:2!important;
+    justify-self:end!important;
+  }
+  .student.studentHomeReference .homeDataContent{
+    direction:rtl!important;
+    text-align:right!important;
+  }
+  .student.studentHomeReference .homeDataAction{
+    direction:rtl!important;
+    justify-self:start!important;
+  }
+  .student.studentHomeReference>.rewards{direction:rtl!important}
+  .student.studentHomeReference .homeRewardHeading{
+    direction:ltr!important;
+    flex-direction:row!important;
+  }
+  .student.studentHomeReference .homeRewardHeading>div{
+    direction:rtl!important;
+    text-align:right!important;
+  }
+  .student.studentHomeReference>.studentNav{
+    position:fixed!important;
+    left:50%!important;
+    right:auto!important;
+    bottom:0!important;
+    transform:translateX(-50%)!important;
+    width:min(100vw,430px)!important;
+    max-width:430px!important;
+    box-sizing:border-box!important;
+  }
+}
