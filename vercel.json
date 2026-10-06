@@ -10,21 +10,50 @@
     }
   ],
   "rewrites": [
-    { "source": "/teacher/student/:id", "destination": "/legacy.html" },
-    { "source": "/teacher/students", "destination": "/legacy.html" },
-    { "source": "/teacher/library", "destination": "/legacy.html" },
-    { "source": "/teacher/settings", "destination": "/legacy.html" },
-    { "source": "/teacher/announcements", "destination": "/legacy.html" },
-    { "source": "/teacher/tasks", "destination": "/legacy.html" },
-    { "source": "/teacher/followup", "destination": "/legacy.html" },
-    { "source": "/teacher/messages", "destination": "/legacy.html" },
-    { "source": "/teacher/stars", "destination": "/legacy.html" },
+    {
+      "source": "/teacher/student/:id",
+      "destination": "/legacy.html"
+    },
+    {
+      "source": "/teacher/students",
+      "destination": "/legacy.html"
+    },
+    {
+      "source": "/teacher/library",
+      "destination": "/legacy.html"
+    },
+    {
+      "source": "/teacher/settings",
+      "destination": "/legacy.html"
+    },
+    {
+      "source": "/teacher/announcements",
+      "destination": "/legacy.html"
+    },
+    {
+      "source": "/teacher/tasks",
+      "destination": "/legacy.html"
+    },
+    {
+      "source": "/teacher/followup",
+      "destination": "/legacy.html"
+    },
+    {
+      "source": "/teacher/messages",
+      "destination": "/legacy.html"
+    },
+    {
+      "source": "/teacher/stars",
+      "destination": "/legacy.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "preview/student-teacher-staging-20261006": true
+    }
   }
 }
