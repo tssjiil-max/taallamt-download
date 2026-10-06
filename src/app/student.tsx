@@ -3,10 +3,11 @@
 import React from 'react';
 import boy from './assets/boy.webp';
 import gift from './assets/gift.webp';
+import sourati from './assets/shakabumbo-sourati.webp';
 import {
-  api,asApiError,BottomNav,Card,CardsSkeleton,CARD_ICON,Check,countLabel,Cta,Empty,Fact,Failure,formatDay,formatStamp,greeting,Header,IconChevron,IconStar,
+  api,asApiError,BottomNav,Card,CardsSkeleton,CARD_ICON,Check,countLabel,Cta,Empty,Fact,Failure,formatDay,formatStamp,greeting,gregorianDate,Header,hijriDate,IconChevron,IconHeart,IconSpark,IconStar,IconTarget,IconTrophy,riyadhClock,
   Loading,NavBook,NavHome,NavHomeLine,NavStar,NavUser,PageHead,Pill,Plan,PlanSubject,planStamp,Result,RESULT_LABEL,Screen,SubjectImg,SubjectKey,subjectIcon,SUBJECT_LABEL,
-  useHashRoute,useRemote,useToast,weekTitle
+  useHashRoute,useNow,useRemote,useToast,weekTitle
 } from './kit';
 
 type Homework={id:string;displayTitle?:string;subjectKey:string;subjectLabel:string;title:string;lesson:string;segment:string;skill:string;page:number|null;exercise:string;task:string;kind:string;source:string;publishedAt:string;publishedDate:string;dueDate:string;status:string;done:boolean;completedAt:string;confirmedBy:string;teacherApprovedAt:string};
@@ -14,12 +15,12 @@ type AssessmentItem={subjectKey:SubjectKey;label:string;short:string;week:number
 type QuranWeek={week:number;surah:string;title:string;description:string;range:string;kind:string;status:Result|null;updatedAt:string};
 type Home={
   role:'teacher'|'guardian';
-  student:{id:string;name:string;firstName:string;number:number;classLabel:string;classShort:string;termLabel:string};
+  student:{id:string;name:string;firstName:string;number:number;classLabel:string;classShort:string;school:string;termLabel:string;photo:string;hobbies:string[]};
   today:{date:string;weekday:number;weekdayLabel:string;schoolDay:boolean};
   week:{number:number;label:string;termWeeks:number;range:{start:string;end:string}};
   plan:Plan;
   assessment:{week:number;items:AssessmentItem[];history:{subjectKey:SubjectKey;label:string;week:number|null;skill:string;lesson:string;status:Result;updatedAt:string}[]};
-  homework:{today:Homework[];pending:Homework[];countToday:number;doneToday:number};
+  homework:{today:Homework[];pending:Homework[];countToday:number;doneToday:number;doneRecent:number};
   stars:{count:number;goal:number;log:{id:string;stars:number;label:string;createdAt:string}[]};
   quran:{currentWeek:number;current:QuranWeek|null;counts:Record<Result,number>;assessedWeeks:number;pastWeeks:number;totalWeeks:number;upcoming:QuranWeek[];weeks:QuranWeek[]};
   notes:{id:string;reason:string;summary:string;createdAt:string}[];
@@ -43,6 +44,9 @@ export function StudentApp(){
   const [toast,showToast]=useToast();
   const home=useRemote<Home>(STUDENT_ID?`home:${STUDENT_ID}`:null,()=>api<Home>(`/api/student-state?view=home&${accessQuery}`));
   const [busy,setBusy]=React.useState<string>('');
+  // Moving between pages picks up what changed on the other site, without reloading on every tap.
+  const refreshIfOlder=home.refreshIfOlder;
+  React.useEffect(()=>refreshIfOlder(20000),[route,refreshIfOlder]);
 
   const toggleHomework=React.useCallback(async(item:Homework)=>{
     if(busy)return;setBusy(item.id);
@@ -64,7 +68,7 @@ export function StudentApp(){
     }finally{setBusy('')}
   },[busy,home,showToast]);
 
-  const tab=route.startsWith('week')?'weeks':route==='stars'?'stars':['me','quran','quran-log'].includes(route)?'me':'home';
+  const tab=route.startsWith('week')?'weeks':route==='stars'?'stars':['me','quran','quran-log','hobbies','goals','achievements','skills'].includes(route)?'me':'home';
   const nav=<BottomNav label="تنقل الطالب" active={tab} items={[
     {key:'home',label:'الرئيسية',icon:<NavHomeLine/>,activeIcon:<NavHome/>,onClick:()=>go('')},
     {key:'weeks',label:'الفصول',icon:<NavBook/>,onClick:()=>go('weeks')},
@@ -92,7 +96,11 @@ export function StudentApp(){
   else if(route==='stars')body=<StarsPage home={data} back={back}/>;
   else if(route==='weeks')body=<WeeksPage home={data} back={back} go={go}/>;
   else if(route.startsWith('week/'))body=<WeekPage home={data} week={Number(route.slice(5))} back={back}/>;
-  else if(route==='me')body=<AccountPage home={data} back={back} go={go}/>;
+  else if(route==='me')body=<AccountPage home={data} back={back} go={go} reload={()=>void home.reload(true)} toast={showToast}/>;
+  else if(route==='hobbies')body=<HobbiesPage home={data} back={back} reload={()=>void home.reload(true)} toast={showToast}/>;
+  else if(route==='goals')body=<GoalsPage home={data} back={back}/>;
+  else if(route==='achievements')body=<AchievementsPage home={data} back={back}/>;
+  else if(route==='skills')body=<SkillsPage home={data} back={back}/>;
   else if(route==='quran')body=<QuranPage home={data} back={back} go={go}/>;
   else if(route==='quran-log')body=<QuranLogPage home={data} back={back}/>;
   else body=<HomeCards home={data} title={title} subtitle={subtitle} go={go} toggle={toggleHomework} busy={busy}/>;
@@ -251,17 +259,118 @@ function WeekPage({home,week,back}:{home:Home;week:number;back:()=>void}){
   </div>;
 }
 
-function AccountPage({home,back,go}:{home:Home;back:()=>void;go:Go}){
-  const student=home.student;
+/* ---------- student profile (حسابي) ---------- */
+type Skill={subjectKey:SubjectKey;label:string;week:number|null;skill:string;status:Result};
+// Every assessed skill, newest first; the current week comes from the same list the assessment card shows.
+function assessedSkills(home:Home):Skill[]{
+  const current=home.assessment.items.filter(item=>item.status).map(item=>({subjectKey:item.subjectKey,label:item.label,week:item.week,skill:item.skill,status:item.status as Result}));
+  const older=home.assessment.history.filter(entry=>!current.some(item=>item.subjectKey===entry.subjectKey&&item.week===entry.week));
+  return [...current,...older];
+}
+const HOBBY_OPTIONS=['القراءة','الرسم','التلوين','كرة القدم','السباحة','ركوب الدراجة','القصص','الحفظ','الألعاب التركيبية','الأشغال اليدوية','التقنية والروبوت','الزراعة','الجري','التصوير','الألعاب الذهنية'];
+const saveProfile=(body:Record<string,unknown>)=>api('/api/student-state',{method:'POST',body:{studentId:STUDENT_ID,action:'student_profile',invite:INVITE,...body}});
+// The chosen picture is cropped to a small square in the browser before it is saved.
+function squarePhoto(file:File):Promise<string>{
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file),image=new Image();
+    image.onload=()=>{
+      const size=256,canvas=document.createElement('canvas'),side=Math.min(image.naturalWidth,image.naturalHeight);
+      canvas.width=size;canvas.height=size;
+      const context=canvas.getContext('2d');URL.revokeObjectURL(url);
+      if(!context||!side){reject(new Error('PHOTO_INVALID'));return}
+      context.drawImage(image,(image.naturalWidth-side)/2,(image.naturalHeight-side)/2,side,side,0,0,size,size);
+      resolve(canvas.toDataURL('image/jpeg',.82));
+    };
+    image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('PHOTO_INVALID'))};
+    image.src=url;
+  });
+}
+function AccountPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
+  const student=home.student,now=useNow(),input=React.useRef<HTMLInputElement>(null),[busy,setBusy]=React.useState(false);
+  const skills=assessedSkills(home),mastered=skills.filter(item=>item.status==='mastered').length,goals=skills.filter(item=>item.status!=='mastered');
+  const pickPhoto=async(event:React.ChangeEvent<HTMLInputElement>)=>{
+    const file=event.target.files?.[0];event.target.value='';if(!file||busy)return;setBusy(true);
+    try{await saveProfile({photoDataUrl:await squarePhoto(file)});toast('حُفظت صورتك');reload()}
+    catch(caught){const error=asApiError(caught);toast(error.code==='PHOTO_INVALID'||error.code==='PHOTO_TOO_LARGE'?'تعذر استخدام هذه الصورة. اختر صورة أخرى.':error.kind==='offline'?'تعذر الاتصال — لم تُحفظ الصورة.':'تعذر حفظ الصورة.',true)}
+    finally{setBusy(false)}
+  };
+  const tiles:[string,string,React.ReactNode,string,string][]=[
+    ['hobbies','هواياتي',<IconHeart/>,student.hobbies.length?student.hobbies.slice(0,2).join(' · '):'أضف هواياتك','green'],
+    ['goals','أهدافي',<IconTarget/>,goals.length?countLabel(goals.length,'مهارة أتدرب عليها','مهارتان أتدرب عليهما','مهارات أتدرب عليها','مهارة أتدرب عليها'):'حافظ على مستواك','blue'],
+    ['achievements','إنجازاتي',<IconTrophy/>,`${home.stars.count} نجمة · ${mastered} مهارة`,'gold'],
+    ['skills','مهاراتي',<IconSpark/>,skills.length?countLabel(skills.length,'مهارة مقيّمة','مهارتان مقيّمتان','مهارات مقيّمة','مهارة مقيّمة'):'لم تُقيّم بعد','purple']
+  ];
   return <div className="tkPage">
-    <PageHead title="حسابي" subtitle={student.classLabel} onBack={back}/>
-    <section className="tkBox"><div className="tkStudentCard"><img src={boy} alt="" aria-hidden="true"/><div><b>{student.name}</b><small>{student.classLabel} · {student.classShort}</small></div></div></section>
+    <PageHead title="حسابي" subtitle="ملفي التعريفي" onBack={back}/>
+    <section className="tkProfile" aria-label="ملف الطالب">
+      <div className="tkProfileTop">
+        <button className={`tkPhoto ${student.photo?'custom':''}`} type="button" onClick={()=>input.current?.click()} disabled={busy} aria-label="تغيير صورتي">
+          <img src={student.photo||sourati} alt={student.photo?'صورتي':'شكابمبو — صورتي'}/>{student.photo&&<span>صورتي</span>}
+        </button>
+        <input ref={input} id="student-photo" type="file" accept="image/*" hidden onChange={event=>void pickPhoto(event)}/>
+        <dl className="tkProfileText">
+          <div><dt>اسم الطالب:</dt><dd>{student.name}</dd></div>
+          <div><dt>الصف:</dt><dd>{student.classShort}</dd></div>
+          <p>{student.school}</p>
+        </dl>
+      </div>
+      <p className="tkProfileDate"><span dir="rtl">{hijriDate(now)}</span><i aria-hidden="true">•</i><span dir="rtl">{gregorianDate(now)}</span><i aria-hidden="true">•</i><span dir="rtl">{riyadhClock(now)}</span></p>
+      <div className="tkProfileTiles">{tiles.map(([route,label,icon,preview,tone])=><button key={route} type="button" className={`tkProfileTile ${tone}`} onClick={()=>go(route)}><b>{icon}{label}</b><small>{preview}</small></button>)}</div>
+    </section>
     <div className="tkList">
       <button className="tkRow" type="button" onClick={()=>go('quran')}><img src={subjectIcon('quran')} alt="" aria-hidden="true"/><span className="tkGrow"><b>متابعة حفظ القرآن الكريم</b><small>الأسبوع الحالي وسجل الحفظ</small></span><IconChevron/></button>
-      <button className="tkRow" type="button" onClick={()=>go('assessment')}><img src={CARD_ICON.assessment} alt="" aria-hidden="true"/><span className="tkGrow"><b>تقييماتي وملاحظات المعلم</b><small>{home.notes.length?`${home.notes.length} ملاحظة`:'لا توجد ملاحظات'}</small></span><IconChevron/></button>
+      <button className="tkRow" type="button" onClick={()=>go('assessment')}><img src={CARD_ICON.assessment} alt="" aria-hidden="true"/><span className="tkGrow"><b>تقييماتي وملاحظات المعلم</b><small>{home.notes.length?countLabel(home.notes.length,'ملاحظة واحدة','ملاحظتان','ملاحظات','ملاحظة'):'لا توجد ملاحظات'}</small></span><IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('weeks')}><img src={CARD_ICON.plan} alt="" aria-hidden="true"/><span className="tkGrow"><b>خطط الأسابيع السابقة</b><small>{student.termLabel}</small></span><IconChevron/></button>
     </div>
     <p className="tkMeta">{home.role==='teacher'?'أنت تعاين صفحة الطالب بجلسة المعلم.':'هذه الصفحة خاصة بالطالب وولي أمره، وتُفتح من رابط الطالب فقط.'}</p>
+  </div>;
+}
+function HobbiesPage({home,back,reload,toast}:{home:Home;back:()=>void;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
+  const [chosen,setChosen]=React.useState<string[]>(home.student.hobbies),[busy,setBusy]=React.useState(false);
+  const options=[...new Set([...HOBBY_OPTIONS,...home.student.hobbies])];
+  const toggle=(hobby:string)=>setChosen(current=>current.includes(hobby)?current.filter(item=>item!==hobby):current.length>=12?current:[...current,hobby]);
+  const save=async()=>{
+    setBusy(true);
+    try{await saveProfile({hobbies:chosen});toast('حُفظت هواياتك');reload();back()}
+    catch(caught){toast(asApiError(caught).kind==='offline'?'تعذر الاتصال — لم تُحفظ الهوايات.':'تعذر حفظ الهوايات.',true)}finally{setBusy(false)}
+  };
+  return <div className="tkPage">
+    <PageHead title="هواياتي" subtitle="اختر هواياتك، ويمكن اختيار أكثر من هواية" onBack={back}/>
+    <div className="tkHobbies" role="group" aria-label="الهوايات">{options.map(hobby=><button key={hobby} type="button" className={`tkChip ${chosen.includes(hobby)?'on':''}`} aria-pressed={chosen.includes(hobby)} onClick={()=>toggle(hobby)}>{hobby}</button>)}</div>
+    <div className="tkActions" style={{marginTop:'calc(var(--u)*10)'}}><button className="tkBtn wide green" type="button" disabled={busy} onClick={()=>void save()}>{busy?'جارٍ الحفظ…':'حفظ هواياتي'}</button></div>
+  </div>;
+}
+function SkillRow({item}:{item:Skill}){
+  return <div className="tkRow"><img src={subjectIcon(item.subjectKey)} alt="" aria-hidden="true"/><div className="tkGrow"><b>{item.skill||item.label}</b><small>{item.label}{item.week?` · الأسبوع ${item.week}`:''}</small></div><Pill status={item.status}/></div>;
+}
+function GoalsPage({home,back}:{home:Home;back:()=>void}){
+  const goals=assessedSkills(home).filter(item=>item.status!=='mastered'),pending=home.homework.pending.length+home.homework.today.filter(item=>!item.done).length;
+  return <div className="tkPage">
+    <PageHead title="أهدافي" subtitle="ما أتدرّب عليه الآن" onBack={back}/>
+    <h2 className="tkH">مهارات أتدرب عليها<small>{goals.length}</small></h2>
+    {goals.length?<div className="tkList">{goals.map((item,index)=><SkillRow key={`${item.subjectKey}-${item.week}-${index}`} item={item}/>)}</div>:<Empty>لا توجد مهارة تحتاج تدريبًا الآن — حافظ على مستواك.</Empty>}
+    <h2 className="tkH">واجباتي</h2>
+    <div className="tkRow"><img src={CARD_ICON.homework} alt="" aria-hidden="true"/><div className="tkGrow"><b>{pending?countLabel(pending,'واجب واحد لم يُنجز','واجبان لم يُنجزا','واجبات لم تُنجز','واجبًا لم يُنجز'):'أنجزت كل واجباتي'}</b><small>أنجز واجباتي في وقتها</small></div></div>
+    <div className="tkRow" style={{marginTop:'calc(var(--u)*5)'}}><img src={CARD_ICON.stars} alt="" aria-hidden="true"/><div className="tkGrow"><b>{Math.max(0,home.stars.goal-home.stars.count)} نجمة للوصول إلى المكافأة</b><small>رصيدي {home.stars.count} من {home.stars.goal}</small></div></div>
+    <p className="tkMeta">الأهداف تُستخرج من تقييم المعلم وواجباتك، وتتغير تلقائيًا.</p>
+  </div>;
+}
+function AchievementsPage({home,back}:{home:Home;back:()=>void}){
+  const skills=assessedSkills(home),mastered=skills.filter(item=>item.status==='mastered');
+  const tiles:[string,number,string][]=[['نجمة هذا الشهر',home.stars.count,'purple'],['مهارة أتقنتها',mastered.length,'green'],['أسبوع حفظ متقن',home.quran.counts.mastered,'blue'],['واجب أنجزته هذا الأسبوع',home.homework.doneRecent,'gold']];
+  return <div className="tkPage">
+    <PageHead title="إنجازاتي" subtitle="ما حققته حتى الآن" onBack={back}/>
+    <div className="tkAchieve">{tiles.map(([label,value,tone])=><div key={label} className={tone}><b className="num">{value}</b><span>{label}</span></div>)}</div>
+    <h2 className="tkH">مهارات أتقنتها<small>{mastered.length}</small></h2>
+    {mastered.length?<div className="tkList">{mastered.map((item,index)=><SkillRow key={`${item.subjectKey}-${item.week}-${index}`} item={item}/>)}</div>:<Empty>ستظهر هنا المهارات التي يسجّل المعلم إتقانك لها.</Empty>}
+  </div>;
+}
+function SkillsPage({home,back}:{home:Home;back:()=>void}){
+  const skills=assessedSkills(home),waiting=home.assessment.items.filter(item=>!item.status&&!item.holiday&&item.skill);
+  return <div className="tkPage">
+    <PageHead title="مهاراتي" subtitle="المهارات التي قيّمها المعلم" onBack={back}/>
+    {skills.length?<div className="tkList">{skills.map((item,index)=><SkillRow key={`${item.subjectKey}-${item.week}-${index}`} item={item}/>)}</div>:<Empty>لم يقيّم المعلم مهاراتك بعد.</Empty>}
+    {waiting.length>0&&<><h2 className="tkH">مهارات هذا الأسبوع<small>لم تُقيّم بعد</small></h2><div className="tkList">{waiting.map(item=><div className="tkRow" key={item.subjectKey}><img src={subjectIcon(item.subjectKey)} alt="" aria-hidden="true"/><div className="tkGrow"><b>{item.skill}</b><small>{item.label}</small></div><Pill status={null}/></div>)}</div></>}
   </div>;
 }
 

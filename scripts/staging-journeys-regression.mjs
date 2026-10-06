@@ -221,6 +221,33 @@ check('how a result was entered (bulk or individual) is never sent to a guardian
   }
 });
 
+check('teacher summary: each student counts once today, focused list size, recent messages',async()=>{
+  await call(studentState,{method:'POST',body:{studentId:s1,action:'guardian_message',summary:'نشكر متابعتكم.'},cookie:teacher});
+  const before=(await T('teacher_home')).body;
+  assert.equal(before.summary.students,ROSTER.length);assert.equal(before.summary.focused,2,'the general focused list (a per-subject entry is not counted)');
+  assert.equal(before.summary.assessedToday,ROSTER.length-1,'everyone assessed in Lughati today except the one focused student still waiting');
+  assert.equal(before.summary.messages,1);assert.equal(before.messages[0].studentId,s1);
+  await TP('assess_one',{subjectKey:'spelling',studentId:s1,result:'mastered'});
+  const after=(await T('teacher_home')).body;
+  assert.equal(after.summary.assessedToday,before.summary.assessedToday,'a second subject for the same student does not add to the count');
+  assert.equal(after.todayAssessments.filter(entry=>entry.studentId===s1).length,2);
+  assert.deepEqual(after.students.find(student=>student.id===s2).week,{arabic:'needs_repeat',quran:null,islamic:null,spelling:null});
+  assert.equal(after.students.find(student=>student.id===s4).assessedToday,false);
+  await TP('assess_one',{subjectKey:'spelling',studentId:s1,result:null});
+  const student=await home(s1);
+  assert.equal(student.student.school,'مدرسة عمرو بن أوس الثقفي');assert.ok(!JSON.stringify(student).includes('summary":{"students'));
+});
+
+check('a student can set his own hobbies and picture, not another student\'s',async()=>{
+  const save=(id,invite,body)=>call(studentState,{method:'POST',body:{studentId:id,action:'student_profile',invite,...body}});
+  assert.equal((await save(s1,invites[s1],{hobbies:['القراءة','الرسم']})).status,200);
+  assert.deepEqual((await home(s1)).student.hobbies,['القراءة','الرسم']);
+  assert.equal((await save(s2,invites[s1],{hobbies:['x']})).status,403);
+  assert.equal((await save(s1,invites[s1],{photoDataUrl:'javascript:alert(1)'})).status,400);
+  assert.equal((await save(s1,invites[s1],{photoDataUrl:'data:image/jpeg;base64,'+'A'.repeat(64)})).status,200);
+  assert.ok((await home(s1)).student.photo.startsWith('data:image/jpeg;base64,'));
+});
+
 check('a result can be corrected, and the last bulk press can be undone without losing corrections',async()=>{
   await TP('assess_one',{subjectKey:'arabic',studentId:s5,result:'needs_repeat'});          // correction of a bulk result
   const undo=(await TP('assess_undo',{subjectKey:'arabic'})).body;

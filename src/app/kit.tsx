@@ -49,7 +49,7 @@ export async function api<T=any>(url:string,options:{method?:'GET'|'POST';body?:
 }
 export const asApiError=(error:unknown)=>error instanceof ApiError?error:new ApiError('server',error instanceof Error?error.message:'UNKNOWN');
 
-export type Remote<T>={data:T|null;error:ApiError|null;loading:boolean;reload:(quiet?:boolean)=>Promise<void>;setData:React.Dispatch<React.SetStateAction<T|null>>};
+export type Remote<T>={data:T|null;error:ApiError|null;loading:boolean;reload:(quiet?:boolean)=>Promise<void>;refreshIfOlder:(ms:number)=>void;setData:React.Dispatch<React.SetStateAction<T|null>>};
 // Loads once, reloads quietly when the page becomes visible again (that is how a change made on the other site shows up).
 export function useRemote<T>(key:string|null,loader:()=>Promise<T>):Remote<T>{
   const [data,setData]=React.useState<T|null>(null),[error,setError]=React.useState<ApiError|null>(null),[loading,setLoading]=React.useState(Boolean(key));
@@ -68,7 +68,8 @@ export function useRemote<T>(key:string|null,loader:()=>Promise<T>):Remote<T>{
     document.addEventListener('visibilitychange',onVisible);window.addEventListener('focus',onVisible);
     return ()=>{document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onVisible)};
   },[reload]);
-  return {data,error,loading,reload,setData};
+  const refreshIfOlder=React.useCallback((ms:number)=>{if(keyRef.current&&lastRef.current&&Date.now()-lastRef.current>ms)void reload(true)},[reload]);
+  return {data,error,loading,reload,refreshIfOlder,setData};
 }
 
 /* ---------- routing by hash ---------- */
@@ -97,6 +98,21 @@ export function greeting(){
   try{hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Riyadh',hour:'numeric',hourCycle:'h23'}).format(new Date()))}catch{/* device clock */}
   return hour<12?'صباح الخير':'مساء الخير';
 }
+// Hijri (Umm al-Qura) and Gregorian dates and the clock, always in Saudi time, whatever the device is set to.
+function dateText(calendar:string,date:Date){
+  const parts=new Intl.DateTimeFormat(`ar-SA-u-ca-${calendar}-nu-latn`,{timeZone:'Asia/Riyadh',day:'numeric',month:'long',year:'numeric'}).formatToParts(date);
+  const part=(type:string)=>parts.find(item=>item.type===type)?.value||'';
+  return `${part('day')} ${part('month')} ${part('year')}`;
+}
+export function hijriDate(date=new Date()){try{return `${dateText('islamic-umalqura',date)} هـ`}catch{return ''}}
+export function gregorianDate(date=new Date()){try{return `${dateText('gregory',date)} م`}catch{return ''}}
+export function riyadhClock(date=new Date()){try{return new Intl.DateTimeFormat('ar-SA-u-nu-latn',{timeZone:'Asia/Riyadh',hour:'numeric',minute:'2-digit',hour12:true}).format(date)}catch{return ''}}
+// Re-renders once a minute so the date strip changes by itself at midnight.
+export function useNow(intervalMs=60000){
+  const [now,setNow]=React.useState(()=>new Date());
+  React.useEffect(()=>{const timer=setInterval(()=>setNow(new Date()),intervalMs);return ()=>clearInterval(timer)},[intervalMs]);
+  return now;
+}
 export function countLabel(count:number,one:string,two:string,few:string,many:string){
   if(count===1)return one;if(count===2)return two;if(count>=3&&count<=10)return `${count} ${few}`;return `${count} ${many}`;
 }
@@ -110,6 +126,15 @@ export const IconUserFilled=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="
 export const IconChevron=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 export const IconCheck=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 export const IconStar=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="m12 2.8 2.75 5.6 6.18.9-4.47 4.35 1.06 6.15L12 16.9l-5.52 2.9 1.06-6.15L3.07 9.3l6.18-.9z" fill="currentColor"/></svg>;
+export const IconCalendar=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><rect x="3.5" y="5" width="17" height="15.5" rx="3" {...stroke}/><path d="M8 3v4M16 3v4M3.5 10h17" {...stroke}/></svg>;
+export const IconSprout=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M12 21v-9M12 13c-5 0-7-3-7-7 4 0 7 2 7 7ZM12 11c0-5 3-7 7-7 0 4-2 7-7 7Z" {...stroke}/></svg>;
+export const IconMessage=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><rect x="3" y="5" width="18" height="14" rx="3" {...stroke}/><path d="m4.5 7.5 7.5 5.5 7.5-5.5" {...stroke}/></svg>;
+export const IconAlert=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><circle cx="12" cy="12" r="9.5" fill="currentColor" opacity=".16"/><path d="M12 7v6.2" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"/><circle cx="12" cy="16.8" r="1.3" fill="currentColor"/></svg>;
+export const IconBookLogo=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M12 6.500C10.2 5 7.6 4.4 4.7 4.6 4.1 4.6 3.7 5.1 3.7 5.600V17.100C3.7 17.7 4.2 18.1 4.8 18.1 7.6 17.9 10.1 18.5 12 19.8 13.9 18.5 16.4 17.9 19.2 18.1 19.8 18.1 20.3 17.7 20.3 17.100V5.600C20.3 5.1 19.9 4.6 19.3 4.6 16.4 4.4 13.8 5 12 6.500ZM12 6.500V19.8" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+export const IconHeart=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M12 20.500s-7.5-4.4-7.5-10.300A4.2 4.2 0 0 1 12 7.600a4.2 4.2 0 0 1 7.5 2.600c0 5.9-7.5 10.3-7.5 10.300Z" fill="currentColor"/></svg>;
+export const IconTarget=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><circle cx="12" cy="12" r="8.5" {...stroke}/><circle cx="12" cy="12" r="4.3" {...stroke}/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>;
+export const IconTrophy=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M8 4h8v5.500c0 3-1.8 5-4 5s-4-2-4-5ZM8 6H4.500v1.500c0 2.5 1.5 3.8 3.5 4M16 6h3.500v1.500c0 2.5-1.5 3.8-3.5 4M12 14.500V18M8.5 20.500h7" {...stroke}/></svg>;
+export const IconSpark=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M12 2.500c.9 5 2.5 6.6 7.5 7.5-5 .9-6.6 2.5-7.5 7.5-.9-5-2.5-6.6-7.5-7.5 5-.9 6.6-2.5 7.5-7.500Z" fill="currentColor"/></svg>;
 export const NavHome=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M12.9 2.9a1.4 1.4 0 0 0-1.8 0L3.2 9.8c-.4.4-.7.9-.7 1.5v8.2c0 1.1.9 2 2 2h4.2c.5 0 .9-.4.9-.9v-4.3c0-.8.7-1.5 1.5-1.5h1.8c.8 0 1.5.7 1.5 1.5v4.3c0 .5.4.9.9.9h4.2c1.1 0 2-.9 2-2v-8.2c0-.6-.3-1.1-.7-1.5Z" fill="currentColor"/></svg>;
 export const NavHomeLine=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M3.4 10.6 12 3.4l8.6 7.2v8.6c0 .9-.7 1.6-1.6 1.6h-3.9v-5.4c0-.8-.6-1.4-1.4-1.4h-3.4c-.8 0-1.4.6-1.4 1.4v5.4H5c-.9 0-1.6-.7-1.6-1.6Z" {...stroke}/></svg>;
 export const NavBook=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M12 6.5C10.2 5 7.6 4.4 4.7 4.6 4.1 4.6 3.7 5.1 3.7 5.6V17.1C3.7 17.7 4.2 18.1 4.8 18.1 7.6 17.9 10.1 18.5 12 19.8 13.9 18.5 16.4 17.9 19.2 18.1 19.8 18.1 20.3 17.7 20.3 17.1V5.6C20.3 5.1 19.9 4.6 19.3 4.6 16.4 4.4 13.8 5 12 6.5ZM12 6.5V19.8" {...stroke}/></svg>;

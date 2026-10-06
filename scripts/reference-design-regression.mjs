@@ -31,6 +31,15 @@ assert.ok(css.includes("font-family:'Readex Pro'")&&existsSync('src/app/assets/R
 for(const asset of ['boy','icon-plan','icon-assessment','icon-homework','icon-stars','gift','subject-arabic','subject-quran','subject-islamic','subject-spelling','shakabumbo'])assert.ok(existsSync(`src/app/assets/${asset}.webp`),`${asset} asset`);
 execFileSync(process.execPath,['scripts/build-app-css.mjs','--check'],{stdio:'pipe'});
 
+// Teacher header: identity card, day strip in Saudi time, four live summary tiles, credit at the bottom.
+for(const text of ['عدد الطلاب','يحتاجون متابعة','تم تقييمهم اليوم','رسائل جديدة','معًا نصنع جيلًا أفضل','برمجة: سلطان الصاعدي'])assert.ok(teacher.includes(text),`teacher header has «${text}»`);
+assert.ok(teacher.includes('hijriDate(now)')&&teacher.includes('gregorianDate(now)')&&kit.includes("timeZone:'Asia/Riyadh'")&&kit.includes('islamic-umalqura'),'dates follow Saudi time and update by themselves');
+assert.ok(teacher.includes('summary.students')&&teacher.includes('summary.focused')&&teacher.includes('summary.assessedToday')&&teacher.includes('summary.messages'),'summary numbers come from the server');
+assert.ok(css.includes('.tkStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))'),'summary tiles: two per row on a phone');
+// Student profile card inside حسابي.
+for(const text of ['هواياتي','أهدافي','إنجازاتي','مهاراتي','اسم الطالب:','الصف:'])assert.ok(student.includes(text),`student profile has «${text}»`);
+assert.ok(existsSync('src/app/assets/shakabumbo-sourati.webp')&&student.includes("action:'student_profile'"),'the original Shakabumbo picture is the default, and the student saves his own profile');
+
 // Quick assessment wording and states.
 for(const text of ['أتقن بقية الطلاب','أتقن جميع الطلاب','تراجع عن آخر عملية','المتابعة المركزة'])assert.ok(teacher.includes(text),`teacher screen has «${text}»`);
 assert.ok(kit.includes("mastered:'أتقن',needs_repeat:'يحتاج إعادة',not_mastered:'لم يتقن'")&&kit.includes('لم يُقيّم بعد'),'the three approved results plus "not assessed yet"');
