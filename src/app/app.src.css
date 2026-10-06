@@ -96,7 +96,7 @@ a{color:inherit;text-decoration:none}
 .tkCardNote{flex:1;min-width:0;align-self:center;font-size:9.4u;line-height:1.55;color:var(--ink2);text-align:right;padding:2u 2u 6u}
 
 /* overflow:hidden + tight line boxes would clip the dots under ي: give the clip box room below */
-.tkHello p,.tkCardSub,.tkCardSmall,.tkTile b,.tkTile small,.tkHwText b,.tkHwText small,.tkHwCount,.tkPageHead h1,.tkPageHead p{padding-bottom:3.5u;margin-bottom:-3.5u}
+.tkHello p,.tkCardSub,.tkCardSmall,.tkTile b,.tkTile small,.tkHwText b,.tkHwText small,.tkPageHead h1,.tkPageHead p{padding-bottom:3.5u;margin-bottom:-3.5u}
 
 /* homework card */
 .tkHwBody{display:flex;align-items:flex-end;gap:26.2u;padding:6.5u 54.2u 0 9.97u}
