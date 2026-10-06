@@ -220,3 +220,13 @@
     box-sizing:border-box!important;
   }
 }
+@media screen{
+  .student.studentHomeReference>.sHero{
+    display:flex!important;
+    position:relative!important;
+    width:100%!important;
+  }
+  .student.studentHomeReference [data-reference-legacy-hidden="true"]{
+    display:none!important;
+  }
+}

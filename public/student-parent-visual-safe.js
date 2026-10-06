@@ -46,6 +46,13 @@
     const student=document.querySelector('.student');
     if(!student)return;
     installHomeLayout(student);renderHomeData();
+    student.querySelectorAll('.studentTeacherEvaluation').forEach(evaluation=>{
+      const legacyPanel=evaluation.closest('.dayPanel');
+      if(legacyPanel&&!legacyPanel.classList.contains('homeDataCard')){
+        legacyPanel.dataset.referenceLegacyHidden='true';
+        legacyPanel.style.setProperty('display','none','important');
+      }
+    });
 
     student.querySelectorAll('.studentSubject').forEach(card=>{
       const subject=card.dataset.subjectName||'';
