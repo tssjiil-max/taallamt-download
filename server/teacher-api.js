@@ -4,7 +4,7 @@ import {adminDb,previewWriteGuard} from './firebase-admin.js';
 import {CLASS_ID} from './class-roster.js';
 import {riyadhDateString,weekNumberForDate,TERM_WEEKS} from './learning-content.js';
 import {SUBJECTS,SUBJECT_KEYS,buildPlan,clampWeek,nextSchoolDay,planDocId,planWeekForDate,readWeekPlan,subjectKeyOf,todayInfo,weekKeyFor,weekRange,workspaceRoot} from './plan.js';
-import {assessBulk,assessOne,assessUndo,assessView,isFocused,readProfiles,setFocus,weekProgress} from './quick-assess.js';
+import {assessBulk,assessOne,assessUndo,assessView,assessedToday,isFocused,readProfiles,readWeekData,setFocus,weekProgress,weekResultsByStudent} from './quick-assess.js';
 import {homeworkDisplayTitle,homeworkStatus} from './student-home.js';
 import {CLASS_LABEL,CLASS_SHORT,ROSTER,rosterStudent,SCHOOL_ID,SCHOOL_NAME,TEACHER_FIRST_NAME,TEACHER_NAME,TERM_ID,TERM_LABEL} from './roster.js';
 
@@ -40,21 +40,29 @@ async function homeworkForDate(db,localDate){
 export async function teacherHome(date=new Date()){
   const db=adminDb(),base=workspaceRoot(),today=todayInfo(date),week=weekNumberForDate(date),month=date.toISOString().slice(0,7);
   const profiles=await readProfiles(db);
-  const [plan,progress,homework,ledgers,run]=await Promise.all([
+  const [plan,weekData,homework,ledgers,run,communications]=await Promise.all([
     readWeekPlan(db,planWeekForDate(date)),
-    weekProgress(db,profiles,date),
+    readWeekData(db,date),
     homeworkForDate(db,today.date),
     db.collection(`${base}/rewardLedgers`).where('month','==',month).get(),
-    db.doc(`${base}/automationRuns/${today.date}`).get()
+    db.doc(`${base}/automationRuns/${today.date}`).get(),
+    db.collection(`${base}/communications`).where('createdAt','>=',new Date(date.getTime()-7*86400000).toISOString()).get()
   ]);
+  const progress=weekProgress(weekData,profiles,date),weekResults=weekResultsByStudent(weekData,date),todayResults=assessedToday(weekData,date),assessedIds=new Set(todayResults.studentIds);
   const starsBy=new Map(rows(ledgers).map(item=>[item.studentId,clampStars(item.stars)]));
-  const students=ROSTER.map(student=>({id:student.id,number:student.number,name:student.name,focused:isFocused(profiles.get(student.id),''),stars:starsBy.get(student.id)||0}));
+  const students=ROSTER.map(student=>({id:student.id,number:student.number,name:student.name,focused:isFocused(profiles.get(student.id),''),stars:starsBy.get(student.id)||0,week:weekResults.get(student.id),assessedToday:assessedIds.has(student.id)}));
+  // Messages to guardians recorded in the last seven days (the system has no inbox from guardians and no read state).
+  const messages=rows(communications).filter(item=>item.reasonCode==='guardian_message'&&rosterStudent(item.studentId)).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,40)
+    .map(item=>({id:item.id,studentId:item.studentId,name:rosterStudent(item.studentId).name,summary:String(item.summary||'').slice(0,300),createdAt:String(item.createdAt||'')}));
   const totalStars=students.reduce((sum,student)=>sum+student.stars,0);
   const runData=run.exists?run.data():null;
   return {
     ok:true,generatedAt:date.toISOString(),
     teacher:{name:TEACHER_NAME,firstName:TEACHER_FIRST_NAME,school:SCHOOL_NAME,schoolId:SCHOOL_ID,classId:CLASS_ID,classLabel:CLASS_LABEL,classShort:CLASS_SHORT,termId:TERM_ID,termLabel:TERM_LABEL},
     today,week:{number:week,key:weekKeyFor(week),label:`الأسبوع ${week}`,termWeeks:TERM_WEEKS,range:weekRange(week)},
+    summary:{students:students.length,focused:students.filter(student=>student.focused).length,assessedToday:assessedIds.size,messages:messages.length},
+    todayAssessments:todayResults.entries.map(entry=>({...entry,label:SUBJECTS[entry.subjectKey].label})),
+    messages,
     plan,
     assessment:{week,items:progress,focusedCount:students.filter(student=>student.focused).length},
     homework:{date:today.date,items:homework,assignedTotal:homework.reduce((sum,item)=>sum+item.assigned,0),doneTotal:homework.reduce((sum,item)=>sum+item.done,0)},

@@ -7,7 +7,7 @@ import {QURAN_FOLLOWUP_WEEKS} from './quran-followup-curriculum.js';
 import {AccessError,inviteFrom,inviteMatches,isTeacher,validInviteShape} from './access.js';
 import {SUBJECTS,SUBJECT_KEYS,buildPlan,clampWeek,planWeekForDate,readWeekPlan,subjectKeyOf,todayInfo,weekKeyFor,weekRange,workspaceRoot} from './plan.js';
 import {currentQuranWeek,quranWeekInfo,resultFromQuran,resultFromStored} from './quick-assess.js';
-import {CLASS_LABEL,CLASS_SHORT,rosterStudent,TERM_LABEL} from './roster.js';
+import {CLASS_LABEL,CLASS_SHORT,rosterStudent,SCHOOL_NAME,TERM_LABEL} from './roster.js';
 
 const DAY_MS=86400000;
 const STAR_GOAL=30;
@@ -116,12 +116,12 @@ export async function buildStudentHome(studentId,{profile=null,date=new Date()}=
   const week=weekNumberForDate(date);
   return {
     ok:true,generatedAt:date.toISOString(),
-    student:{id:student.id,name:student.name,firstName:student.firstName,number:student.number,classLabel:CLASS_LABEL,classShort:CLASS_SHORT,termLabel:TERM_LABEL,photo:String(profile?.photoDataUrl||''),hobbies:Array.isArray(profile?.hobbies)?profile.hobbies:[]},
+    student:{id:student.id,name:student.name,firstName:student.firstName,number:student.number,classLabel:CLASS_LABEL,classShort:CLASS_SHORT,school:SCHOOL_NAME,termLabel:TERM_LABEL,photo:String(profile?.photoDataUrl||''),hobbies:Array.isArray(profile?.hobbies)?profile.hobbies:[]},
     today,
     week:{number:week,key:weekKeyFor(week),label:`الأسبوع ${week}`,termWeeks:TERM_WEEKS,range:weekRange(week)},
     plan,
     assessment:assessmentSummary(rows(assessments),rows(quran),date),
-    homework:{today:todayHomework,pending,countToday:todayHomework.length,doneToday:todayHomework.filter(item=>item.done).length},
+    homework:{today:todayHomework,pending,countToday:todayHomework.length,doneToday:todayHomework.filter(item=>item.done).length,doneRecent:homeworkAll.filter(item=>item.done).length},
     stars:starsSummary(ledger.exists?ledger.data():null,rows(events).filter(item=>String(item.month||'')===month||String(item.createdAt||'').startsWith(month))),
     quran:quranSummary(rows(quran),date),
     notes:rows(communications).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,12).map(item=>({id:item.id,reason:String(item.reason||'ملاحظة'),summary:String(item.summary||''),createdAt:String(item.createdAt||'')}))

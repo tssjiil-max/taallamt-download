@@ -1,23 +1,25 @@
 // Teacher pages in the same identity as the student pages. The teacher's usual work is one screen: the quick assessment
 // ("أتقن بقية الطلاب" + individual results for the focused follow-up list). Plan and homework publish themselves.
 import React from 'react';
-import mascot from './assets/shakabumbo.webp';
 import gift from './assets/gift.webp';
 import {
-  api,ApiError,asApiError,BottomNav,Card,CardsSkeleton,CARD_ICON,Cta,Empty,Fact,Failure,formatDay,formatStamp,greeting,Header,IconChevron,Loading,NavBook,NavHome,NavHomeLine,
+  api,ApiError,asApiError,BottomNav,Card,CardsSkeleton,CARD_ICON,Cta,Empty,Fact,Failure,formatDay,formatStamp,gregorianDate,hijriDate,IconAlert,IconBookLogo,IconCalendar,IconChevron,IconMessage,IconSpark,IconSprout,IconStar,IconUserFilled,Loading,NavBook,NavHome,NavHomeLine,
   NavMore,NavPeople,newRequestId,PageHead,Pill,Plan,PlanItem,PlanSubject,planStamp,Result,RESULTS,RESULT_LABEL,Screen,studentsLabel,SubjectImg,SubjectKey,subjectIcon,SUBJECT_LABEL,SUBJECT_ORDER,SUBJECT_SHORT,
-  useHashRoute,useRemote,useToast,weekTitle
+  useHashRoute,useNow,useRemote,useToast,weekTitle
 } from './kit';
 
 type Session={teacher:boolean;gateConfigured:boolean;gateSource:string|null;gateReason?:string|null;environment:string};
 type Progress={subjectKey:SubjectKey;label:string;short:string;week:number;skill:string;lesson:string;assessable:boolean;reason:string;total:number;focused:number;rest:number;assessed:number;pending:number;mastered:number;needs_repeat:number;not_mastered:number;restPending:number;focusedPending:number};
 type HomeworkStudent={id:string;status:string;completedAt:string;confirmedBy:string;approved:boolean};
 type ClassHomework={id:string;displayTitle?:string;subjectKey:string;subjectLabel:string;title:string;lesson:string;segment:string;skill:string;page:number|null;exercise:string;task:string;kind:string;source:string;publishedAt:string;publishedDate:string;dueDate:string;edited:boolean;assigned:number;done:number;approved:number;students:HomeworkStudent[]};
-type ClassStudent={id:string;number:number;name:string;focused:boolean;stars:number};
+type ClassStudent={id:string;number:number;name:string;focused:boolean;stars:number;week:Record<SubjectKey,Result|null>;assessedToday:boolean};
 type TeacherHome={
   teacher:{name:string;firstName:string;school:string;classLabel:string;classShort:string;termLabel:string};
   today:{date:string;weekday:number;weekdayLabel:string;schoolDay:boolean};
   week:{number:number;label:string;termWeeks:number;range:{start:string;end:string}};
+  summary:{students:number;focused:number;assessedToday:number;messages:number};
+  todayAssessments:{studentId:string;subjectKey:SubjectKey;label:string;result:Result;at:string}[];
+  messages:{id:string;studentId:string;name:string;summary:string;createdAt:string}[];
   plan:Plan;
   assessment:{week:number;items:Progress[];focusedCount:number};
   homework:{date:string;items:ClassHomework[];assignedTotal:number;doneTotal:number};
@@ -40,8 +42,8 @@ const SOURCE_LABEL:Record<string,string>={'cron-daily':'التشغيل المج�
 export function TeacherApp({initialRoute=''}:{initialRoute?:string}){
   const session=useRemote<Session>('session',()=>api<Session>(`${AUTOMATION}?action=session`));
   React.useEffect(()=>{if(initialRoute&&!location.hash)history.replaceState(null,'',`/teacher#${initialRoute}`)},[initialRoute]);
-  if(session.error)return <Screen><Header title={`${greeting()} أ. سلطان`} subtitle="موقع المعلم" hero={mascot} heroClass="mascot" heroAlt="شكابمبو" avatarLabel="حساب المعلم"/><Failure error={session.error} role="teacher" onRetry={()=>void session.reload()}/></Screen>;
-  if(!session.data)return <Screen><Header title={`${greeting()} أ. سلطان`} subtitle="موقع المعلم" hero={mascot} heroClass="mascot" heroAlt="شكابمبو" avatarLabel="حساب المعلم"/><CardsSkeleton/></Screen>;
+  if(session.error)return <Screen><TeacherTop/><Failure error={session.error} role="teacher" onRetry={()=>void session.reload()}/></Screen>;
+  if(!session.data)return <Screen><TeacherTop/><CardsSkeleton/></Screen>;
   if(!session.data.teacher)return <Login session={session.data} onDone={()=>void session.reload()}/>;
   return <TeacherPages environment={session.data.environment} onSignedOut={()=>void session.reload()}/>;
 }
@@ -64,7 +66,7 @@ function Login({session,onDone}:{session:Session;onDone:()=>void}){
     try{await post('login',{code});onDone()}catch(caught){setMessage(loginMessage(asApiError(caught)))}finally{setBusy(false)}
   };
   return <Screen>
-    <Header title={`${greeting()} أ. سلطان`} subtitle="موقع المعلم — الصف الثاني / 4" hero={mascot} heroClass="mascot" heroAlt="شكابمبو" avatarLabel="حساب المعلم"/>
+    <TeacherTop/>
     <form className="tkLogin" onSubmit={submit}>
       <h2>دخول المعلم</h2>
       <p>أدوات المعلم وبيانات الصف لا تُفتح إلا برمز المعلم. يبقى الدخول محفوظًا على هذا الجهاز 30 يومًا.</p>
@@ -84,6 +86,9 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   const home=useRemote<TeacherHome>('teacher-home',()=>api<TeacherHome>(`${AUTOMATION}?action=teacher_home`));
   React.useEffect(()=>{if(home.error&&home.error.kind==='unauthorized')onSignedOut()},[home.error,onSignedOut]);
   const refresh=React.useCallback(()=>void home.reload(true),[home]);
+  // Moving between pages picks up what changed on the other site, without reloading on every tap.
+  const refreshIfOlder=home.refreshIfOlder;
+  React.useEffect(()=>refreshIfOlder(20000),[route,refreshIfOlder]);
   const tab=route==='students'?'students':route==='more'?'more':'home';
   const nav=<BottomNav label="تنقل المعلم" active={tab} items={[
     {key:'home',label:'الرئيسية',icon:<NavHomeLine/>,activeIcon:<NavHome/>,onClick:()=>go('')},
@@ -92,9 +97,7 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
     {key:'more',label:'المزيد',icon:<NavMore/>,onClick:()=>go('more')}
   ]}/>;
   const data=home.data;
-  const title=`${greeting()} أ. ${data?.teacher.firstName||'سلطان'}`;
-  const subtitle=data?`الصف ${data.teacher.classShort} · ${studentsLabel(data.students.length)}`:'الصف الثاني / 4';
-  const header=<Header title={title} subtitle={subtitle} hero={mascot} heroClass="mascot" heroAlt="شكابمبو" avatarLabel="المزيد" onAvatar={()=>go('more')}/>;
+  const header=<TeacherTop home={data} go={go}/>;
 
   let body:React.ReactNode;
   if(!data)body=<>{header}{home.error?<Failure error={home.error} role="teacher" onRetry={()=>void home.reload()}/>:<CardsSkeleton/>}</>;
@@ -104,8 +107,36 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   else if(route==='stars')body=<StarsPage home={data} back={back} refresh={refresh} toast={showToast} setHome={home.setData}/>;
   else if(route==='students')body=<StudentsPage home={data} back={back} toast={showToast}/>;
   else if(route==='more')body=<MorePage home={data} environment={environment} back={back} go={go} onSignedOut={onSignedOut}/>;
-  else body=<>{header}<HomeCards home={data} go={go}/></>;
+  else if(route==='followup')body=<FollowupPage home={data} back={back} go={go} refresh={refresh} toast={showToast}/>;
+  else if(route==='today')body=<TodayPage home={data} back={back} go={go}/>;
+  else if(route==='messages')body=<MessagesPage home={data} back={back}/>;
+  else body=<>{header}<HomeCards home={data} go={go}/><p className="tkCredit">برمجة: سلطان الصاعدي</p></>;
   return <Screen nav={nav}>{body}{toast}</Screen>;
+}
+/* ---------- teacher header: identity card, day strip, four summary tiles ---------- */
+const TEACHER_DEFAULT={name:'أ. سلطان الصاعدي',school:'مدرسة عمرو بن أوس الثقفي',classShort:'الثاني / 4'};
+function TeacherTop({home,go}:{home?:TeacherHome|null;go?:Go}){
+  const now=useNow(),teacher=home?.teacher||TEACHER_DEFAULT,summary=home?.summary;
+  const tiles:[string,string,number,React.ReactNode,string][]=summary?[
+    ['green','عدد الطلاب',summary.students,<NavPeople/>,'students'],
+    ['red','يحتاجون متابعة',summary.focused,<IconAlert/>,'followup'],
+    ['gold','تم تقييمهم اليوم',summary.assessedToday,<IconStar/>,'today'],
+    ['blue','رسائل جديدة',summary.messages,<IconMessage/>,'messages']
+  ]:[];
+  return <header className="tkTeacherTop">
+    <section className="tkIdCard" aria-label="بطاقة المعلم">
+      {go?<button className="tkIdAvatar" type="button" onClick={()=>go('more')} aria-label="حساب المعلم والمزيد"><IconUserFilled/></button>:<span className="tkIdAvatar" aria-hidden="true"><IconUserFilled/></span>}
+      <div className="tkIdText"><h1>{teacher.name}</h1><p>{teacher.school}</p><p>الصف: {teacher.classShort}</p></div>
+      <div className="tkBrand" aria-label="تعلّمت — معًا نصنع جيلًا أفضل"><div><i aria-hidden="true"><IconSpark/></i><b>تعلّمت</b><IconBookLogo/></div><small>معًا نصنع جيلًا أفضل</small></div>
+    </section>
+    <div className="tkDay" aria-label="تاريخ اليوم">
+      <span><IconCalendar/><span dir="rtl">{hijriDate(now)}</span></span>
+      <span><IconCalendar/><span dir="rtl">{gregorianDate(now)}</span></span>
+      <p><IconSprout/>كل خطوة في التعليم … تصنع فرقًا كبيرًا</p>
+    </div>
+    {go&&tiles.length>0&&<div className="tkStats" aria-label="ملخص اليوم">{tiles.map(([tone,label,value,icon,route])=><button key={route} type="button" className={`tkStat ${tone}`} onClick={()=>go(route)} aria-label={`${label}: ${value}`}>
+      <span className="tkStatIcon" aria-hidden="true">{icon}</span><span className="tkStatText"><small>{label}</small><b className="num">{value}</b></span></button>)}</div>}
+  </header>;
 }
 const firstOpenSubject=(home:TeacherHome)=>(home.assessment.items.find(item=>item.assessable&&item.pending>0)||home.assessment.items[0]).subjectKey;
 
@@ -390,6 +421,51 @@ function StudentsPage({home,back,toast}:{home:TeacherHome;back:()=>void;toast:(t
   </div>;
 }
 
+/* ---------- summary pages ---------- */
+function WeekChips({student}:{student:ClassStudent}){
+  return <div className="tkWeekChips">{SUBJECT_ORDER.map(key=><span key={key} className={`tkWeekChip ${student.week?.[key]||'pending'}`}>{SUBJECT_SHORT[key]}: {student.week?.[key]?RESULT_LABEL[student.week[key] as Result]:'لم يُقيّم'}</span>)}</div>;
+}
+function FollowupPage({home,back,go,refresh,toast}:{home:TeacherHome;back:()=>void;go:Go;refresh:()=>void;toast:(text:string,bad?:boolean)=>void}){
+  const [busy,setBusy]=React.useState('');
+  const focused=home.students.filter(student=>student.focused);
+  const remove=async(student:ClassStudent)=>{
+    if(busy)return;setBusy(student.id);
+    try{await post('focus_set',{studentId:student.id,focused:false});toast(`أُخرج ${student.name} من المتابعة المركزة`);refresh()}
+    catch(caught){toast(`تعذر الحفظ (${asApiError(caught).code}).`,true)}finally{setBusy('')}
+  };
+  return <div className="tkPage">
+    <PageHead title="يحتاجون متابعة" subtitle={`المتابعة المركزة · ${studentsLabel(focused.length)}`} onBack={back}/>
+    {focused.length?<div className="tkList">{focused.map(student=><div className="tkStudent focus" key={student.id}>
+      <div className="tkStudentTop"><span className="tkNumber num">{student.number}</span><b>{student.name}</b><a className="tkMini" href={`/teacher/student/${student.id}`}>الملف</a><button className="tkMini on" type="button" disabled={busy===student.id} onClick={()=>void remove(student)}>إخراج</button></div>
+      <WeekChips student={student}/>
+    </div>)}</div>:<Empty>لا يوجد طلاب في المتابعة المركزة. تضيفهم من شاشة التقييم بزر «＋ متابعة» بجانب اسم الطالب.</Empty>}
+    <div className="tkActions" style={{marginTop:'calc(var(--u)*8)'}}><button className="tkBtn green" type="button" onClick={()=>go('assess')}>تقييم طلاب المتابعة</button></div>
+    <p className="tkMeta">نتائج {home.week.label} لكل مادة. هذه القائمة خاصة بالمعلم ولا تظهر للطلاب ولا لأولياء الأمور.</p>
+  </div>;
+}
+function TodayPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
+  const byStudent=new Map<string,TeacherHome['todayAssessments']>();
+  for(const entry of home.todayAssessments){if(!byStudent.has(entry.studentId))byStudent.set(entry.studentId,[]);byStudent.get(entry.studentId)!.push(entry)}
+  const assessed=home.students.filter(student=>byStudent.has(student.id)),waiting=home.students.length-assessed.length;
+  return <div className="tkPage">
+    <PageHead title="تقييمات اليوم" subtitle={`${home.today.weekdayLabel} ${formatDay(home.today.date,false)} · قُيّم ${assessed.length} من ${home.students.length}`} icon={CARD_ICON.assessment} onBack={back}/>
+    {assessed.length?<div className="tkList">{assessed.map(student=><div className="tkStudent" key={student.id}>
+      <div className="tkStudentTop"><span className="tkNumber num">{student.number}</span><b>{student.name}</b></div>
+      <div className="tkWeekChips">{byStudent.get(student.id)!.map(entry=><span key={entry.subjectKey} className={`tkWeekChip ${entry.result}`}>{SUBJECT_SHORT[entry.subjectKey]}: {RESULT_LABEL[entry.result]}</span>)}</div>
+    </div>)}</div>:<Empty>لم يُسجَّل أي تقييم اليوم بعد.</Empty>}
+    <div className="tkActions" style={{marginTop:'calc(var(--u)*8)'}}><button className="tkBtn green" type="button" onClick={()=>go('assess')}>{waiting?`بدء التقييم (${waiting} لم يُقيَّموا اليوم)`:'فتح التقييم'}</button></div>
+    <p className="tkMeta">يُحسب الطالب مرة واحدة حتى لو قُيّم في أكثر من مادة.</p>
+  </div>;
+}
+function MessagesPage({home,back}:{home:TeacherHome;back:()=>void}){
+  return <div className="tkPage">
+    <PageHead title="رسائل جديدة" subtitle="رسائل أولياء الأمور خلال آخر 7 أيام" onBack={back}/>
+    {home.messages.length?<div className="tkList">{home.messages.map(message=><a className="tkRow" key={message.id} href={`/teacher/student/${message.studentId}`}><span className="tkGrow"><b>{message.name}</b><small>{message.summary}</small><small>{formatStamp(message.createdAt)}</small></span><IconChevron/></a>)}</div>:<Empty>لا توجد رسائل خلال آخر 7 أيام.</Empty>}
+    <div className="tkActions" style={{marginTop:'calc(var(--u)*8)'}}><a className="tkBtn ghost" href="/teacher/messages">كل الرسائل</a></div>
+    <p className="tkMeta">تُكتب الرسالة من ملف الطالب. لا يوجد في النظام بريد وارد من ولي الأمر، لذلك يُعرض هنا ما سُجّل من رسائل خلال الأسبوع.</p>
+  </div>;
+}
+
 /* ---------- more ---------- */
 function MorePage({home,environment,back,go,onSignedOut}:{home:TeacherHome;environment:string;back:()=>void;go:Go;onSignedOut:()=>void}){
   const run=home.automation.today;
@@ -411,6 +487,5 @@ function MorePage({home,environment,back,go,onSignedOut}:{home:TeacherHome;envir
       </dl>
     </section>
     <div className="tkActions" style={{marginTop:'calc(var(--u)*8)'}}><button className="tkBtn ghost" type="button" onClick={()=>void signOut()}>تسجيل الخروج</button></div>
-    <p className="tkMeta">برمجة: سلطان الصاعدي</p>
   </div>;
 }

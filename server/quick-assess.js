@@ -5,7 +5,7 @@ import {adminDb,previewWriteGuard} from './firebase-admin.js';
 import {CLASS_ID} from './class-roster.js';
 import {contentForWeek,riyadhDateString,weekNumberForDate,QURAN_WEEKS,TERM_WEEKS} from './learning-content.js';
 import {QURAN_FOLLOWUP_WEEKS,resolveQuranWeek} from './quran-followup-curriculum.js';
-import {SUBJECTS,SUBJECT_KEYS,targetIdFor,weekKeyFor,weekRange,workspaceRoot} from './plan.js';
+import {SUBJECTS,SUBJECT_KEYS,subjectKeyOf,targetIdFor,weekKeyFor,weekRange,workspaceRoot} from './plan.js';
 import {ROSTER,rosterStudent,SCHOOL_ID,TERM_ID} from './roster.js';
 
 export const RESULTS=['mastered','needs_repeat','not_mastered'];
@@ -217,17 +217,51 @@ export async function setFocus(body={}){
 }
 
 // Per-subject progress of the current week, for the teacher home card.
-export async function weekProgress(db,profiles,date=new Date()){
+export async function readWeekData(db,date=new Date()){
   const week=weekNumberForDate(date),quranWeek=currentQuranWeek(date);
   const [general,quran]=await Promise.all([
     readSkillRows(db,week),
     db.collection(`${workspaceRoot()}/quranFollowups`).where('week','==',quranWeek).get()
   ]);
-  const quranRows=rows(quran).filter(item=>!item.classId||item.classId===CLASS_ID);
+  return {week,quranWeek,general,quranRows:rows(quran).filter(item=>!item.classId||item.classId===CLASS_ID)};
+}
+const recordsFor=(data,scope)=>scope.subjectKey==='quran'
+  ?new Map(data.quranRows.map(item=>[item.studentId,{result:resultFromQuran(item.status),updatedAt:item.updatedAt||''}]))
+  :skillRecords(data.general,scope.targetId);
+// Per-subject progress of the current week, for the teacher home card.
+export function weekProgress(data,profiles,date=new Date()){
   return SUBJECT_KEYS.map(subjectKey=>{
     const scope=resolveScope(subjectKey,null,date);
-    const records=subjectKey==='quran'?new Map(quranRows.map(item=>[item.studentId,{result:resultFromQuran(item.status)}])):skillRecords(general,scope.targetId);
-    const {counts}=summarize(scope,records,profiles);
+    const {counts}=summarize(scope,recordsFor(data,scope),profiles);
     return {subjectKey,label:scope.label,short:scope.short,week:scope.week,skill:scope.skill,lesson:scope.lesson,assessable:scope.assessable,reason:scope.reason,...counts};
   });
+}
+// Each student's result in every subject for the current week's skills.
+export function weekResultsByStudent(data,date=new Date()){
+  const out=new Map(ROSTER.map(student=>[student.id,{}]));
+  for(const subjectKey of SUBJECT_KEYS){
+    const records=recordsFor(data,resolveScope(subjectKey,null,date));
+    for(const student of ROSTER)out.get(student.id)[subjectKey]=records.get(student.id)?.result||null;
+  }
+  return out;
+}
+// Results entered today (Riyadh day). A student assessed in several subjects appears once in the count.
+export function assessedToday(data,date=new Date()){
+  const today=riyadhDateString(date),entries=[],day=value=>{const parsed=new Date(value);return Number.isNaN(parsed.getTime())?'':riyadhDateString(parsed)};
+  for(const row of data.general){
+    if(!rosterStudent(row.studentId)||day(row.enteredAt)!==today)continue;
+    for(const item of Array.isArray(row.academic)?row.academic:[]){
+      const result=resultFromStored(item?.result),subjectKey=subjectKeyOf(item?.targetId);
+      if(result&&subjectKey)entries.push({studentId:row.studentId,subjectKey,result,at:String(row.enteredAt||'')});
+    }
+  }
+  for(const row of data.quranRows){
+    const result=resultFromQuran(row.status);
+    if(result&&rosterStudent(row.studentId)&&day(row.updatedAt)===today)entries.push({studentId:row.studentId,subjectKey:'quran',result,at:String(row.updatedAt||'')});
+  }
+  // newest entry per student and subject
+  const latest=new Map();
+  for(const entry of entries.sort((a,b)=>a.at.localeCompare(b.at)))latest.set(`${entry.studentId}:${entry.subjectKey}`,entry);
+  const list=[...latest.values()].sort((a,b)=>b.at.localeCompare(a.at));
+  return {entries:list,studentIds:[...new Set(list.map(entry=>entry.studentId))]};
 }
