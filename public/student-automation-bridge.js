@@ -53,6 +53,7 @@
     if(!subjectLabels[key])return `${label}${extra}`;
     if(task.taskType==='quran_memorization')return `${label} · حفظ اليوم`;
     if(task.taskType==='quran_review')return `${label} · مراجعة / تسميع`;
+    if(task.taskType==='copywriting')return `${label} · ص ${task.pageLabel||task.page||''} · تمرين الخط والنسخ`;
     if(task.taskType==='spelling_practice')return `${label} · تدريب الإملاء والخط`;
     return `${label} · ${task.planned?'من توزيع اليوم':task.kind==='training'?'تدريب منزلي':'واجب اليوم'}${extra}`;
   }
@@ -64,7 +65,7 @@
     try{
       const response=await fetch('/api/homework-complete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({studentId:id,homeworkId:task.id})});
       const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||`HTTP_${response.status}`);
-      button.classList.add('done');const circle=button.querySelector('.taskCircle');if(circle)circle.textContent='✓';task.completed=true;notify('تم تأكيد تنفيذ المهمة ✓');
+      button.classList.add('done');const circle=button.querySelector('.taskCircle');if(circle)circle.textContent='✓';const complete=button.querySelector('.taskCompleteButton');if(complete){complete.disabled=true;complete.setAttribute('aria-pressed','true')}task.completed=true;notify('تم تأكيد تنفيذ المهمة ✓');
       if(state?.homeworkEvidence){const row=state.homeworkEvidence.find(item=>item.homeworkId===task.id);if(row)row.status='completed'}
     }catch{notify('تعذر تأكيد المهمة الآن. حاول مرة أخرى.')}finally{button.disabled=false}
   }
@@ -78,10 +79,10 @@
     if(!tasks.length){const empty=document.createElement('div');empty.className='automationTaskEmpty';empty.style.cssText='padding:14px 10px;text-align:center;color:#7890a2;font-size:11px;line-height:1.6';empty.textContent='لا توجد مهام منشورة لهذا اليوم حسب توزيع المنهج والجدول.';panel.appendChild(empty);return true}
     for(const task of tasks){
       const done=task.completed||isDone(state,task.id);
-      const button=document.createElement('button');button.type='button';button.className=`taskItem automationTask ${done?'done':''}`;button.dataset.homeworkId=String(task.id||'');button.dataset.planned=task.planned?'true':'false';button.dataset.carried=task.carried?'true':'false';button.dataset.autoGrade=!task.planned&&task.autoGrading?.enabled?'1':'0';
+      const button=document.createElement('article');button.className=`taskItem automationTask ${done?'done':''}`;button.dataset.homeworkId=String(task.id||'');button.dataset.planned=task.planned?'true':'false';button.dataset.carried=task.carried?'true':'false';button.dataset.autoGrade=!task.planned&&task.autoGrading?.enabled?'1':'0';
       const circle=document.createElement('span');circle.className='taskCircle';circle.textContent=done?'✓':'';
-      const text=document.createElement('div');text.className='taskText';const title=document.createElement('b');title.textContent=task.title||'مهمة اليوم';const sub=document.createElement('span');sub.textContent=taskSubtitle(task,state);text.append(title,sub);button.append(circle,text);
-      button.addEventListener('click',()=>void completeTask(button,task,state));panel.appendChild(button);
+      const text=document.createElement('div');text.className='taskText';const title=document.createElement('b');title.textContent=task.title||'مهمة اليوم';const sub=document.createElement('span');sub.textContent=taskSubtitle(task,state);text.append(title,sub);
+      const complete=document.createElement('button');complete.type='button';complete.className='taskCompleteButton';complete.textContent='تم الإنجاز ✓';complete.setAttribute('aria-pressed',done?'true':'false');complete.disabled=Boolean(task.planned||done);complete.addEventListener('click',()=>void completeTask(button,task,state));button.append(circle,text,complete);panel.appendChild(button);
     }
     panel.dataset.automationDate=String(preview.localDate||'');return true;
   }
@@ -102,6 +103,7 @@
     const unit=content.unit||content.surah||'';const lesson=content.lesson||content.weekly||'';const skill=content.skill||'';
     if(unit||lesson)lines.push(`خطة هذا الأسبوع: ${[unit,lesson].filter(Boolean).join(' — ')}`);
     if(skill)lines.push(`المهارة: ${skill}`);
+    if(key==='arabic')lines.push('تُحل تمارين المهارات والظواهر اللغوية داخل الفصل في كتاب لغتي.');
     for(const task of tasks){const kind=task.taskType==='quran_memorization'?'حفظ':task.taskType==='quran_review'?'مراجعة / تسميع':'واجب / تدريب';lines.push(`تكليف اليوم (${kind}): ${task.title}${task.instructions?` — ${task.instructions}`:''}`)}
     if(state){const assessment=latestAcademicFor(state,targetIds);lines.push(`تقييم المعلم: ${assessment?academicLabels[assessment.result]||'مسجل':'لم يُقيّم بعد'}`)}
     return lines;
