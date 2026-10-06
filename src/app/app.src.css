@@ -355,3 +355,15 @@ a{color:inherit;text-decoration:none}
 .tkAchieve span{font-size:8.8u;color:var(--ink2)}
 .tkAchieve .purple b{color:#5539ab}.tkAchieve .green b{color:#2f9a43}.tkAchieve .blue b{color:#1b6fd0}.tkAchieve .gold b{color:#c98a12}
 @media(min-width:700px){.tkProfileTiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* ---------- student header on the home page: the profile card, with settings ---------- */
+.tkProfile.top{margin:10u 9u 6u}
+.tkGear{position:absolute;z-index:2;top:8u;left:8u;width:28u;height:28u;border-radius:50%;background:#fff;color:var(--blue);display:grid;place-items:center;box-shadow:0 1.5u 5u rgba(60,130,200,.18)}
+.tkGear svg{width:15u;height:15u}
+.tkGear:active,.tkPhoto:active{transform:scale(.97)}
+.tkRowIcon{flex:none;width:24u;height:24u;border-radius:9u;background:#eaf4fe;color:var(--blue);display:grid;place-items:center}
+.tkRowIcon svg{width:14u;height:14u}
+.tkRowIcon.green{background:#e7f6ea;color:#3fae6a}
+.tkSettingsPhoto{display:flex;align-items:center;gap:11u}
+.tkSettingsPhoto .tkActions{flex:1;flex-direction:column;align-items:stretch}
+.tkSettingsPhoto .tkActions>*{flex:none}
