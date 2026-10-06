@@ -40,7 +40,7 @@ const completeApi=readFileSync('api/homework-complete.js','utf8');
 const teacherForm=readFileSync('public/teacher-action-forms.js','utf8');
 const studentUi=readFileSync('public/student-homework-autograde.js','utf8');
 const teacherStatus=readFileSync('public/teacher-homework-status.js','utf8');
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
 assert.equal(existsSync('api/homework-create.js'),false,'auto grading must reuse student-state to stay within the Vercel function budget');
 assert.equal(studentState.includes('createAutoGradingConfig'),true);

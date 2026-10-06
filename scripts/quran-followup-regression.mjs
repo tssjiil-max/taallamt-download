@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {QURAN_FOLLOWUP_WEEKS,resolveQuranWeek,QURAN_TRACKING_STUDENT_IDS,QURAN_FOLLOWUP_ROSTER} from '../server/quran-followup-curriculum.js';
 import {CLASS_STUDENTS,getStudent} from '../server/class-roster.js';
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 
-const api=readFileSync('server/quran-followup-api.js','utf8');
+const api=readFileSync('server/quick-assess.js','utf8');
 const app=readFileSync('src/main.tsx','utf8');
 const css=readFileSync('src/ui.css','utf8');
 const automation=readFileSync('api/learning-automation.js','utf8');
@@ -28,11 +28,11 @@ assert.equal(QURAN_FOLLOWUP_WEEKS[17].kind,'exam');
 assert.equal(QURAN_FOLLOWUP_WEEKS[17].surah,'');
 assert.equal(resolveQuranWeek(13),null,'the unnumbered autumn break has no assessment week');
 assert.equal(resolveQuranWeek(14)?.week,13,'curriculum week 13 follows the autumn break');
-assert(api.includes("process.env.VERCEL_ENV!=='preview'")&&api.includes("process.env.VERCEL_ENV==='production'"),'Quran tracking endpoints must reject Production');
-assert(api.includes("action==='quran-teacher-login'")&&api.includes("action==='quran-teacher-roster'")&&api.includes('teacherAuthorized(req)'));
-assert(api.includes('verifyGuardian(studentId')&&api.includes('inviteToken'),'guardian reads must require the student-specific invite');
-assert(api.includes("new Set(['MASTERED','NEEDS_REPEAT','NOT_MASTERED'])"),'only the three requested statuses are allowed');
-assert(api.includes('entries.length!==30')&&api.includes('batch.commit()'),'save must validate and batch all 30 students');
+assert.equal(existsSync('server/quran-followup-api.js'),false,'the separate PIN endpoints are retired: Quran follow-up uses the teacher session');
+assert(!automation.includes('quran-teacher-login')&&!automation.includes('quranFollowupHandler'),'no second, weaker teacher login');
+assert(automation.indexOf('requireTeacher(req,{write:req.method===\'POST\'})')<automation.indexOf('teacherRead(action'),'teacher reads come after the session check');
+assert(api.includes('quranFollowups')&&api.includes("MASTERED")&&api.includes("NEEDS_REPEAT")&&api.includes("NOT_MASTERED"),'only the three requested statuses are stored');
+assert(api.includes("info.kind!=='exam'")&&api.includes('SCOPE_NOT_ASSESSABLE'),'exam weeks have no memorisation assessment');
 assert(app.includes('function TeacherQuranFollowup')&&app.includes('أتقن الطلاب الكل')&&app.includes('حفظ التقييم'));
 assert(app.includes('function QuranFollowupStudent')&&app.includes('عرض السجل')&&app.includes('متابعة حفظ القرآن الكريم'));
 assert(css.includes('.quranTeacherPage')&&css.includes('.quranParentCard'));

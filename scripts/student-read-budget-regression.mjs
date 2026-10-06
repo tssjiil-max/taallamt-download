@@ -9,7 +9,7 @@ const studentEvaluation=readFileSync('public/student-teacher-evaluation.js','utf
 const budget=readFileSync('public/student-state-read-budget.js','utf8');
 const interactions=readFileSync('public/student-interactions.js','utf8');
 const automation=readFileSync('public/student-learning-automation.js','utf8');
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 
 assert.equal(sync.includes('window.setInterval(refresh,10000)'),false,'student page must not poll /api/student-state every 10 seconds');
 assert.equal(sync.includes('STUDENT_REFRESH_THROTTLE_MS'),true,'student refreshes after focus/visibility must share a throttle window');

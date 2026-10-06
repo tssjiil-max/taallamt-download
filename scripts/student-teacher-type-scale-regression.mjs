@@ -3,7 +3,7 @@ import {existsSync,readFileSync} from 'node:fs';
 
 const path='public/student-teacher-type-scale.css';
 assert.equal(existsSync(path),true,'approved type scale stylesheet must exist');
-const css=readFileSync(path,'utf8'),index=readFileSync('index.html','utf8');
+const css=readFileSync(path,'utf8'),index=readFileSync('legacy.html','utf8');
 
 assert.ok(index.includes('/student-teacher-type-scale.css'),'type scale must be linked');
 assert.ok(index.indexOf('/student-teacher-type-scale.css')>index.indexOf('/student-parent-visual-safe.css'),'type scale must load after the student visual layer so equal-specificity rules resolve to it');

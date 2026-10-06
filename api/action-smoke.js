@@ -1,10 +1,12 @@
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
+import {accessFailure,requireTeacher} from '../server/access.js';
 
 const root=()=>`workspaces/${WORKSPACE_ID}`;
 const now=()=>new Date().toISOString();
 export default async function handler(req,res){
   if(req.method!=='GET')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
+  try{requireTeacher(req)}catch(error){if(accessFailure(res,error))return;throw error}
   const refs=[];
   try{
     previewWriteGuard();

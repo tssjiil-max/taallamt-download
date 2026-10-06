@@ -1,6 +1,7 @@
 import {randomBytes} from 'node:crypto';
 import {adminDb,adminStorageBucket,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID} from '../server/class-roster.js';
+import {AccessError,accessFailure,isTeacher,requireStudentAccess,requireTeacher} from '../server/access.js';
 
 const root=()=>`workspaces/${WORKSPACE_ID}`;
 const now=()=>new Date().toISOString();
@@ -17,14 +18,14 @@ function canSee(item,studentId,role){
   if(item.visibility==='public')return true;
   return item.visibility==='private'&&studentId&&Array.isArray(item.targetStudentIds)&&item.targetStudentIds.includes(studentId);
 }
-function safeMeta(item){const {storagePath,...safe}=item;return safe}
+function safeMeta(item,role='teacher'){const {storagePath,...safe}=item;if(role!=='teacher')delete safe.targetStudentIds;return safe}
 
 async function listFiles(req,res){
   const role=String(req.query?.role||'student')==='teacher'?'teacher':'student';
   const studentId=String(req.query?.studentId||'');
   if(role==='student'&&studentId&&!getStudent(studentId))return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
   const snap=await adminDb().collection(`${root()}/files`).get();
-  const files=rows(snap).filter(item=>canSee(item,studentId,role)).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).map(safeMeta);
+  const files=rows(snap).filter(item=>canSee(item,studentId,role)).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).map(item=>safeMeta(item,role));
   return res.status(200).json({ok:true,files});
 }
 
@@ -62,9 +63,13 @@ async function downloadFile(req,res){
 export default async function handler(req,res){
   try{
     const action=String(req.query?.action||'list');
+    // The teacher view needs the teacher session; files addressed to one student need that student's invite link.
+    if(req.method==='POST')requireTeacher(req,{write:true});
+    else if(String(req.query?.role||'student')==='teacher')requireTeacher(req);
+    else if(!isTeacher(req)){if(!req.query?.studentId)throw new AccessError('STUDENT_ACCESS_REQUIRED',401);await requireStudentAccess(req,String(req.query.studentId),null)}
     if(req.method==='GET'&&action==='download')return await downloadFile(req,res);
     if(req.method==='GET')return await listFiles(req,res);
     if(req.method==='POST')return await uploadFile(req,res);
     return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
-  }catch(error){return res.status(500).json({ok:false,error:error instanceof Error?error.message:String(error)});}
+  }catch(error){if(accessFailure(res,error))return;return res.status(500).json({ok:false,error:error instanceof Error?error.message:String(error)});}
 }

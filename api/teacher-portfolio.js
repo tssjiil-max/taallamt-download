@@ -1,5 +1,6 @@
 import {adminDb} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID} from '../server/class-roster.js';
+import {accessFailure,requireTeacher} from '../server/access.js';
 
 const root=()=>`workspaces/${WORKSPACE_ID}`;
 const rows=(snap)=>snap.docs.map(doc=>({id:doc.id,...doc.data()}));
@@ -33,6 +34,7 @@ const categorySection=(item)=>{
 export default async function handler(req,res){
   if(req.method!=='GET')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
   try{
+    requireTeacher(req);
     const db=adminDb(),base=root();
     const [weekly,assessments,remediation,communications,homework,files,portfolio,rewards,curriculum]=await Promise.all([
       db.collection(`${base}/weeklyPlans`).get(),
@@ -169,5 +171,5 @@ export default async function handler(req,res){
       sections,
       evidence:evidenceRows
     });
-  }catch(error){return res.status(500).json({ok:false,error:error instanceof Error?error.message:String(error)});}
+  }catch(error){if(accessFailure(res,error))return;return res.status(500).json({ok:false,error:error instanceof Error?error.message:String(error)});}
 }

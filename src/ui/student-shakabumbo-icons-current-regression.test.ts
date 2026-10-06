@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {readFileSync,existsSync} from 'node:fs';
 
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 
 describe('current student page uses supplied Shakabumbo SVG assets',()=>{
   const files=[

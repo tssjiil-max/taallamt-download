@@ -4,7 +4,7 @@ import {contentForWeek,quranForDay,weekNumberForDate,riyadhWeekday} from '../ser
 const week3=contentForWeek(3);
 const september16=new Date('2026-09-16T08:00:00Z');
 const vercel=JSON.parse(readFileSync('vercel.json','utf8'));
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 const library=readFileSync('public/teacher-library-automation.js','utf8');
 const libraryDelegation=readFileSync('public/teacher-library-delegation.js','utf8');
 const nativeLibrary=existsSync('public/teacher-library-native.js')?readFileSync('public/teacher-library-native.js','utf8'):'';

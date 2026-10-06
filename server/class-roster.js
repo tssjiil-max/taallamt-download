@@ -1,4 +1,8 @@
-export const WORKSPACE_ID='second-4';
+// Staging (Vercel preview / local) never shares records with Production: only the production deployment uses the live workspace.
+export const IS_PRODUCTION=process.env.VERCEL_ENV==='production';
+export const PRODUCTION_WORKSPACE_ID='second-4';
+export const STAGING_WORKSPACE_ID='second-4-staging';
+export const WORKSPACE_ID=IS_PRODUCTION?PRODUCTION_WORKSPACE_ID:STAGING_WORKSPACE_ID;
 export const CLASS_ID='second-4';
 export const CLASS_STUDENTS=[
  'أحمد بسام الأحمد','أسامه سلطان الصاعدي','أمير نايف الحجيلي','أنس أحمد الجهني','أوس نايف الشريف','أويس عادل المالكي','تميم ماجد الحجيلي','ثامر عبدالله العوفي','راكان حاتم الجهني','ريان محمود بري','سلطان فهد الجهني','شامخ بدر الجهني','عادل غالب العنزي','عبدالجليل سالم عبدالجليل','عبدالرحمن نواف الحازمي','عمر حميد العمري','فيصل محمد المطيري','قصي عبدالله الحجيلي','كنان محمد اليوسفي','محمد سماح البوق','محمد صالح عواد','موسى رياض الأحمد','نايف أحمد الجهني','نواف مطلق العمري','الحسن عادل الرجبي','وسام سلطان السناني','يمان أحمد الجهني','يوسف فلاح الحربي','يوسف محمد الجهني'

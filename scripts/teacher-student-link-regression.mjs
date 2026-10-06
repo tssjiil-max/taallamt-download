@@ -85,7 +85,7 @@ assert.equal(friday.schoolDay,false);assert.equal(friday.needsEnsure,false,'week
 
 // ---------- 2) wiring ----------
 const read=path=>readFileSync(path,'utf8');
-const index=read('index.html'),automation=read('api/learning-automation.js'),dashboard=read('public/teacher-dashboard-live.js'),bridge=read('public/student-automation-bridge.js');
+const index=read('legacy.html'),automation=read('api/learning-automation.js'),dashboard=read('public/teacher-dashboard-live.js'),bridge=read('public/student-automation-bridge.js');
 const evaluation=read('public/student-teacher-evaluation.js'),autograde=read('public/student-homework-autograde.js'),rosterPatch=read('public/teacher-students-patch.js');
 const direct=read('public/teacher-direct-panels.js'),preview=read('public/teacher-student-link.js'),sync=read('src/student-sync.ts'),link=read('server/class-link.js');
 

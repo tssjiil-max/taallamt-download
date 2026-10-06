@@ -1,5 +1,6 @@
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID} from '../server/class-roster.js';
+import {accessFailure,requireTeacher} from '../server/access.js';
 
 const base=()=>`workspaces/${WORKSPACE_ID}`;
 const now=()=>new Date().toISOString();
@@ -16,6 +17,7 @@ function cleanValues(value){
 export default async function handler(req,res){
   try{
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
+    requireTeacher(req,{write:true});
     previewWriteGuard();
     const body=jsonBody(req),studentId=String(body.studentId||'');
     if(!getStudent(studentId))return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
@@ -36,6 +38,7 @@ export default async function handler(req,res){
     await db.doc(`${root}/assessments/${id}`).set(record);
     return res.status(200).json({ok:true,saved:true,id});
   }catch(error){
+    if(accessFailure(res,error))return;
     const message=error instanceof Error?error.message:String(error);
     const status=message==='PRODUCTION_WRITE_BLOCKED'?403:500;
     console.error('student-evaluation',message);

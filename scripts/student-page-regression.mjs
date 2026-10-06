@@ -12,7 +12,7 @@ const evaluationApi=existsSync('api/student-evaluation.js')?readFileSync('api/st
 const studentSync=readFileSync('src/student-sync.ts','utf8');
 const studentState=readFileSync('api/student-state.js','utf8');
 const main=readFileSync('src/main.tsx','utf8');
-const indexHtml=readFileSync('index.html','utf8');
+const indexHtml=readFileSync('legacy.html','utf8');
 
 const checks=[
   ['subject grid can shrink',css.includes('grid-template-columns:repeat(4,minmax(0,1fr))')],

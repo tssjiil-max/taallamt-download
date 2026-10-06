@@ -30,3 +30,16 @@ students, curriculum, timetable, weekly-plan, comprehensive-assessment, focused-
 التنفيذ: `server/class-link.js` (نموذج القراءة للفصل وإرسال واجب للجميع) عبر `api/learning-automation.js` بالإجراءات `overview` و`ensure` و`class_homework` — بدون دوال Vercel جديدة. الواجهة: `public/teacher-dashboard-live.js` و`public/teacher-student-link.js` و`public/student-automation-bridge.js`.
 
 الفحص: `node scripts/teacher-student-link-regression.mjs`.
+
+## الواجهة المرجعية الجديدة (Staging)
+
+- `index.html` → `src/app/` : صفحتا المعلم والطالب بالتصميم المرجعي (رأس، الخطة الأسبوعية، التقييم، الواجبات، النجوم، شريط سفلي). المقاسات مكتوبة بوحدة التصميم `u` (1/412 من عرض المرجع) في `src/app/app.src.css`، ويولَّد منها `app.css` عبر `node scripts/build-app-css.mjs` (لا يُعدَّل `app.css` يدويًا).
+- `legacy.html` → `src/main.tsx` + سكربتات `public/` : أدوات المعلم السابقة (ملف الطالب، المكتبة، الإعدادات، الإعلانات، القوائم). تُفتح من «المزيد» وتمر أولًا عبر `public/teacher-gate.js`. التوجيه بين الصفحتين في `vercel.json`.
+- الخادم (داخل الاثنتي عشرة دالة نفسها):
+  - `server/access.js` بوابة المعلم (رمز + جلسة موقعة HttpOnly) وصلاحية رابط الطالب. كل أدوات المعلم ترد 401 دون جلسة، ورابط الطالب لا يفتح إلا طالبه.
+  - `server/plan.js` خطة الأسبوع من مصدر واحد للموقعين، `server/student-home.js` بيانات صفحة الطالب، `server/teacher-api.js` بيانات المعلم والتعديل الاستثنائي، `server/quick-assess.js` التقييم السريع والمتابعة المركزة والتراجع ومتابعة حفظ القرآن.
+- رمز المعلم: متغير البيئة `TEACHER_ACCESS_CODE` (8 خانات على الأقل). رمز `QURAN_TEACHER_PIN` القديم ونقاطه الخاصة أُلغيت؛ متابعة القرآن تعمل بجلسة المعلم نفسها. في Staging فقط، إن لم يُضبط المتغير، يُتحقق من رمز عشوائي مخزَّن كبصمة scrypt في `server/access.js`. **في Production لا بد من ضبط `TEACHER_ACCESS_CODE` قبل الدمج، وإلا ظهرت رسالة «بوابة المعلم غير مهيأة».** يُستحسن أيضًا ضبط `TAALLAMT_SESSION_SECRET`.
+- فصل البيانات: Production يستخدم `workspaces/second-4`، وأي بيئة أخرى (Preview / محلي) تستخدم `workspaces/second-4-staging`.
+- الأتمتة: `api/cron-weekly` السبت 08:00 و`api/cron-daily` الأحد–الخميس 05:00 (Asia/Riyadh، تعمل على Production في Vercel)، مع استدراك تلقائي عند أول قراءة من المعلم أو الطالب (`ensureFresh`) وسجل تشغيل في `automationRuns/{اليوم}`. كل السجلات بمعرّفات ثابتة فلا تتكرر. يُستحسن ضبط `CRON_SECRET` في Production ليقتصر تشغيل المهمتين على مجدول Vercel.
+- الاختبارات: `node scripts/staging-journeys-regression.mjs` (رحلات كاملة عبر الدوال الحقيقية على Firestore بديل في الذاكرة) و`node scripts/reference-design-regression.mjs`، وكلاهما ضمن `npm run build`.
+- قائمة الصف في الصفحات الجديدة هي قائمة الثلاثين طالبًا (`server/roster.js`)؛ الصفحات السابقة ما زالت تعرض القائمة القديمة (29).

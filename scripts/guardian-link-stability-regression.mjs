@@ -9,7 +9,7 @@ assert.equal(state.includes("action==='access_claim'"),false,'guardian access mu
 assert.equal(state.includes("action==='access_verify'"),false,'guardian access must not verify a browser device');
 assert.equal(state.includes("action==='access_release'"),false,'guardian access must not need device release');
 assert.equal(state.includes('verifyGuardianInvite'),true,'student access must verify the stable link token on the server');
-assert.equal(state.includes("String(req.query?.inviteToken||'')"),true,'student reads must verify the invite token from the link');
+assert.equal(state.includes('requireStudentAccess(req,studentId,null)'),true,'every student read must verify the invite token from the link (or the teacher session)');
 assert.equal(state.includes('const invite=current||requested||accessToken()'),true,'the server must reuse one canonical student link token');
 assert.equal(access.includes('taallamtGuardianDevice:'),false,'student access must not depend on browser localStorage');
 assert.equal(access.includes('randomToken'),false,'student access must not generate a per-device token');

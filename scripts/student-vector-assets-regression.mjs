@@ -7,7 +7,7 @@ if(!existsSync('public/student-vector-assets.js')){
 
 const swap=readFileSync('public/student-vector-assets.js','utf8');
 const main=readFileSync('src/main.tsx','utf8');
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 
 const assets=[
   '/student-assets/vector/student-profile.svg',

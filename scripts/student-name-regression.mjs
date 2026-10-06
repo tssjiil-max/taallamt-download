@@ -9,7 +9,7 @@ const staleNames=[
 
 const roster=readFileSync('server/class-roster.js','utf8');
 const main=readFileSync('src/main.tsx','utf8');
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 const displayPatch=existsSync('public/student-display-names.js')?readFileSync('public/student-display-names.js','utf8'):'';
 
 const checks=[

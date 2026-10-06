@@ -98,19 +98,28 @@ export function weekNumberForDate(date=new Date()){
   const current=Date.parse(`${riyadhDateString(date)}T00:00:00Z`),start=Date.parse(`${TERM_START}T00:00:00Z`);
   return Math.max(1,Math.min(TERM_WEEKS,Math.floor((current-start)/86400000/7)+1));
 }
+// The Quran distribution is numbered by teaching weeks: the autumn break (calendar week 13, a holiday in every other
+// subject as well) is not counted, so teaching week 13 is taught in calendar week 14.
+export const QURAN_BREAK_WEEK=13;
+export const quranTeachingWeek=week=>week===QURAN_BREAK_WEEK?null:(week>QURAN_BREAK_WEEK?week-1:week);
+// The automation publishes only inside the term: nothing before it starts and nothing after its last week.
+export function termPhase(date=new Date()){
+  const day=Date.parse(`${riyadhDateString(date)}T00:00:00Z`),start=Date.parse(`${TERM_START}T00:00:00Z`);
+  return day<start?'before':day>=start+TERM_WEEKS*7*86400000?'after':'during';
+}
 export function contentForWeek(week){
   const w=Math.max(1,Math.min(TERM_WEEKS,Number(week)||1));
-  const q=QURAN_WEEKS[w];
+  const teachingWeek=quranTeachingWeek(w),q=teachingWeek?QURAN_WEEKS[teachingWeek]:null;
   return {
     week:w,
     arabic:{subject:'arabic',title:'لغتي',...ARABIC_WEEKS[w]},
-    quran:{subject:'quran',title:'القرآن الكريم',unit:q?.surah||'',lesson:q?.weekly||'',skill:'الحفظ وصحة القراءة والمراجعة',surah:q?.surah,days:q?.days||[]},
+    quran:teachingWeek?{subject:'quran',title:'القرآن الكريم',unit:q?.surah||'',lesson:q?.weekly||'',skill:'الحفظ وصحة القراءة والمراجعة',surah:q?.surah,days:q?.days||[]}:{subject:'quran',title:'القرآن الكريم',unit:'إجازة الخريف',lesson:'لا يوجد حفظ جديد',skill:'مراجعة اختيارية',surah:'',days:[],holiday:true},
     islamic:{subject:'islamic',title:'الدراسات الإسلامية',...ISLAMIC_WEEKS[w]},
     spelling:{subject:'spelling',title:'الإملاء والخط',...SPELLING_WEEKS[w]}
   };
 }
 export function quranForDay(week,weekday){
   if(![0,1,2].includes(weekday))return null;
-  const item=QURAN_WEEKS[week];if(!item)return null;
+  const teachingWeek=quranTeachingWeek(Number(week)),item=teachingWeek?QURAN_WEEKS[teachingWeek]:null;if(!item)return null;
   return {subject:'quran',title:'القرآن الكريم',surah:item.surah,lesson:item.days[weekday]||item.weekly,skill:'الحفظ وصحة القراءة والمراجعة'};
 }

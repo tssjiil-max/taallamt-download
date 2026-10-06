@@ -1,9 +1,12 @@
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
-import {contentForWeek,quranForDay,riyadhDateString,riyadhWeekday,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
+import {contentForWeek,quranForDay,riyadhDateString,riyadhWeekday,termPhase,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
 import {readClassOverview,sendClassHomework} from '../server/class-link.js';
 import {QURAN_FOLLOWUP_ROSTER} from '../server/quran-followup-curriculum.js';
-import {quranFollowupHandler} from '../server/quran-followup-api.js';
+import {accessFailure,requireTeacher,sessionStatus,teacherLogin,teacherLogout} from '../server/access.js';
+import {nextSchoolDay,planWeekForDate,WEEKDAY_LABELS} from '../server/plan.js';
+import {SCHOOL_ID,TERM_ID} from '../server/roster.js';
+import {teacherRead,teacherWrite} from '../server/teacher-api.js';
 
 const root=()=>`workspaces/${WORKSPACE_ID}`;
 const nowIso=()=>new Date().toISOString();
@@ -36,12 +39,46 @@ export async function seedCurriculum(){
   }
   await batch.commit();return {saved:true,count};
 }
+
+// Which weekdays each subject is taught on, from the class timetable (or the verified fallback distribution).
+async function weekScheduleBySubject(){
+  const bySubject={arabic:[],quran:[],islamic:[],spelling:[]};let source='timetable';
+  for(let weekday=0;weekday<=4;weekday++){
+    const schedule=await scheduledSubjectsForDay(weekday);source=schedule.source;
+    for(const subject of schedule.subjects)if(bySubject[subject])bySubject[subject].push(weekday);
+  }
+  return {bySubject,source};
+}
+function planDays(subject,item,weekdays){
+  if(item.holiday)return [];
+  if(subject==='quran')return [0,1,2].map(weekday=>({weekday,day:WEEKDAY_LABELS[weekday],text:item.days?.[weekday]||''})).filter(day=>day.text);
+  return weekdays.map(weekday=>({weekday,day:WEEKDAY_LABELS[weekday],text:''}));
+}
 export async function buildWeeklyPlan(week,{publish=true}={}){
-  const w=Math.max(1,Math.min(TERM_WEEKS,Number(week)||weekNumberForDate())),content=contentForWeek(w),items=[];
-  for(const subject of ['arabic','quran','islamic','spelling']){const item=content[subject];items.push({id:`auto-week:${weekKey(w)}:${subject}`,weekKey:weekKey(w),weekNumber:w,subject,targetIds:[targetId(subject,w)],title:item.title,unit:item.unit||item.surah||'',lesson:item.lesson||'',skill:item.skill||'',publishStatus:publish?'published':'ready',publishOnSaturday:true,source:'automation',updatedAt:nowIso()})}
+  const w=Math.max(1,Math.min(TERM_WEEKS,Number(week)||weekNumberForDate())),content=contentForWeek(w),items=[],schedule=await weekScheduleBySubject();
+  for(const subject of ['arabic','quran','islamic','spelling']){
+    const item=content[subject],page=subject==='arabic'?copyworkPage(item.lesson):null;
+    items.push({id:`auto-week:${weekKey(w)}:${subject}`,weekKey:weekKey(w),weekNumber:w,subject,targetIds:[targetId(subject,w)],title:item.title,unit:item.unit||item.surah||'',lesson:item.lesson||'',skill:item.skill||'',
+      holiday:Boolean(item.holiday),...(page?{page,pageLabel:arabicDigits(page),exercise:'تمرين الخط والنسخ'}:{}),days:planDays(subject,item,schedule.bySubject[subject]||[]),
+      classId:CLASS_ID,schoolId:SCHOOL_ID,termId:TERM_ID,contentSource:'server/learning-content.js',scheduleSource:schedule.source,
+      publishStatus:publish?'published':'ready',publishOnSaturday:true,source:'automation',updatedAt:nowIso()});
+  }
   return items;
 }
-export async function publishWeeklyPlan(week){previewWriteGuard();const db=adminDb(),items=await buildWeeklyPlan(week,{publish:true}),batch=db.batch();for(const item of items)batch.set(db.doc(`${root()}/weeklyPlans/${item.id}`),item,{merge:true});await batch.commit();return {saved:true,week:items[0]?.weekNumber||week,items}}
+// Idempotent: one record per class, week and subject. A second run never duplicates the plan, never moves its first
+// publish time and never removes a teacher's exceptional edit (stored separately under `override`).
+export async function publishWeeklyPlan(week){
+  previewWriteGuard();
+  const db=adminDb(),items=await buildWeeklyPlan(week,{publish:true}),batch=db.batch(),timestamp=nowIso();
+  const existing=new Map(rows(await db.collection(`${root()}/weeklyPlans`).where('weekKey','==',items[0].weekKey).get()).map(item=>[item.id,item]));
+  let created=0;
+  for(const item of items){
+    const previous=existing.get(item.id);
+    if(!previous)created+=1;
+    batch.set(db.doc(`${root()}/weeklyPlans/${item.id}`),{...item,generatedAt:previous?.generatedAt||timestamp,publishedAt:previous?.publishStatus==='published'?(previous.publishedAt||previous.updatedAt||timestamp):timestamp},{merge:true});
+  }
+  await batch.commit();return {saved:true,week:items[0]?.weekNumber||week,created,updated:items.length-created,items};
+}
 
 function fallbackSubjects(weekday,reason='TIMETABLE_EMPTY'){
   return {subjects:[...(fallbackSchedule[weekday]||[])],timetableCount:0,source:'verified_distribution_schedule_fallback',reason};
@@ -58,14 +95,20 @@ async function scheduledSubjectsForDay(weekday){
   }
 }
 
+// Every homework states the subject, lesson, page (when the source has one), the exercise and exactly what to do.
+// Page numbers exist in the sources only for the Lughati copy exercise; nothing else is invented.
 function homeworkCopy(subject,item,daySpecific){
-  if(subject==='quran')return {title:`القرآن الكريم — ${daySpecific?.surah||item.surah||''} ${daySpecific?.lesson||item.lesson||''}`.trim(),instructions:`حفظ أو مراجعة ${daySpecific?.lesson||item.lesson||''} من سورة ${daySpecific?.surah||item.surah||''}، مع قراءة صحيحة وتكرار المقطع.`};
+  if(subject==='quran'){
+    const surah=daySpecific?.surah||item.surah||'',segment=daySpecific?.lesson||item.lesson||'';
+    return {title:`القرآن الكريم — ${surah} ${segment}`.trim(),lesson:surah?`سورة ${surah}`:'',segment,skill:'الحفظ',instructions:`حفظ أو مراجعة ${segment} من سورة ${surah}، مع قراءة صحيحة وتكرار المقطع.`};
+  }
   if(subject==='arabic'){
     const page=copyworkPage(item.lesson);if(!page)return null;
-    return {title:`لغتي — ${item.lesson}`,lesson:item.lesson,page,assignmentType:'تمرين الخط والنسخ',instructions:`الدرس: ${item.lesson}. الصفحة: ${arabicDigits(page)}. الواجب: تمرين الخط والنسخ من كتاب لغتي، واكتب بخط جميل.`};
+    return {title:`لغتي — ${item.lesson}`,lesson:item.lesson,page,assignmentType:'تمرين الخط والنسخ',skill:'النسخ والخط',task:`أنجز تمرين «الخط والنسخ» في الصفحة ${arabicDigits(page)} من كتاب لغتي (درس «${item.lesson}»)، واكتب بخط جميل.`,instructions:`الدرس: ${item.lesson}. الصفحة: ${arabicDigits(page)}. الواجب: تمرين الخط والنسخ من كتاب لغتي، واكتب بخط جميل.`};
   }
-  if(subject==='islamic')return {title:`الدراسات الإسلامية — ${item.lesson}`,instructions:`راجع درس «${item.lesson}»، ثم اذكر مثالًا بسيطًا يوضح ${item.skill}.`};
-  return {title:`فن الخط — ${item.lesson||item.skill}`,lesson:item.lesson,assignmentType:'نسخ من كتاب فن الخط',instructions:`واجب النسخ من كتاب فن الخط: ${item.lesson||item.skill}، واكتب بخط جميل وواضح.`};
+  if(subject==='islamic')return {title:`الدراسات الإسلامية — ${item.lesson}`,lesson:item.lesson,skill:item.skill||'',instructions:`راجع درس «${item.lesson}»، ثم اذكر مثالًا بسيطًا يوضح ${item.skill}.`};
+  const skill=item.skill||'';
+  return {title:`الإملاء والخط — ${skill||item.lesson}`,lesson:item.lesson,skill,assignmentType:'نسخ من كتاب فن الخط',instructions:`${skill?`تدريب الإملاء على مهارة «${skill}». `:''}واجب النسخ من كتاب فن الخط: ${item.lesson||item.skill}، واكتب بخط جميل وواضح.`};
 }
 function quranTaskType(daySpecific,item){
   const text=`${daySpecific?.lesson||item?.lesson||''} ${daySpecific?.surah||item?.surah||''}`;
@@ -73,36 +116,53 @@ function quranTaskType(daySpecific,item){
 }
 function automationHomework(subject,item,daySpecific,localDate,week,scheduleSource){
   const copy=homeworkCopy(subject,item,daySpecific);
+  if(!copy)return null;
   return {
     id:`auto-homework:${localDate}:${subject}`,
     subject:subjectLabels[subject]||subject,
     subjectKey:subject,
     title:copy.title,
     instructions:copy.instructions,
+    task:copy.task||copy.instructions,
     ...(copy.lesson?{lesson:copy.lesson}:{}),
+    ...(copy.segment?{segment:copy.segment}:{}),
+    ...(copy.skill?{skill:copy.skill}:{}),
     ...(copy.page?{page:copy.page,pageLabel:arabicDigits(copy.page)}:{}),
-    ...(copy.assignmentType?{assignmentType:copy.assignmentType}:{}),
+    ...(copy.assignmentType?{assignmentType:copy.assignmentType,exercise:copy.assignmentType}:{}),
     targetIds:[targetId(subject,week)],
     scheduledDate:localDate,
+    dueDate:nextSchoolDay(localDate),
     kind:'homework',
     taskType:subject==='quran'?quranTaskType(daySpecific,item):subject==='spelling'?'spelling_practice':subject==='arabic'?'copywriting':'lesson_practice',
     source:'automation',
     scheduleSource,
-    weekNumber:week
+    weekNumber:week,
+    weekKey:weekKey(week),
+    termId:TERM_ID,
+    schoolId:SCHOOL_ID
   };
 }
 
+// Idempotent: the homework id is derived from the day and the subject, and each student has one evidence record per homework.
 export async function publishDailyHomework(date=new Date()){
   previewWriteGuard();const weekday=riyadhWeekday(date),localDate=riyadhDateString(date),week=weekNumberForDate(date);
+  if(termPhase(date)!=='during')return {saved:true,skipped:true,reason:'OUTSIDE_TERM',localDate,week,created:[],gaps:[]};
   if(weekday===5||weekday===6)return {saved:true,skipped:true,reason:'NON_SCHOOL_DAY',localDate,week};
-  const content=contentForWeek(week),schedule=await scheduledSubjectsForDay(weekday),subjects=[...schedule.subjects],db=adminDb(),created=[];
+  const content=contentForWeek(week),schedule=await scheduledSubjectsForDay(weekday),subjects=[...schedule.subjects],db=adminDb(),created=[],gaps=[];
   for(const subject of subjects){
     const item=content[subject];if(!item||item.holiday)continue;const daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(subject==='quran'&&!daySpecific)continue;
-    const planned=automationHomework(subject,item,daySpecific,localDate,week,schedule.source);if(!planned)continue;const id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();if(existing.exists){if(['arabic','spelling'].includes(subject)&&existing.data()?.source==='automation')await ref.set({title:planned.title,instructions:planned.instructions,lesson:planned.lesson,page:planned.page,pageLabel:planned.pageLabel,assignmentType:planned.assignmentType,taskType:planned.taskType},{merge:true});created.push({id,subject,duplicate:true});continue;}
-    const timestamp=nowIso(),record={...planned,classId:CLASS_ID,assignedAt:timestamp,status:'published'};
+    const planned=automationHomework(subject,item,daySpecific,localDate,week,schedule.source);
+    if(!planned){gaps.push({subject,code:'SOURCE_PAGE_MISSING',message:`${subjectLabels[subject]}: لا توجد صفحة نسخ مسجلة لدرس «${item.lesson||''}» في المصدر؛ لم يُنشر واجب لهذه المادة.`});continue}
+    const id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
+    if(existing.exists){
+      const current=existing.data()||{};
+      if(current.source==='automation'&&!current.editedByTeacherAt){const {id:_id,scheduledDate:_date,...refresh}=planned;await ref.set(refresh,{merge:true})}
+      created.push({id,subject,duplicate:true});continue;
+    }
+    const timestamp=nowIso(),record={...planned,classId:CLASS_ID,assignedAt:timestamp,publishedAt:timestamp,status:'published'};
     const batch=db.batch();batch.set(ref,record);for(const student of QURAN_FOLLOWUP_ROSTER){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}await batch.commit();created.push({id,subject,title:record.title,taskType:record.taskType,duplicate:false});
   }
-  return {saved:true,localDate,weekday,week,subjects,scheduleSource:schedule.source,timetableMissing:schedule.timetableCount===0,created};
+  return {saved:true,localDate,weekday,week,subjects,scheduleSource:schedule.source,timetableMissing:schedule.timetableCount===0,created,gaps};
 }
 
 export async function previewAutomation(date=new Date()){
@@ -112,10 +172,12 @@ export async function previewAutomation(date=new Date()){
 }
 
 // Idempotent catch-up for the current week and day: publishes what the Saturday/daily cron would have published.
-// Safe to call from the teacher dashboard; every write uses a deterministic id, so repeats change nothing.
+// Every write uses a deterministic id, so repeats change nothing.
 export async function ensureCurrentLearning(date=new Date()){
   previewWriteGuard();
-  const db=adminDb(),week=weekNumberForDate(date),key=weekKey(week),result={week,weeklyPublished:false,curriculumSeeded:false};
+  const db=adminDb(),week=planWeekForDate(date),key=weekKey(week),result={week,weeklyPublished:false,curriculumSeeded:false};
+  // On Saturday the plan belongs to the week that starts tomorrow, so the term check looks at that day.
+  if(termPhase(riyadhWeekday(date)===6?new Date(date.getTime()+86400000):date)!=='during')return {saved:true,...result,skipped:true,reason:'OUTSIDE_TERM',daily:await publishDailyHomework(date)};
   const planSnap=await db.collection(`${root()}/weeklyPlans`).where('weekKey','==',key).get();
   if(rows(planSnap).filter(item=>item.publishStatus==='published').length<4){
     const target=await db.doc(`${root()}/curriculumTargets/${targetId('arabic',week)}`).get();
@@ -126,24 +188,78 @@ export async function ensureCurrentLearning(date=new Date()){
   return {saved:true,...result,daily};
 }
 
-const jsonBody=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
+// Run log: one record per Riyadh day. It tells the scheduled job and the catch-up apart and keeps the time of every run.
+const runRef=localDate=>adminDb().doc(`${root()}/automationRuns/${localDate}`);
+export async function recordAutomationRun(source,result,date=new Date()){
+  const localDate=riyadhDateString(date),timestamp=date.toISOString(),snap=await runRef(localDate).get(),previous=snap.exists?snap.data():{};
+  const daily=result?.daily||result?.homework||result||{};
+  await runRef(localDate).set({
+    date:localDate,planWeek:planWeekForDate(date),firstRunAt:previous.firstRunAt||timestamp,firstSource:previous.firstSource||source,
+    lastRunAt:timestamp,lastSource:source,runs:(Number(previous.runs)||0)+1,
+    weeklyPublished:Boolean(previous.weeklyPublished||result?.weeklyPublished||result?.weekly?.created),
+    homeworkCreated:(Number(previous.homeworkCreated)||0)+(Array.isArray(daily.created)?daily.created.filter(item=>!item.duplicate).length:0),
+    gaps:Array.isArray(daily.gaps)?daily.gaps:[]
+  },{merge:true});
+}
+const freshDays=new Map();
+// Catch-up that does not depend on the teacher: the first read of the day (teacher, student or guardian) makes sure the
+// week's plan and today's homework exist, even if the scheduled job did not run. Later reads cost one small lookup at most.
+export async function ensureFresh(date=new Date()){
+  const localDate=riyadhDateString(date),planWeek=planWeekForDate(date),stamp=`${WORKSPACE_ID}:${localDate}:${planWeek}`;
+  if(freshDays.has(stamp))return {fresh:true,cached:true};
+  try{
+    const snap=await runRef(localDate).get();
+    if(snap.exists&&Number(snap.data()?.planWeek)===planWeek&&snap.data()?.complete===true){freshDays.set(stamp,true);return {fresh:true}}
+    const result=await ensureCurrentLearning(date);
+    await recordAutomationRun('catchup',result,date);
+    await runRef(localDate).set({complete:true},{merge:true});
+    freshDays.set(stamp,true);
+    return {fresh:true,ran:true,result};
+  }catch(error){
+    return {fresh:false,error:error instanceof Error?error.message:String(error)};
+  }
+}
+// Entry point of the scheduled jobs (api/cron-daily.js and api/cron-weekly.js).
+export async function runScheduled(source,date=new Date()){
+  const result=await ensureCurrentLearning(date);
+  await recordAutomationRun(source,result,date);
+  await runRef(riyadhDateString(date)).set({complete:true},{merge:true});
+  return result;
+}
+
+const jsonBody=req=>(typeof req.body==='string'?JSON.parse(req.body||'{}'):req.body)||{};
 export default async function handler(req,res){
   try{
     const body=req.method==='POST'?jsonBody(req):{};
     const action=String(req.query?.action||body.action||'preview');
-    if(['quran-read','quran-teacher-login','quran-teacher-logout','quran-teacher-roster','quran-save'].includes(action))return quranFollowupHandler(req,res);
+    res.setHeader('Cache-Control','private, no-store, max-age=0');
+    if(action==='session')return res.status(200).json(sessionStatus(req));
+    if(action==='login'){if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});return res.status(200).json(await teacherLogin(req,res,body))}
+    if(action==='logout')return res.status(200).json(teacherLogout(req,res));
     if(action==='preview')return res.status(200).json(await previewAutomation());
-    if(action==='overview')return res.status(200).json(await readClassOverview());
+    // Everything below is a teacher tool: it needs the signed teacher session.
+    requireTeacher(req,{write:req.method==='POST'});
+    if(req.method==='GET'){
+      if(action==='overview'){await ensureFresh();return res.status(200).json(await readClassOverview())}
+      await ensureFresh();
+      const payload=await teacherRead(action,req.query||{});
+      if(payload)return res.status(200).json(payload);
+      return res.status(400).json({ok:false,error:'ACTION_INVALID'});
+    }
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
+    previewWriteGuard();
     if(action==='seed'){const curriculum=await seedCurriculum();const weekly=await publishWeeklyPlan(weekNumberForDate());return res.status(200).json({ok:true,curriculum,weekly})}
     if(action==='weekly')return res.status(200).json({ok:true,...await publishWeeklyPlan(Number(body.week)||weekNumberForDate(new Date(Date.now()+86400000))) });
     if(action==='daily')return res.status(200).json({ok:true,...await publishDailyHomework()});
-    if(action==='ensure')return res.status(200).json({ok:true,...await ensureCurrentLearning()});
+    if(action==='ensure'){const result=await ensureCurrentLearning();await recordAutomationRun('teacher',result);return res.status(200).json({ok:true,...result})}
     if(action==='class_homework')return res.status(200).json({ok:true,...await sendClassHomework(body)});
+    const result=await teacherWrite(action,body);
+    if(result)return res.status(200).json({ok:true,...result});
     return res.status(400).json({ok:false,error:'ACTION_INVALID'});
   }catch(error){
+    if(accessFailure(res,error))return;
     const message=error instanceof Error?error.message:String(error);
-    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message.endsWith('_REQUIRED')||message.endsWith('_INVALID')?400:500;
+    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message.endsWith('_REQUIRED')||message.endsWith('_INVALID')?400:message.endsWith('_NOT_FOUND')?404:message==='SCOPE_NOT_ASSESSABLE'?409:500;
     return res.status(status).json({ok:false,error:message});
   }
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 const css=readFileSync('public/student-redesign-safe-v1.css','utf8');
 
 assert.equal(index.includes('/student-redesign-safe-v1.css'),true,'stable build must load the approved student redesign');

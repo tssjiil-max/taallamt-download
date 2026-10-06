@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest';
 import {readFileSync} from 'node:fs';
 
 const css=readFileSync('public/student-teacher-palette.css','utf8');
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 
 describe('student page matches teacher color palette only',()=>{
   it('loads the palette after the existing student redesign',()=>{

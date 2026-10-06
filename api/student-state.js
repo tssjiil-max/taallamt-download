@@ -2,13 +2,16 @@ import {randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {createAutoGradingConfig,gradeHomeworkAnswer,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
+import {accessFailure,isTeacher,requireStudentAccess,requireTeacher} from '../server/access.js';
+import {studentViewHandler} from '../server/student-home.js';
+import {ensureFresh} from './learning-automation.js';
 
 const base=()=>`workspaces/${WORKSPACE_ID}`;
 const monthKey=()=>new Date().toISOString().slice(0,7);
 const now=()=>new Date().toISOString();
 const uid=(prefix)=>`${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
 const clampStars=(n)=>Math.max(0,Math.min(30,Number(n)||0));
-const jsonBody=(req)=>typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
+const jsonBody=(req)=>(typeof req.body==='string'?JSON.parse(req.body||'{}'):req.body)||{};
 const acceptedHomeworkAnswers=value=>Array.isArray(value)?value:String(value||'').split(/[\n,،]+/).map(x=>x.trim()).filter(Boolean);
 const items=(snap)=>snap.docs.map(d=>({id:d.id,...d.data()}));
 const timeOf=(x)=>String(x.enteredAt||x.createdAt||x.assignedAt||x.startedAt||'');
@@ -16,13 +19,15 @@ const desc=(a,b)=>timeOf(b).localeCompare(timeOf(a));
 const behaviorChoices={distinguished:{label:'متميز',tone:'positive'},consistent:{label:'مستمر',tone:'positive'},needs_followup:{label:'يحتاج متابعة',tone:'needs_attention'}};
 const accessToken=()=>randomBytes(24).toString('base64url');
 const validAccessToken=(value)=>typeof value==='string'&&value.length>=20&&value.length<=200;
-function sanitizeProfile(data){
+// The invite secret never leaves the server, and the teacher's grouping of students is never sent to a student or guardian.
+function sanitizeProfile(data,role='guardian'){
   if(!data)return null;
   const {guardianInviteToken,guardianDevices,...safe}=data;
+  if(role!=='teacher'){delete safe.assessmentGroup;delete safe.assessmentGroupUpdatedAt;delete safe.focusBySubject}
   return safe;
 }
 
-async function studentSnapshot(studentId){
+async function studentSnapshot(studentId,role='guardian'){
   const db=adminDb(),student=getStudent(studentId);
   if(!student)throw new Error('STUDENT_NOT_FOUND');
   const root=base();
@@ -38,7 +43,8 @@ async function studentSnapshot(studentId){
     db.collection(`${root}/curriculumTargets`).get(),
     db.collection(`${root}/weeklyPlans`).where('publishStatus','==','published').get()
   ]);
-  const assessmentRows=items(assessments).sort(desc);
+  // How a result was entered (bulk press or individually) is the teacher's business only.
+  const assessmentRows=items(assessments).sort(desc).map(row=>{if(role==='teacher')return row;const {mode,opId,updatedBy,...safe}=row;return safe});
   const needsFollowupCount=assessmentRows.reduce((total,row)=>total+(row.behavior||[]).filter(item=>item?.code==='needs_followup').length,0);
   const evidenceRows=items(evidence).sort(desc);
   const homeworkIds=[...new Set(evidenceRows.map(x=>x.homeworkId).filter(Boolean))];
@@ -49,7 +55,7 @@ async function studentSnapshot(studentId){
   const latestWeekKey=weeklyPlanAll[0]?.weekKey;
   const weeklyPlanRows=latestWeekKey?weeklyPlanAll.filter(x=>x.weekKey===latestWeekKey):[];
   return {
-    ok:true,student,profile:profile.exists?sanitizeProfile(profile.data()):null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
+    ok:true,student,profile:profile.exists?sanitizeProfile(profile.data(),role):null,month:monthKey(),stars:ledger.exists?clampStars(ledger.data()?.stars):0,
     needsFollowupCount,
     assessments:assessmentRows.slice(0,30),
     remediation:items(remediation).sort(desc).slice(0,20),
@@ -207,17 +213,23 @@ async function stagingSmoke(){
 
 export default async function handler(req,res){
   try{
-    if(req.method==='GET'&&String(req.query?.action||'')==='smoke')return res.status(200).json(await stagingSmoke());
+    res.setHeader('Cache-Control','private, no-store, max-age=0');
+    if(req.method==='GET'&&String(req.query?.action||'')==='smoke'){requireTeacher(req);return res.status(200).json(await stagingSmoke())}
+    if(req.method==='GET'&&req.query?.view)return await studentViewHandler(req,res,{ensureFresh});
     const body=req.method==='GET'?{}:jsonBody(req);
     const studentId=String((req.method==='GET'?req.query?.studentId:body.studentId)||'');
     const student=getStudent(studentId);if(!student)return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
     if(req.method==='GET'){
-      if(String(req.query?.guardianAccess||'')==='1')await verifyGuardianInvite(studentId,String(req.query?.inviteToken||''));
-      return res.status(200).json(await studentSnapshot(studentId));
+      // A student's record opens only for the teacher session or for the holder of that student's invite link.
+      const role=await requireStudentAccess(req,studentId,null);
+      return res.status(200).json(await studentSnapshot(studentId,role));
     }
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
     previewWriteGuard();
-    const action=String(body.action||'');let result;
+    const action=String(body.action||'');let result,role='teacher';
+    // Only the student's own profile (photo, hobbies) can be changed with an invite link; everything else is a teacher action.
+    if(action==='student_profile')role=await requireStudentAccess(req,studentId,body,{write:true});
+    else requireTeacher(req,{write:true});
     if(action==='access_share')result=await shareGuardianAccess(studentId,body);
     else if(action==='star')result=await addStar(studentId);
     else if(action==='assessment')result=await saveAssessment(studentId,body);
@@ -229,8 +241,9 @@ export default async function handler(req,res){
     else if(action==='student_profile')result=await saveStudentProfile(studentId,body);
     else return res.status(400).json({ok:false,error:'ACTION_NOT_SUPPORTED'});
     if(action.startsWith('access_'))return res.status(200).json({ok:true,...result});
-    return res.status(200).json({ok:true,...result,state:await studentSnapshot(studentId)});
+    return res.status(200).json({ok:true,...result,state:await studentSnapshot(studentId,role)});
   }catch(error){
+    if(accessFailure(res,error))return;
     const message=error instanceof Error?error.message:String(error);
     const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message==='ACCESS_INVITE_INVALID'?403:message.endsWith('_REQUIRED')||message.endsWith('_EMPTY')||message.endsWith('_INVALID')?400:500;
     console.error('student-state',message);

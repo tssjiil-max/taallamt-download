@@ -3,7 +3,7 @@ import {existsSync,readFileSync} from 'node:fs';
 
 const cssPath='public/student-parent-visual-safe.css';
 const jsPath='public/student-parent-visual-safe.js';
-const index=readFileSync('index.html','utf8');
+const index=readFileSync('legacy.html','utf8');
 
 assert.equal(existsSync(cssPath),true,'student parent visual stylesheet must exist');
 assert.equal(existsSync(jsPath),true,'student parent visual script must exist');
