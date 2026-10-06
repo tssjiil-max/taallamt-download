@@ -175,6 +175,7 @@ async function saveStudentProfile(studentId,body){
   const db=adminDb(),root=base();
   const patch={studentId,updatedAt:now()};
   if(photoDataUrl)patch.photoDataUrl=photoDataUrl;
+  else if(body.removePhoto===true)patch.photoDataUrl='';
   if(body.hobbies!==undefined){
     if(!Array.isArray(body.hobbies))throw new Error('HOBBIES_INVALID');
     const hobbies=[...new Set(body.hobbies.map(x=>String(x||'').trim()).filter(Boolean))].slice(0,12);

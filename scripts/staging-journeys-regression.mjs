@@ -246,6 +246,8 @@ check('a student can set his own hobbies and picture, not another student\'s',as
   assert.equal((await save(s1,invites[s1],{photoDataUrl:'javascript:alert(1)'})).status,400);
   assert.equal((await save(s1,invites[s1],{photoDataUrl:'data:image/jpeg;base64,'+'A'.repeat(64)})).status,200);
   assert.ok((await home(s1)).student.photo.startsWith('data:image/jpeg;base64,'));
+  assert.equal((await save(s1,invites[s1],{removePhoto:true})).status,200);
+  assert.equal((await home(s1)).student.photo,'','removing the picture returns to the default');
 });
 
 check('a result can be corrected, and the last bulk press can be undone without losing corrections',async()=>{

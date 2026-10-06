@@ -5,7 +5,7 @@ import boy from './assets/boy.webp';
 import gift from './assets/gift.webp';
 import sourati from './assets/shakabumbo-sourati.webp';
 import {
-  api,asApiError,BottomNav,Card,CardsSkeleton,CARD_ICON,Check,countLabel,Cta,Empty,Fact,Failure,formatDay,formatStamp,greeting,gregorianDate,Header,hijriDate,IconChevron,IconHeart,IconSpark,IconStar,IconTarget,IconTrophy,riyadhClock,
+  api,asApiError,BottomNav,Card,CardsSkeleton,CARD_ICON,Check,countLabel,Cta,Empty,Fact,Failure,formatDay,formatStamp,greeting,gregorianDate,Header,hijriDate,IconChevron,IconGear,IconHeart,IconSpark,IconStar,IconTarget,IconTrophy,riyadhClock,
   Loading,NavBook,NavHome,NavHomeLine,NavStar,NavUser,PageHead,Pill,Plan,PlanSubject,planStamp,Result,RESULT_LABEL,Screen,SubjectImg,SubjectKey,subjectIcon,SUBJECT_LABEL,
   useHashRoute,useNow,useRemote,useToast,weekTitle
 } from './kit';
@@ -68,7 +68,7 @@ export function StudentApp(){
     }finally{setBusy('')}
   },[busy,home,showToast]);
 
-  const tab=route.startsWith('week')?'weeks':route==='stars'?'stars':['me','quran','quran-log','hobbies','goals','achievements','skills'].includes(route)?'me':'home';
+  const tab=route.startsWith('week')?'weeks':route==='stars'?'stars':['me','settings','quran','quran-log','hobbies','goals','achievements','skills'].includes(route)?'me':'home';
   const nav=<BottomNav label="تنقل الطالب" active={tab} items={[
     {key:'home',label:'الرئيسية',icon:<NavHomeLine/>,activeIcon:<NavHome/>,onClick:()=>go('')},
     {key:'weeks',label:'الفصول',icon:<NavBook/>,onClick:()=>go('weeks')},
@@ -103,18 +103,19 @@ export function StudentApp(){
   else if(route==='skills')body=<SkillsPage home={data} back={back}/>;
   else if(route==='quran')body=<QuranPage home={data} back={back} go={go}/>;
   else if(route==='quran-log')body=<QuranLogPage home={data} back={back}/>;
-  else body=<HomeCards home={data} title={title} subtitle={subtitle} go={go} toggle={toggleHomework} busy={busy}/>;
+  else if(route==='settings')body=<SettingsPage home={data} back={back} go={go} reload={()=>void home.reload(true)} toast={showToast}/>;
+  else body=<HomeCards home={data} go={go} toggle={toggleHomework} busy={busy} reload={()=>void home.reload(true)} toast={showToast}/>;
 
   return <Screen nav={nav}>{body}{toast}</Screen>;
 }
 
 type Go=(route:string)=>void;
-function HomeCards({home,title,subtitle,go,toggle,busy}:{home:Home;title:string;subtitle:string;go:Go;toggle:(item:Homework)=>void;busy:string}){
+function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(item:Homework)=>void;busy:string;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
   const {plan,assessment,homework,stars}=home;
   const rows=[...homework.today.filter(item=>!item.done),...homework.today.filter(item=>item.done)].slice(0,2);
   const percent=Math.max(0,Math.min(100,Math.round(stars.count/Math.max(1,stars.goal)*100)));
   return <>
-    <Header title={title} subtitle={subtitle} hero={boy} avatarLabel="حسابي" onAvatar={()=>go('me')}/>
+    <ProfileCard home={home} go={go} reload={reload} toast={toast} top/>
     <div className="tkCards">
       <Card tone="plan" title="الخطة الأسبوعية" subtitle="ماذا سندرس هذا الأسبوع؟" small="مواعيد الدروس والمهارات في جميع المواد" onOpen={()=>go('plan')}>
         <div className="tkCardBody">
@@ -285,44 +286,79 @@ function squarePhoto(file:File):Promise<string>{
     image.src=url;
   });
 }
-function AccountPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
-  const student=home.student,now=useNow(),input=React.useRef<HTMLInputElement>(null),[busy,setBusy]=React.useState(false);
-  const skills=assessedSkills(home),mastered=skills.filter(item=>item.status==='mastered').length,goals=skills.filter(item=>item.status!=='mastered');
-  const pickPhoto=async(event:React.ChangeEvent<HTMLInputElement>)=>{
+// Saves a picture chosen from the device as the student's own picture.
+function usePhotoPicker(reload:()=>void,toast:(text:string,bad?:boolean)=>void){
+  const input=React.useRef<HTMLInputElement>(null),[busy,setBusy]=React.useState(false);
+  const fail=(caught:unknown)=>{const error=asApiError(caught);toast(error.code==='PHOTO_INVALID'||error.code==='PHOTO_TOO_LARGE'?'تعذر استخدام هذه الصورة. اختر صورة أخرى.':error.kind==='offline'?'تعذر الاتصال — لم تُحفظ الصورة.':'تعذر حفظ الصورة.',true)};
+  const onChange=async(event:React.ChangeEvent<HTMLInputElement>)=>{
     const file=event.target.files?.[0];event.target.value='';if(!file||busy)return;setBusy(true);
-    try{await saveProfile({photoDataUrl:await squarePhoto(file)});toast('حُفظت صورتك');reload()}
-    catch(caught){const error=asApiError(caught);toast(error.code==='PHOTO_INVALID'||error.code==='PHOTO_TOO_LARGE'?'تعذر استخدام هذه الصورة. اختر صورة أخرى.':error.kind==='offline'?'تعذر الاتصال — لم تُحفظ الصورة.':'تعذر حفظ الصورة.',true)}
-    finally{setBusy(false)}
+    try{await saveProfile({photoDataUrl:await squarePhoto(file)});toast('حُفظت صورتك');reload()}catch(caught){fail(caught)}finally{setBusy(false)}
   };
+  const remove=async()=>{if(busy)return;setBusy(true);try{await saveProfile({removePhoto:true});toast('عادت صورة شكابمبو');reload()}catch(caught){fail(caught)}finally{setBusy(false)}};
+  const field=<input ref={input} type="file" accept="image/*" hidden onChange={event=>void onChange(event)} aria-label="اختيار صورة"/>;
+  return {busy,open:()=>input.current?.click(),remove,field};
+}
+// The student's header: picture, name, class, school, today's dates and the four profile tiles.
+function ProfileCard({home,go,reload,toast,top=false}:{home:Home;go:Go;reload:()=>void;toast:(text:string,bad?:boolean)=>void;top?:boolean}){
+  const student=home.student,now=useNow(),photo=usePhotoPicker(reload,toast);
+  const skills=assessedSkills(home),mastered=skills.filter(item=>item.status==='mastered').length,goals=skills.filter(item=>item.status!=='mastered');
   const tiles:[string,string,React.ReactNode,string,string][]=[
     ['hobbies','هواياتي',<IconHeart/>,student.hobbies.length?student.hobbies.slice(0,2).join(' · '):'أضف هواياتك','green'],
     ['goals','أهدافي',<IconTarget/>,goals.length?countLabel(goals.length,'مهارة أتدرب عليها','مهارتان أتدرب عليهما','مهارات أتدرب عليها','مهارة أتدرب عليها'):'حافظ على مستواك','blue'],
     ['achievements','إنجازاتي',<IconTrophy/>,`${home.stars.count} نجمة · ${mastered} مهارة`,'gold'],
     ['skills','مهاراتي',<IconSpark/>,skills.length?countLabel(skills.length,'مهارة مقيّمة','مهارتان مقيّمتان','مهارات مقيّمة','مهارة مقيّمة'):'لم تُقيّم بعد','purple']
   ];
+  return <section className={`tkProfile ${top?'top':''}`} aria-label="ملف الطالب">
+    <button className="tkGear" type="button" onClick={()=>go('settings')} aria-label="الإعدادات"><IconGear/></button>
+    <div className="tkProfileTop">
+      <button className={`tkPhoto ${student.photo?'custom':''}`} type="button" onClick={photo.open} disabled={photo.busy} aria-label="تغيير صورتي">
+        <img src={student.photo||sourati} alt={student.photo?'صورتي':'شكابمبو — صورتي'}/>{student.photo&&<span>صورتي</span>}
+      </button>
+      {photo.field}
+      <dl className="tkProfileText">
+        <div><dt>اسم الطالب:</dt><dd>{student.name}</dd></div>
+        <div><dt>الصف:</dt><dd>{student.classShort}</dd></div>
+        <p>{student.school}</p>
+      </dl>
+    </div>
+    <p className="tkProfileDate"><span dir="rtl">{hijriDate(now)}</span><i aria-hidden="true">•</i><span dir="rtl">{gregorianDate(now)}</span><i aria-hidden="true">•</i><span dir="rtl">{riyadhClock(now)}</span></p>
+    <div className="tkProfileTiles">{tiles.map(([route,label,icon,preview,tone])=><button key={route} type="button" className={`tkProfileTile ${tone}`} onClick={()=>go(route)}><b>{icon}{label}</b><small>{preview}</small></button>)}</div>
+  </section>;
+}
+function AccountPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
+  const student=home.student;
   return <div className="tkPage">
     <PageHead title="حسابي" subtitle="ملفي التعريفي" onBack={back}/>
-    <section className="tkProfile" aria-label="ملف الطالب">
-      <div className="tkProfileTop">
-        <button className={`tkPhoto ${student.photo?'custom':''}`} type="button" onClick={()=>input.current?.click()} disabled={busy} aria-label="تغيير صورتي">
-          <img src={student.photo||sourati} alt={student.photo?'صورتي':'شكابمبو — صورتي'}/>{student.photo&&<span>صورتي</span>}
-        </button>
-        <input ref={input} id="student-photo" type="file" accept="image/*" hidden onChange={event=>void pickPhoto(event)}/>
-        <dl className="tkProfileText">
-          <div><dt>اسم الطالب:</dt><dd>{student.name}</dd></div>
-          <div><dt>الصف:</dt><dd>{student.classShort}</dd></div>
-          <p>{student.school}</p>
-        </dl>
-      </div>
-      <p className="tkProfileDate"><span dir="rtl">{hijriDate(now)}</span><i aria-hidden="true">•</i><span dir="rtl">{gregorianDate(now)}</span><i aria-hidden="true">•</i><span dir="rtl">{riyadhClock(now)}</span></p>
-      <div className="tkProfileTiles">{tiles.map(([route,label,icon,preview,tone])=><button key={route} type="button" className={`tkProfileTile ${tone}`} onClick={()=>go(route)}><b>{icon}{label}</b><small>{preview}</small></button>)}</div>
-    </section>
+    <ProfileCard home={home} go={go} reload={reload} toast={toast}/>
     <div className="tkList">
+      <button className="tkRow" type="button" onClick={()=>go('settings')}><span className="tkRowIcon" aria-hidden="true"><IconGear/></span><span className="tkGrow"><b>الإعدادات</b><small>صورتي وهواياتي</small></span><IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('quran')}><img src={subjectIcon('quran')} alt="" aria-hidden="true"/><span className="tkGrow"><b>متابعة حفظ القرآن الكريم</b><small>الأسبوع الحالي وسجل الحفظ</small></span><IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('assessment')}><img src={CARD_ICON.assessment} alt="" aria-hidden="true"/><span className="tkGrow"><b>تقييماتي وملاحظات المعلم</b><small>{home.notes.length?countLabel(home.notes.length,'ملاحظة واحدة','ملاحظتان','ملاحظات','ملاحظة'):'لا توجد ملاحظات'}</small></span><IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('weeks')}><img src={CARD_ICON.plan} alt="" aria-hidden="true"/><span className="tkGrow"><b>خطط الأسابيع السابقة</b><small>{student.termLabel}</small></span><IconChevron/></button>
     </div>
     <p className="tkMeta">{home.role==='teacher'?'أنت تعاين صفحة الطالب بجلسة المعلم.':'هذه الصفحة خاصة بالطالب وولي أمره، وتُفتح من رابط الطالب فقط.'}</p>
+  </div>;
+}
+function SettingsPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
+  const student=home.student,photo=usePhotoPicker(reload,toast);
+  return <div className="tkPage">
+    <PageHead title="الإعدادات" subtitle={student.name} onBack={back}/>
+    <h2 className="tkH">صورتي</h2>
+    <section className="tkBox"><div className="tkSettingsPhoto">
+      <span className={`tkPhoto ${student.photo?'custom':''}`}><img src={student.photo||sourati} alt={student.photo?'صورتي':'شكابمبو — صورتي'}/></span>
+      <div className="tkActions">
+        <button className="tkBtn" type="button" disabled={photo.busy} onClick={photo.open}>{photo.busy?'جارٍ الحفظ…':'تغيير الصورة'}</button>
+        {student.photo&&<button className="tkBtn ghost" type="button" disabled={photo.busy} onClick={()=>void photo.remove()}>إزالة صورتي</button>}
+      </div>
+      {photo.field}
+    </div>
+    <p className="tkMeta" style={{textAlign:'right'}}>{student.photo?'تظهر صورتك في رأس صفحتك وعند معلمك فقط.':'الصورة الحالية هي شكابمبو. اختر صورة من الجهاز لتظهر في رأس صفحتك.'}</p></section>
+    <h2 className="tkH">ملفي</h2>
+    <div className="tkList">
+      <button className="tkRow" type="button" onClick={()=>go('hobbies')}><span className="tkRowIcon green" aria-hidden="true"><IconHeart/></span><span className="tkGrow"><b>هواياتي</b><small>{student.hobbies.length?student.hobbies.join(' · '):'لم تختر هواياتك بعد'}</small></span><IconChevron/></button>
+      <div className="tkRow"><span className="tkGrow"><b>الاسم والصف والمدرسة</b><small>{student.name} · {student.classShort} · {student.school}</small><small>يعدّلها المعلم فقط.</small></span></div>
+    </div>
+    <p className="tkMeta">{home.role==='teacher'?'أنت تعاين صفحة الطالب بجلسة المعلم.':'هذه الصفحة تُفتح من رابط الطالب الخاص. لا تشارك الرابط مع غير ولي الأمر.'}</p>
   </div>;
 }
 function HobbiesPage({home,back,reload,toast}:{home:Home;back:()=>void;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
