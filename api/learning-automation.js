@@ -2,12 +2,17 @@ import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {contentForWeek,quranForDay,riyadhDateString,riyadhWeekday,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
 import {readClassOverview,sendClassHomework} from '../server/class-link.js';
+import {QURAN_FOLLOWUP_ROSTER} from '../server/quran-followup-curriculum.js';
+import {quranFollowupHandler} from '../server/quran-followup-api.js';
 
 const root=()=>`workspaces/${WORKSPACE_ID}`;
 const nowIso=()=>new Date().toISOString();
 const weekKey=(week)=>`1448-f1-w${String(week).padStart(2,'0')}`;
 const subjectLabels={arabic:'لغتي',quran:'القرآن الكريم',islamic:'الدراسات الإسلامية',spelling:'الإملاء والخط',handwriting:'الإملاء والخط'};
 const fallbackSchedule={0:['arabic','quran'],1:['arabic','quran'],2:['islamic','quran'],3:['islamic'],4:['spelling']};
+const COPYWORK_PAGES={'صلة الرحم':34,'عذرًا يا جدي':45,'الصديقان':69,'الجار الصغير':80,'مدينتان مقدستان':103,'علم بلادي':112,'رحلة حبة قمح':135,'من أنا؟':145};
+const arabicDigits=value=>String(value).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[Number(d)]);
+const copyworkPage=lesson=>COPYWORK_PAGES[String(lesson||'').trim()]||null;
 const normalizeSubject=(value)=>{
   const raw=String(value||'').trim().toLowerCase();
   if(['arabic','لغتي','اللغة العربية'].includes(raw))return 'arabic';
@@ -31,7 +36,6 @@ export async function seedCurriculum(){
   }
   await batch.commit();return {saved:true,count};
 }
-
 export async function buildWeeklyPlan(week,{publish=true}={}){
   const w=Math.max(1,Math.min(TERM_WEEKS,Number(week)||weekNumberForDate())),content=contentForWeek(w),items=[];
   for(const subject of ['arabic','quran','islamic','spelling']){const item=content[subject];items.push({id:`auto-week:${weekKey(w)}:${subject}`,weekKey:weekKey(w),weekNumber:w,subject,targetIds:[targetId(subject,w)],title:item.title,unit:item.unit||item.surah||'',lesson:item.lesson||'',skill:item.skill||'',publishStatus:publish?'published':'ready',publishOnSaturday:true,source:'automation',updatedAt:nowIso()})}
@@ -56,9 +60,12 @@ async function scheduledSubjectsForDay(weekday){
 
 function homeworkCopy(subject,item,daySpecific){
   if(subject==='quran')return {title:`القرآن الكريم — ${daySpecific?.surah||item.surah||''} ${daySpecific?.lesson||item.lesson||''}`.trim(),instructions:`حفظ أو مراجعة ${daySpecific?.lesson||item.lesson||''} من سورة ${daySpecific?.surah||item.surah||''}، مع قراءة صحيحة وتكرار المقطع.`};
-  if(subject==='arabic')return {title:`لغتي — ${item.lesson}`,instructions:`راجع درس «${item.lesson}» من وحدة «${item.unit}»، واقرأ جزءًا منه قراءة جهرية ثم نفّذ تدريبًا قصيرًا على ${item.skill}.`};
+  if(subject==='arabic'){
+    const page=copyworkPage(item.lesson);if(!page)return null;
+    return {title:`لغتي — ${item.lesson}`,lesson:item.lesson,page,assignmentType:'تمرين الخط والنسخ',instructions:`الدرس: ${item.lesson}. الصفحة: ${arabicDigits(page)}. الواجب: تمرين الخط والنسخ من كتاب لغتي، واكتب بخط جميل.`};
+  }
   if(subject==='islamic')return {title:`الدراسات الإسلامية — ${item.lesson}`,instructions:`راجع درس «${item.lesson}»، ثم اذكر مثالًا بسيطًا يوضح ${item.skill}.`};
-  return {title:`الإملاء والخط — ${item.skill}`,instructions:`تدرّب على مهارة «${item.skill}»: اكتب خمس كلمات مناسبة للمهارة ثم جملة قصيرة بخط واضح.`};
+  return {title:`فن الخط — ${item.lesson||item.skill}`,lesson:item.lesson,assignmentType:'نسخ من كتاب فن الخط',instructions:`واجب النسخ من كتاب فن الخط: ${item.lesson||item.skill}، واكتب بخط جميل وواضح.`};
 }
 function quranTaskType(daySpecific,item){
   const text=`${daySpecific?.lesson||item?.lesson||''} ${daySpecific?.surah||item?.surah||''}`;
@@ -72,10 +79,13 @@ function automationHomework(subject,item,daySpecific,localDate,week,scheduleSour
     subjectKey:subject,
     title:copy.title,
     instructions:copy.instructions,
+    ...(copy.lesson?{lesson:copy.lesson}:{}),
+    ...(copy.page?{page:copy.page,pageLabel:arabicDigits(copy.page)}:{}),
+    ...(copy.assignmentType?{assignmentType:copy.assignmentType}:{}),
     targetIds:[targetId(subject,week)],
     scheduledDate:localDate,
     kind:'homework',
-    taskType:subject==='quran'?quranTaskType(daySpecific,item):subject==='spelling'?'spelling_practice':'lesson_practice',
+    taskType:subject==='quran'?quranTaskType(daySpecific,item):subject==='spelling'?'spelling_practice':subject==='arabic'?'copywriting':'lesson_practice',
     source:'automation',
     scheduleSource,
     weekNumber:week
@@ -88,9 +98,9 @@ export async function publishDailyHomework(date=new Date()){
   const content=contentForWeek(week),schedule=await scheduledSubjectsForDay(weekday),subjects=[...schedule.subjects],db=adminDb(),created=[];
   for(const subject of subjects){
     const item=content[subject];if(!item||item.holiday)continue;const daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(subject==='quran'&&!daySpecific)continue;
-    const planned=automationHomework(subject,item,daySpecific,localDate,week,schedule.source),id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();if(existing.exists){created.push({id,subject,duplicate:true});continue;}
+    const planned=automationHomework(subject,item,daySpecific,localDate,week,schedule.source);if(!planned)continue;const id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();if(existing.exists){if(['arabic','spelling'].includes(subject)&&existing.data()?.source==='automation')await ref.set({title:planned.title,instructions:planned.instructions,lesson:planned.lesson,page:planned.page,pageLabel:planned.pageLabel,assignmentType:planned.assignmentType,taskType:planned.taskType},{merge:true});created.push({id,subject,duplicate:true});continue;}
     const timestamp=nowIso(),record={...planned,classId:CLASS_ID,assignedAt:timestamp,status:'published'};
-    const batch=db.batch();batch.set(ref,record);for(const student of CLASS_STUDENTS){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}await batch.commit();created.push({id,subject,title:record.title,taskType:record.taskType,duplicate:false});
+    const batch=db.batch();batch.set(ref,record);for(const student of QURAN_FOLLOWUP_ROSTER){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}await batch.commit();created.push({id,subject,title:record.title,taskType:record.taskType,duplicate:false});
   }
   return {saved:true,localDate,weekday,week,subjects,scheduleSource:schedule.source,timetableMissing:schedule.timetableCount===0,created};
 }
@@ -98,7 +108,7 @@ export async function publishDailyHomework(date=new Date()){
 export async function previewAutomation(date=new Date()){
   const weekday=riyadhWeekday(date),localDate=riyadhDateString(date),week=weekNumberForDate(date),content=contentForWeek(week),schedule=await scheduledSubjectsForDay(weekday),subjects=[...schedule.subjects];
   const homework=subjects.map(subject=>{const item=content[subject],daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(!item||item.holiday||(subject==='quran'&&!daySpecific))return null;return automationHomework(subject,item,daySpecific,localDate,week,schedule.source)}).filter(Boolean);
-  return {ok:true,localDate,weekday,week,weekKey:weekKey(week),timetableMissing:schedule.timetableCount===0,scheduleSource:schedule.source,scheduledSubjects:subjects,content,homework};
+  return {ok:true,localDate,weekday,week,weekKey:weekKey(week),timetableMissing:schedule.timetableCount===0,scheduleSource:schedule.source,scheduledSubjects:subjects,classwork:subjects.includes('arabic')?[{subject:'لغتي',title:content.arabic?.lesson||'تدريبات المهارات والظواهر اللغوية',instructions:'تُحل تمارين المهارات والظواهر اللغوية داخل الفصل في كتاب لغتي.'}]:[],content,homework};
 }
 
 // Idempotent catch-up for the current week and day: publishes what the Saturday/daily cron would have published.
@@ -121,6 +131,7 @@ export default async function handler(req,res){
   try{
     const body=req.method==='POST'?jsonBody(req):{};
     const action=String(req.query?.action||body.action||'preview');
+    if(['quran-read','quran-teacher-login','quran-teacher-logout','quran-teacher-roster','quran-save'].includes(action))return quranFollowupHandler(req,res);
     if(action==='preview')return res.status(200).json(await previewAutomation());
     if(action==='overview')return res.status(200).json(await readClassOverview());
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
