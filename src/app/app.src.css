@@ -423,6 +423,8 @@ a{color:inherit;text-decoration:none}
 .tkBubble{max-width:86%;justify-self:start;display:grid;gap:3u;padding:8u 11u;border-radius:15u 15u 15u 5u;background:#fff;box-shadow:0 1.5u 6u rgba(72,118,170,.12)}
 .tkBubble.mine{justify-self:end;border-radius:15u 15u 5u 15u;background:linear-gradient(180deg,#e4f6e7,#d6efdb)}
 .tkBubble.failed{background:#fdeceb;box-shadow:inset 0 0 0 1.2u #f0b2ad}
+.tkBubble.assistant{background:linear-gradient(180deg,#eef6ff,#e2effd);box-shadow:inset 0 0 0 1.2u #bad7f5}
+.tkBubble.assistant small{color:#165b9d}
 .tkBubble small{font-size:max(8.4u,10.5px);font-weight:600;color:var(--blue-ink)}
 .tkBubble.mine small{color:#1c5a30}
 .tkBubble p{font-size:max(11.6u,15px);line-height:1.75;color:#0a1b3d;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -434,6 +436,8 @@ a{color:inherit;text-decoration:none}
 .tkComposer .tkBtn{flex:none;min-height:max(44px,36u);padding:0 15u;border-radius:13u;font-size:max(11u,14px);font-weight:600}
 .tkCount{font-size:8.4u;color:var(--ink3);text-align:left;margin:2u 4u 0}
 .tkUnread{flex:none;min-width:22u;height:22u;padding:0 6u;border-radius:99u;background:#e0463f;color:#fff;font-size:max(9.6u,11px);font-weight:700;display:grid;place-items:center}
+.tkAgentSettings,.tkAgentSuggestion{display:grid;gap:6u;padding:9u 10u;margin-bottom:7u;border-radius:14u;background:#eef6ff;border:1.2u solid #cfe1f3}
+.tkAgentSettings .tkField{margin:0}.tkAgentSuggestion>b{font-size:max(11u,14px);color:#174a84}.tkAgentSuggestion p{font-size:max(10u,13px);line-height:1.7;color:#2b4567}.tkAgentSuggestion textarea{width:100%;min-height:84px;padding:8u;border-radius:11u;border:1.2u solid #cfe1f3;background:#fff;font-size:max(10.5u,14px);line-height:1.6}.tkBadge.danger{background:#fdeceb;color:#9c2a25}.tkBadge.agent{background:#eaf4fe;color:#165b9d}
 
 /* ---------- stars: Shakabumbo with the trophy in his own space ---------- */
 .tkTrophy{display:grid;justify-items:center;gap:4u;margin:8u 0 4u;padding:12u 10u 10u;border-radius:16u;background:linear-gradient(180deg,#f7f4ff,#ece7fb);border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.11)}
