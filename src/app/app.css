@@ -424,6 +424,8 @@ a{color:inherit;text-decoration:none}
 .tkBubble{max-width:86%;justify-self:start;display:grid;gap:calc(var(--u)*3);padding:calc(var(--u)*8) calc(var(--u)*11);border-radius:calc(var(--u)*15) calc(var(--u)*15) calc(var(--u)*15) calc(var(--u)*5);background:#fff;box-shadow:0 calc(var(--u)*1.5) calc(var(--u)*6) rgba(72,118,170,.12)}
 .tkBubble.mine{justify-self:end;border-radius:calc(var(--u)*15) calc(var(--u)*15) calc(var(--u)*5) calc(var(--u)*15);background:linear-gradient(180deg,#e4f6e7,#d6efdb)}
 .tkBubble.failed{background:#fdeceb;box-shadow:inset 0 0 0 calc(var(--u)*1.2) #f0b2ad}
+.tkBubble.assistant{background:linear-gradient(180deg,#eef6ff,#e2effd);box-shadow:inset 0 0 0 calc(var(--u)*1.2) #bad7f5}
+.tkBubble.assistant small{color:#165b9d}
 .tkBubble small{font-size:max(calc(var(--u)*8.4),10.5px);font-weight:600;color:var(--blue-ink)}
 .tkBubble.mine small{color:#1c5a30}
 .tkBubble p{font-size:max(calc(var(--u)*11.6),15px);line-height:1.75;color:#0a1b3d;white-space:pre-wrap;overflow-wrap:anywhere}
