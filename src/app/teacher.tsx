@@ -686,7 +686,7 @@ function assistFailure(error:ApiError){
 }
 
 /* Opening the phone apps themselves (never the websites). Android only: a launcher intent aimed at the package. */
-const PHONE_APPS={openai:{name:'ChatGPT',pkg:'com.openai.chatgpt'},gemini:{name:'Gemini',pkg:'com.google.android.apps.bard'}} as const;
+const PHONE_APPS={openai:{name:'ChatGPT',pkg:'com.openai.chatgpt',component:'com.openai.chatgpt/com.openai.chatgpt.MainActivity'},gemini:{name:'Gemini',pkg:'com.google.android.apps.bard',component:'com.google.android.apps.bard/com.google.android.apps.bard.shellapp.BardEntryPointActivity'}} as const;
 const isAndroid=()=>typeof navigator!=='undefined'&&/Android/i.test(navigator.userAgent);
 const bridgeOpen=(pkg:string):boolean|null=>{
   const bridge=(window as unknown as {TaallamtNative?:{openApp?:(pkg:string)=>boolean}}).TaallamtNative;
@@ -700,7 +700,7 @@ function openPhoneApp(key:ProviderKey):Promise<'opened'|'missing'|'unsupported'>
   return new Promise(resolve=>{
     let left=false;const mark=()=>{left=true};
     document.addEventListener('visibilitychange',mark,{once:true});window.addEventListener('pagehide',mark,{once:true});window.addEventListener('blur',mark,{once:true});
-    window.location.href=`intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${app.pkg};end`;
+    window.location.href=`intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=${app.component};package=${app.pkg};end`;
     window.setTimeout(()=>{document.removeEventListener('visibilitychange',mark);window.removeEventListener('pagehide',mark);window.removeEventListener('blur',mark);resolve(left||document.hidden?'opened':'missing')},1800);
   });
 }
@@ -743,11 +743,10 @@ function AssistantPage({home,back,log,setLog}:{home:TeacherHome;back:()=>void;lo
   };
   const copy=async(text:string)=>{try{await navigator.clipboard.writeText(text);return true}catch{return false}};
   const makeDraft=(task:string)=>{if(!status)return;if(task==='general'&&!question.trim()){setProblem('اكتب سؤالك في الخانة ثم اضغط «اسأل سؤالًا عامًا».');input.current?.focus();return}setProblem('');setAppNote(null);setDraftTask(task);setDraft(buildLessonPrompt(status,facts,task,question.trim()))};
-  const openApp=async(key:ProviderKey,withPrompt:boolean)=>{
+  const openApp=(key:ProviderKey,withPrompt:boolean)=>{
     setAppNote(null);
-    if(withPrompt&&draft.trim()){const done=await copy(draft);if(!done){setAppNote({key,kind:'copyFailed'});return}}
-    const result=await openPhoneApp(key);
-    setAppNote({key,kind:result==='opened'?'copied':result});
+    if(withPrompt&&draft.trim())void copy(draft).then(done=>{if(!done)setAppNote({key,kind:'copyFailed'})});
+    void openPhoneApp(key).then(result=>setAppNote({key,kind:result==='opened'?'copied':result}));
   };
   const taskLabel=(key:string)=>status?.tasks.find(task=>task.key===key)?.label||key;
   return <div className="tkPage">
@@ -782,7 +781,7 @@ function AssistantPage({home,back,log,setLog}:{home:TeacherHome;back:()=>void;lo
         {appNote.kind==='copied'&&<>جرى طلب فتح تطبيق {PHONE_APPS[appNote.key].name}.{draft.trim()?' نُسخ الطلب؛ الصقه داخل المحادثة.':''}</>}
         {appNote.kind==='copyFailed'&&<>تعذّر نسخ الطلب إلى الحافظة، فلم يُفتح التطبيق. انسخ النص من الخانة يدويًا ثم افتح التطبيق.</>}
         {appNote.kind==='unsupported'&&<>فتح التطبيق مباشرة متاح على أندرويد فقط. لم يُفتح موقع الويب بدلًا منه.{draft.trim()?' نُسخ الطلب ويمكنك لصقه في التطبيق يدويًا.':''}</>}
-        {appNote.kind==='missing'&&<>تطبيق {PHONE_APPS[appNote.key].name} غير مثبت على هذا الجهاز أو تعذّر فتحه. <a className="tkMini" href={`https://play.google.com/store/apps/details?id=${PHONE_APPS[appNote.key].pkg}`}>تثبيت التطبيق</a></>}
+        {appNote.kind==='missing'&&<>تعذّر فتح تطبيق {PHONE_APPS[appNote.key].name} مباشرة من هذا المتصفح. إذا لم يكن مثبتًا يمكنك فتح صفحته في المتجر يدويًا. <a className="tkMini" href={`https://play.google.com/store/apps/details?id=${PHONE_APPS[appNote.key].pkg}`}>Google Play</a></>}
       </div>}
       {working&&<div className="tkWorking" role="status"><span>جارٍ توليد الإجابة: {taskLabel(working)}…</span><button className="tkBtn ghost" type="button" onClick={()=>abort.current?.abort()}>إيقاف</button></div>}
       {problem&&<div className="tkAlert" role="alert" style={{marginTop:0,marginBottom:'calc(var(--u)*6)'}}>{problem}</div>}
