@@ -245,7 +245,8 @@ export function useToast():[React.ReactNode,(text:string,bad?:boolean)=>void]{
 }
 
 /* ---------- weekly plan details (the same block on both sites) ---------- */
-export type PlanItem={subjectKey:SubjectKey;label:string;short:string;unit:string;lesson:string;skill:string;holiday:boolean;page:number|null;exercise:string;days:{weekday:number;day:string;text:string}[];note:string;edited:boolean;summary:string;published:boolean};
+export type LearningTask={key:string;title:string;page:number|null;source:string;lesson?:string};
+export type PlanItem={subjectKey:SubjectKey;label:string;short:string;unit:string;lesson:string;skill:string;holiday:boolean;page:number|null;exercise:string;copywork:LearningTask|null;spellingTask:LearningTask|null;handwritingTask:LearningTask|null;days:{weekday:number;day:string;text:string}[];note:string;edited:boolean;summary:string;published:boolean};
 export type Plan={week:number;weekKey:string;termWeeks:number;range:{start:string;end:string};holiday:boolean;published:boolean;publishedAt:string;items:PlanItem[];gaps:{subjectKey:string;message:string}[];fromDistribution?:boolean};
 const SCHOOL_DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
 // The week in both calendars: the two ranges, then every school day with its Hijri and Gregorian date.
@@ -259,13 +260,17 @@ export function PlanDates({plan,compact=false}:{plan:{week:number;range:{start:s
   </section>;
 }
 export function PlanSubject({item,action,start}:{item:PlanItem;action?:React.ReactNode;start?:string}){
-  const quran=item.subjectKey==='quran';
+  const quran=item.subjectKey==='quran',writing=item.subjectKey==='spelling';
+  const taskLine=(task:LearningTask|null)=>task?<>{task.title} — <span className="num">ص {task.page||'—'}</span><small style={{display:'block'}}>{task.source}</small></>:'لم تُحدد الصفحة بعد';
   return <section className="tkBox blue">
     <div className="tkBoxHead"><img src={subjectIcon(item.subjectKey)} alt="" aria-hidden="true"/><div><b>{item.label}</b>{item.unit&&!item.holiday&&<small>{quran?`سورة ${item.unit}`:`الوحدة: ${item.unit}`}</small>}</div>{action}</div>
     {item.holiday?<Empty>إجازة — لا يوجد درس جديد هذا الأسبوع.</Empty>:<dl className="tkFacts">
-      {item.lesson&&<Fact label={quran?'المطلوب حفظه':'الدرس'}>{item.lesson}</Fact>}
-      {item.page&&<Fact label="الصفحة"><span className="num">{item.page}</span>{item.exercise?` — ${item.exercise}`:''}</Fact>}
-      {item.skill&&<Fact label="المهارة">{item.skill}</Fact>}
+      {!writing&&item.lesson&&<Fact label={quran?'المطلوب حفظه':'الدرس'}>{item.lesson}</Fact>}
+      {item.subjectKey==='arabic'&&item.copywork&&<Fact label="نسخ لغتي">{taskLine(item.copywork)}</Fact>}
+      {writing&&<Fact label="الإملاء">{taskLine(item.spellingTask)}</Fact>}
+      {writing&&<Fact label="فن الخط">{taskLine(item.handwritingTask)}</Fact>}
+      {!writing&&item.page&&!item.copywork&&<Fact label="الصفحة"><span className="num">{item.page}</span>{item.exercise?` — ${item.exercise}`:''}</Fact>}
+      {!writing&&item.skill&&<Fact label="المهارة">{item.skill}</Fact>}
     </dl>}
     {!item.holiday&&item.days.length>0&&<div className="tkDays">{item.days.map(day=>{const both=start?dayInBoth(addDays(start,day.weekday)):null;return <span key={day.weekday}><b>{day.day}</b>{both&&<i>{both.hijriShort} · {both.gregorianShort}</i>}{day.text?`: ${day.text}`:''}</span>})}</div>}
     {item.note&&<p className="tkNoteLine">ملاحظة المعلم: {item.note}</p>}
