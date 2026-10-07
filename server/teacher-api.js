@@ -5,7 +5,7 @@ import {CLASS_ID} from './class-roster.js';
 import {riyadhDateString,weekNumberForDate,TERM_WEEKS} from './learning-content.js';
 import {SUBJECTS,SUBJECT_KEYS,buildPlan,clampWeek,nextSchoolDay,planDocId,planWeekForDate,readWeekPlan,subjectKeyOf,todayInfo,weekKeyFor,weekRange,workspaceRoot} from './plan.js';
 import {assessBulk,assessOne,assessUndo,assessView,assessedToday,isFocused,readProfiles,readWeekData,setFocus,weekProgress,weekResultsByStudent} from './quick-assess.js';
-import {homeworkDisplayTitle,homeworkStatus} from './student-home.js';
+import {homeworkDisplayTitle,homeworkStatus,homeworkSubjectLabel} from './student-home.js';
 import {assistantStatus,saveProvider} from './assistant.js';
 import {markThreadRead,readThread,sendMessage,teacherInbox,unreadForTeacher} from './messages.js';
 import {guardianAssistantSettings,guardianAssistantThreadState,markTeacherReplied,saveGuardianAssistantSettings} from './guardian-assistant.js';
@@ -31,7 +31,7 @@ async function homeworkForDate(db,localDate){
     const byStudent=new Map(rows(evidence[index]).map(row=>[row.studentId,row])),subjectKey=item.subjectKey||subjectKeyOf(item.subject)||'';
     const students=ROSTER.filter(student=>byStudent.has(student.id)).map(student=>{const row=byStudent.get(student.id),status=homeworkStatus(row);return {id:student.id,status,completedAt:String(row.completedAt||''),confirmedBy:status==='done'?String(row.confirmedBy||'guardian'):'',approved:Boolean(row.teacherApprovedAt)}});
     return {
-      id:item.id,subjectKey,subjectLabel:subjectKey?SUBJECTS[subjectKey].label:String(item.subject||'واجب'),title:String(item.title||'واجب'),displayTitle:homeworkDisplayTitle(item),
+      id:item.id,subjectKey,subjectLabel:homeworkSubjectLabel(item,subjectKey),title:String(item.title||'واجب'),displayTitle:homeworkDisplayTitle(item),
       lesson:String(item.lesson||''),segment:String(item.segment||''),skill:String(item.skill||''),page:Number(item.page)||null,exercise:String(item.exercise||item.assignmentType||''),
       task:String(item.task||item.instructions||''),kind:item.kind==='training'?'training':'homework',source:String(item.source||'teacher'),
       publishedAt:String(item.publishedAt||item.assignedAt||''),publishedDate:String(item.scheduledDate||''),dueDate:String(item.dueDate||''),edited:Boolean(item.editedByTeacherAt),
