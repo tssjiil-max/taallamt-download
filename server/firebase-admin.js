@@ -6,7 +6,7 @@ function normalizePrivateKey(raw){
   let value=String(raw||'').trim();
   if(value.startsWith('{')){try{const parsed=JSON.parse(value);if(typeof parsed.private_key==='string')value=parsed.private_key}catch{}}
   const fragment=value.match(/["']?private_key["']?\s*:\s*([\s\S]+)$/);
-  if(fragment){let candidate=fragment[1].trim().replace(/,\s*$/,'');if(candidate.startsWith('"')){try{candidate=JSON.parse(candidate)}catch{candidate=candidate.replace(/^"|"$/g,'')}}else if(candidate.startsWith("'")&&candidate.endsWith("'"))candidate=candidate.slice(1,-1);value=candidate}else if(value.startsWith('"')&&value.endsWith('"')){try{value=JSON.parse(value)}catch{value=value.slice(1,-1)}}
+  if(fragment){let candidate=fragment[1].trim().replace(/,\s*$/,'');if(candidate.startsWith('"')){try{candidate=JSON.parse(candidate)}catch{candidate=candidate.replace(/^"|"$|/g,'')}}else if(candidate.startsWith("'")&&candidate.endsWith("'"))candidate=candidate.slice(1,-1);value=candidate}else if(value.startsWith('"')&&value.endsWith('"')){try{value=JSON.parse(value)}catch{value=value.slice(1,-1)}}
   value=value.replace(/\\r/g,'').replace(/\\n/g,'\n').replace(/\r/g,'').trim();
   const pem=value.match(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/);if(pem)value=pem[0];
   return value;
@@ -28,4 +28,10 @@ function app(){
 }
 export function adminDb(){return getFirestore(app())}
 export function adminStorageBucket(){return getStorage(app()).bucket()}
-export function previewWriteGuard(){const env=process.env.VERCEL_ENV,ref=process.env.VERCEL_GIT_COMMIT_REF?.trim();if(env==='production'&&ref!=='build/taallamt-flex-v1')throw new Error('PRODUCTION_WRITE_BLOCKED')}
+// Preview remains writable for staging tests. Production writes require either the canonical
+// production branch or an explicit production-only release switch in Vercel.
+export function previewWriteGuard(){
+  const env=process.env.VERCEL_ENV,ref=process.env.VERCEL_GIT_COMMIT_REF?.trim();
+  const productionWriteEnabled=process.env.TAALLAMT_PRODUCTION_WRITE_ENABLED==='1';
+  if(env==='production'&&ref!=='build/taallamt-flex-v1'&&!productionWriteEnabled)throw new Error('PRODUCTION_WRITE_BLOCKED');
+}
