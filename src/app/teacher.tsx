@@ -555,7 +555,7 @@ function MessagesPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
     {remote.error&&!remote.data?<Failure error={remote.error} role="teacher" onRetry={()=>void remote.reload()}/>:!remote.data?<Loading/>
       :list.length?<div className="tkList">{list.map((thread,index)=><StudentCard key={thread.studentId} index={index} number={thread.number} name={thread.name}
         meta={<>{thread.unread>0&&<span className="tkBadge new">{thread.unread===1?'رسالة جديدة':`${thread.unread} رسائل جديدة`}</span>}<span className="tkBadge">{formatStamp(thread.last.createdAt)}</span></>}>
-        <p className="tkStLine"><b>{thread.last.from==='guardian'?'ولي الأمر: ':'أنت: '}</b>{thread.last.text}</p>
+        <p className="tkStLine"><b>{lastLabel(thread.last.from)}</b>{thread.last.text}</p>
         <div className="tkStActions"><button className="tkAct primary" type="button" onClick={()=>go(`chat/${thread.studentId}`)} aria-label={`فتح محادثة ${thread.name}`}>فتح المحادثة</button></div>
       </StudentCard>)}</div>
       :<Empty>{threads.length?'لا توجد محادثات خلال آخر 7 أيام.':'لم تصل رسائل من أولياء الأمور بعد.'}</Empty>}
