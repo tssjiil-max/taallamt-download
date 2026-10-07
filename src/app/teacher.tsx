@@ -685,6 +685,26 @@ function assistFailure(error:ApiError){
   return `تعذر الحصول على إجابة (${error.code})${detail}.`;
 }
 
+/* Opening the phone apps themselves (never the websites). Android only: a launcher intent aimed at the package. */
+const PHONE_APPS={openai:{name:'ChatGPT',pkg:'com.openai.chatgpt',host:'chatgpt.com',path:'/'},gemini:{name:'Gemini',pkg:'com.google.android.apps.bard',host:'gemini.google.com',path:'/app'}} as const;
+const isAndroid=()=>typeof navigator!=='undefined'&&/Android/i.test(navigator.userAgent);
+const bridgeOpen=(pkg:string):boolean|null=>{
+  const bridge=(window as unknown as {TaallamtNative?:{openApp?:(pkg:string)=>boolean}}).TaallamtNative;
+  return bridge&&typeof bridge.openApp==='function'?Boolean(bridge.openApp(pkg)):null;
+};
+function openPhoneApp(key:ProviderKey):Promise<'opened'|'missing'|'unsupported'>{
+  const app=PHONE_APPS[key];
+  if(!isAndroid())return Promise.resolve('unsupported');
+  const native=bridgeOpen(app.pkg);
+  if(native!==null)return Promise.resolve(native?'opened':'missing');
+  return new Promise(resolve=>{
+    let left=false;const mark=()=>{left=true};
+    document.addEventListener('visibilitychange',mark,{once:true});window.addEventListener('pagehide',mark,{once:true});window.addEventListener('blur',mark,{once:true});
+    // The app's own chat link (VIEW + package), so the installed app opens its normal chat; if it cannot take the link, the same chat opens on the web — never the Play Store page.
+    window.location.href=`intent://${app.host}${app.path}#Intent;scheme=https;package=${app.pkg};S.browser_fallback_url=${encodeURIComponent(`https://${app.host}${app.path}`)};end`;
+    window.setTimeout(()=>{document.removeEventListener('visibilitychange',mark);window.removeEventListener('pagehide',mark);window.removeEventListener('blur',mark);resolve('opened')},1800);
+  });
+}
 function buildLessonPrompt(status:AssistStatus,facts:AssistFacts|null,taskKey:string,extra:string){
   const task=status.tasks.find(item=>item.key===taskKey);
   const lines=[`أنت «شكابمبو — مساعد المعلم» في منصة «تعلّمت». أساعد معلم ${status.context.grade}.`,'خذ معلومات المنهج من البيانات التالية فقط، ولا تخترع اسم درس أو رقم صفحة أو موعدًا. إن لم تجد المعلومة قل: «غير موجود في ملفات المنهج المتاحة». إجابتك مقترح يراجعه المعلم.','','بيانات الدرس من منصة تعلّمت:',`- المرحلة: ${status.context.grade} — ${status.context.term}`,`- الأسبوع: ${status.context.week} من ${status.context.termWeeks}`];
@@ -702,7 +722,7 @@ function AssistantPage({home,back,log,setLog}:{home:TeacherHome;back:()=>void;lo
   const remote=useRemote<AssistStatus>(`assistant:${week??'current'}`,()=>api<AssistStatus>(`${AUTOMATION}?action=assistant_status${week?`&week=${week}`:''}`));
   const [chosen,setChosen]=React.useState<ProviderKey|''>(''),[question,setQuestion]=React.useState(''),[working,setWorking]=React.useState(''),[problem,setProblem]=React.useState('');
   const abort=React.useRef<AbortController|null>(null),input=React.useRef<HTMLTextAreaElement>(null);
-  const [draftTask,setDraftTask]=React.useState(''),[draft,setDraft]=React.useState(''),[copyNote,setCopyNote]=React.useState<'copied'|'copyFailed'|''>('');
+  const [draftTask,setDraftTask]=React.useState(''),[draft,setDraft]=React.useState(''),[appNote,setAppNote]=React.useState<{key:ProviderKey;kind:'missing'|'unsupported'|'copied'|'copyFailed'}|null>(null);
   React.useEffect(()=>()=>abort.current?.abort(),[]);
   const status=remote.data,provider=(chosen||status?.provider||'') as ProviderKey|'';
   const info=provider&&status?status.providers[provider]:null,facts=status?.context.subjects.find(item=>item.subjectKey===subjectKey)||null;
@@ -723,8 +743,13 @@ function AssistantPage({home,back,log,setLog}:{home:TeacherHome;back:()=>void;lo
     finally{setWorking('');abort.current=null}
   };
   const copy=async(text:string)=>{try{await navigator.clipboard.writeText(text);return true}catch{return false}};
-  const makeDraft=(task:string)=>{if(!status)return;if(task==='general'&&!question.trim()){setProblem('اكتب سؤالك في الخانة ثم اضغط «اسأل سؤالًا عامًا».');input.current?.focus();return}setProblem('');setCopyNote('');setDraftTask(task);setDraft(buildLessonPrompt(status,facts,task,question.trim()))};
-  const copyDraft=async()=>{if(!draft.trim())return;setCopyNote((await copy(draft))?'copied':'copyFailed')};
+  const makeDraft=(task:string)=>{if(!status)return;if(task==='general'&&!question.trim()){setProblem('اكتب سؤالك في الخانة ثم اضغط «اسأل سؤالًا عامًا».');input.current?.focus();return}setProblem('');setAppNote(null);setDraftTask(task);setDraft(buildLessonPrompt(status,facts,task,question.trim()))};
+  const openApp=async(key:ProviderKey,withPrompt:boolean)=>{
+    setAppNote(null);
+    if(withPrompt&&draft.trim()&&!(await copy(draft))){setAppNote({key,kind:'copyFailed'});return}
+    const result=await openPhoneApp(key);
+    setAppNote({key,kind:result==='opened'?'copied':result});
+  };
   const taskLabel=(key:string)=>status?.tasks.find(task=>task.key===key)?.label||key;
   return <div className="tkPage">
     <PageHead title="شكابمبو — مساعد المعلم" subtitle={`${home.teacher.classLabel} · يعتمد على توزيع المنهج وخطة الأسبوع`} onBack={back}/>
@@ -749,12 +774,17 @@ function AssistantPage({home,back,log,setLog}:{home:TeacherHome;back:()=>void;lo
       </dl></section>}
       <label className="tkField">سؤالك أو توضيح إضافي (اختياري مع الأزرار)<textarea ref={input} value={question} maxLength={status.maxLength} onChange={event=>setQuestion(event.target.value)} placeholder="مثال: ركّز على الطلاب الذين يخلطون بين التنوين والنون"/></label>
       <div className="tkQuick" role="group" aria-label="إجراءات سريعة">{status.tasks.map(task=><button key={task.key} type="button" disabled={Boolean(working)||!info?.configured} onClick={()=>void ask(task.key)}>{task.label}</button>)}</div>
-      <h2 className="tkH">طلب جاهز للذكاء الاصطناعي<small>انسخه ثم افتح ChatGPT أو Gemini من جوالك والصقه في المحادثة</small></h2>
-      <div className="tkQuick" role="group" aria-label="إنشاء طلب جاهز">{status.tasks.map(task=><button key={task.key} type="button" className={draftTask===task.key?'on':''} onClick={()=>makeDraft(task.key)}>{task.label}</button>)}</div>
-      {draft&&<section className="tkBox"><label className="tkField" style={{marginBottom:0}}>الطلب الجاهز للمراجعة<textarea value={draft} onChange={event=>{setDraft(event.target.value);setCopyNote('')}} rows={9}/></label><small className="tkMeta">راجع الطلب، ثم انسخه. بعد ذلك افتح تطبيق ChatGPT أو Gemini بنفسك والصق النص. لا يتم إرسال أي شيء تلقائيًا.</small></section>}
-      {draft&&<div className="tkActions"><button type="button" className="tkBtn" onClick={()=>void copyDraft()}>نسخ الطلب</button></div>}
-      {copyNote==='copied'&&<div className="tkAlert info" role="status" style={{marginTop:0}}>تم نسخ الطلب. افتح ChatGPT أو Gemini والصقه في المحادثة.</div>}
-      {copyNote==='copyFailed'&&<div className="tkAlert" role="alert" style={{marginTop:0}}>تعذّر النسخ التلقائي. حدّد النص من الخانة وانسخه يدويًا.</div>}
+      <h2 className="tkH">فتح تطبيق الجوال<small>يفتح التطبيق المثبت نفسه، لا موقع الويب</small></h2>
+      <div className="tkQuick" role="group" aria-label="طلب جاهز للتطبيق">{status.tasks.map(task=><button key={task.key} type="button" className={draftTask===task.key?'on':''} onClick={()=>makeDraft(task.key)}>{task.label}</button>)}</div>
+      {draft&&<section className="tkBox"><label className="tkField" style={{marginBottom:0}}>الطلب الجاهز للمراجعة<textarea value={draft} onChange={event=>setDraft(event.target.value)} rows={9}/></label><small className="tkMeta">يُنسخ إلى الحافظة ثم يُفتح التطبيق، وعليك الضغط مطولًا ثم «لصق» داخل المحادثة. لا يُرسل النص تلقائيًا.</small></section>}
+      <div className="tkPair">{(['openai','gemini'] as ProviderKey[]).map(key=><button key={key} type="button" className="tkBtn" disabled={!draft.trim()} onClick={()=>void openApp(key,true)}>نسخ الطلب وفتح تطبيق {PHONE_APPS[key].name}</button>)}</div>
+      <div className="tkPair">{(['openai','gemini'] as ProviderKey[]).map(key=><button key={key} type="button" className="tkBtn ghost" onClick={()=>void openApp(key,false)}>فتح {PHONE_APPS[key].name}</button>)}</div>
+      {appNote&&<div className={`tkAlert ${appNote.kind==='copied'?'info':''}`} role="alert" style={{marginTop:0}}>
+        {appNote.kind==='copied'&&<>فُتحت محادثة {PHONE_APPS[appNote.key].name} (في التطبيق إن كان مثبتًا، وإلا في المتصفح).{draft.trim()?' نُسخ الطلب؛ الصقه داخل المحادثة.':''}</>}
+        {appNote.kind==='copyFailed'&&<>تعذّر نسخ الطلب إلى الحافظة، فلم يُفتح التطبيق. انسخ النص من الخانة يدويًا ثم افتح التطبيق.</>}
+        {appNote.kind==='unsupported'&&<>فتح التطبيق مباشرة متاح على أندرويد فقط.{draft.trim()?' نُسخ الطلب ويمكنك لصقه في التطبيق يدويًا.':''}</>}
+        {appNote.kind==='missing'&&<>تعذّر فتح {PHONE_APPS[appNote.key].name} من التطبيق.</>}
+      </div>}
       {working&&<div className="tkWorking" role="status"><span>جارٍ توليد الإجابة: {taskLabel(working)}…</span><button className="tkBtn ghost" type="button" onClick={()=>abort.current?.abort()}>إيقاف</button></div>}
       {problem&&<div className="tkAlert" role="alert" style={{marginTop:0,marginBottom:'calc(var(--u)*6)'}}>{problem}</div>}
       {log.map(entry=><article className="tkAnswer" key={entry.id}>
