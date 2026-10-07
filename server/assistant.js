@@ -137,7 +137,7 @@ export async function assistantStatus(query={},date=new Date()){
   return {
     ok:true,provider:PROVIDERS[saved]?saved:'',
     providers:Object.fromEntries(Object.entries(PROVIDERS).map(([key,provider])=>[key,{label:provider.label,note:provider.note,configured:configured(key),model:modelFor(key),keyEnv:provider.keyEnv,modelEnv:provider.modelEnv}])),
-    usage:{used,limit:dailyLimit()},tasks:Object.entries(TASKS).map(([key,task])=>({key,label:task.label})),context,maxLength:QUESTION_MAX_LENGTH,
+    usage:{used,limit:dailyLimit()},tasks:Object.entries(TASKS).map(([key,task])=>({key,label:task.label,prompt:task.prompt})),context,maxLength:QUESTION_MAX_LENGTH,
     books:{indexed:false,note:'لا توجد كتب مفهرسة في المشروع. يعتمد المساعد على توزيع المنهج وخطة الأسبوع، وعلى الملفات النصية التي يعتمدها المعلم للمساعد من المكتبة.'}
   };
 }
