@@ -6,6 +6,7 @@ import {riyadhDateString} from './learning-content.js';
 import {workspaceRoot} from './plan.js';
 import {buildStudentHome} from './student-home.js';
 import {sendAssistantMessage} from './messages.js';
+import {ROSTER} from './roster.js';
 
 export const GUARDIAN_ASSISTANT_MODES=['off','suggest','auto_routine'];
 export const GUARDIAN_ASSISTANT_CLASSIFICATIONS=['routine','needs_clarification','teacher_required','out_of_scope','unsafe'];
