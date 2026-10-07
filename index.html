@@ -1,1 +1,53 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#c9e9fe"/><title>تعلّمت</title></head><body><div id="root"></div><script type="module" src="/src/app/main.tsx"></script></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#155e9b"/>
+  <meta name="application-name" content="تعلّمت"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <title>تعلّمت</title>
+  <script>
+    (function () {
+      var student = location.pathname.replace(/\/+$/, '').startsWith('/student');
+      var manifest = student ? '/manifest-student.webmanifest' : '/manifest-teacher.webmanifest';
+      var icon = student ? '/pwa/student-192.png' : '/pwa/teacher-192.png';
+      var theme = student ? '#167e5e' : '#155e9b';
+      var title = student ? 'تعلّمت - الطالب' : 'تعلّمت - المعلم';
+
+      document.title = title;
+      var themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeMeta) themeMeta.setAttribute('content', theme);
+
+      var manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = manifest;
+      document.head.appendChild(manifestLink);
+
+      var touchIcon = document.createElement('link');
+      touchIcon.rel = 'apple-touch-icon';
+      touchIcon.href = icon;
+      document.head.appendChild(touchIcon);
+
+      var appleTitle = document.createElement('meta');
+      appleTitle.name = 'apple-mobile-web-app-title';
+      appleTitle.content = title;
+      document.head.appendChild(appleTitle);
+    })();
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/app/main.tsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
