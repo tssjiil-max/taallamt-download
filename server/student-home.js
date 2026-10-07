@@ -26,18 +26,25 @@ export function homeworkStatus(evidence){
 export function homeworkDisplayTitle(homework){
   if(homework.source!=='automation'||homework.editedByTeacherAt)return String(homework.title||'واجب');
   const lesson=String(homework.lesson||''),segment=String(homework.segment||''),skill=String(homework.skill||'');
-  if(homework.taskType==='copywriting')return `تمرين الخط والنسخ: ${lesson}`;
+  if(homework.taskType==='copywriting'||homework.taskType==='copywork_lughati')return `نسخ لغتي: ${lesson}`;
   if(homework.taskType==='quran_memorization')return `حفظ ${segment}${lesson?` — ${lesson}`:''}`;
   if(homework.taskType==='quran_review')return `مراجعة: ${segment||lesson}`;
-  if(homework.taskType==='spelling_practice')return skill?`تدريب الإملاء: ${skill}`:`نسخ من كتاب فن الخط: ${lesson}`;
+  if(homework.taskType==='spelling_practice'||homework.taskType==='spelling_task')return `الإملاء: ${skill||lesson}`;
+  if(homework.taskType==='handwriting_task')return `فن الخط: ${lesson||skill}`;
   if(homework.taskType==='lesson_practice')return `مراجعة درس: ${lesson}`;
   return String(homework.title||'واجب');
+}
+export function homeworkSubjectLabel(homework,subjectKey){
+  if(homework?.taskType==='copywork_lughati'||homework?.taskType==='copywriting')return 'لغتي — نسخ';
+  if(homework?.taskType==='spelling_task'||homework?.taskType==='spelling_practice')return 'الإملاء';
+  if(homework?.taskType==='handwriting_task')return 'فن الخط';
+  return subjectKey?SUBJECTS[subjectKey].label:String(homework?.subject||'واجب');
 }
 function homeworkItem(homework,evidence){
   const subjectKey=homework.subjectKey||subjectKeyOf(homework.subject)||'';
   const status=homeworkStatus(evidence);
   return {
-    id:homework.id,subjectKey,subjectLabel:subjectKey?SUBJECTS[subjectKey].label:String(homework.subject||'واجب'),
+    id:homework.id,subjectKey,subjectLabel:homeworkSubjectLabel(homework,subjectKey),
     title:String(homework.title||'واجب'),displayTitle:homeworkDisplayTitle(homework),lesson:String(homework.lesson||''),segment:String(homework.segment||''),skill:String(homework.skill||''),
     page:Number(homework.page)||null,exercise:String(homework.exercise||homework.assignmentType||''),
     task:String(homework.task||homework.instructions||''),
