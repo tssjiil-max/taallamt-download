@@ -52,7 +52,10 @@ export function todayInfo(date=new Date()){
 function summaryOf(subject,item){
   if(item.holiday)return 'إجازة';
   if(subject==='quran')return item.unit?`سورة ${item.unit}`:(item.lesson||'');
-  if(subject==='spelling')return item.skill||item.lesson||'';
+  if(subject==='spelling'){
+    const spell=item.spellingTask?.title||item.skill||'',hand=item.handwritingTask?.title||'';
+    return hand?`${spell} · فن الخط: ${hand}`:spell||item.lesson||'';
+  }
   return item.lesson||item.skill||'';
 }
 // One plan item per subject, in display order (from the right): لغتي — القرآن الكريم — الدراسات الإسلامية — الإملاء والخط.
@@ -63,11 +66,13 @@ export function buildPlan(week,docs=[]){
   const gaps=[];
   const items=SUBJECT_KEYS.map(subject=>{
     const planned=content[subject]||{},doc=live.get(subject)||null,override=doc?.override||null;
-    const base={unit:planned.unit||planned.surah||'',lesson:planned.lesson||'',skill:planned.skill||'',holiday:Boolean(planned.holiday)};
+    const base={unit:planned.unit||planned.surah||'',lesson:planned.lesson||'',skill:planned.skill||'',holiday:Boolean(planned.holiday),
+      copywork:planned.copywork||null,spellingTask:planned.spellingTask||null,handwritingTask:planned.handwritingTask||null};
     const item={
       subjectKey:subject,label:SUBJECTS[subject].label,short:SUBJECTS[subject].short,targetId:targetIdFor(subject,w),
       unit:override?.unit||base.unit,lesson:override?.lesson||base.lesson,skill:override?.skill||base.skill,holiday:base.holiday,
       page:Number(doc?.page)||null,exercise:String(doc?.exercise||''),
+      copywork:doc?.copywork||base.copywork,spellingTask:doc?.spellingTask||base.spellingTask,handwritingTask:doc?.handwritingTask||base.handwritingTask,
       days:Array.isArray(doc?.days)?doc.days:[],
       note:String(override?.note||''),edited:Boolean(override),editedAt:String(override?.editedAt||''),
       published:Boolean(doc),publishedAt:String(doc?.publishedAt||doc?.updatedAt||''),source:String(doc?.source||'')
