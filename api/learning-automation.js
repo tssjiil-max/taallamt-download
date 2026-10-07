@@ -59,7 +59,8 @@ export async function buildWeeklyPlan(week,{publish=true}={}){
   for(const subject of ['arabic','quran','islamic','spelling']){
     const item=content[subject],page=subject==='arabic'?copyworkPage(item.lesson):null;
     items.push({id:`auto-week:${weekKey(w)}:${subject}`,weekKey:weekKey(w),weekNumber:w,subject,targetIds:[targetId(subject,w)],title:item.title,unit:item.unit||item.surah||'',lesson:item.lesson||'',skill:item.skill||'',
-      holiday:Boolean(item.holiday),...(page?{page,pageLabel:arabicDigits(page),exercise:'تمرين الخط والنسخ'}:{}),days:planDays(subject,item,schedule.bySubject[subject]||[]),
+      holiday:Boolean(item.holiday),...(item.copywork?{copywork:item.copywork}:{}),...(item.spellingTask?{spellingTask:item.spellingTask}:{}),...(item.handwritingTask?{handwritingTask:item.handwritingTask}:{}),
+      ...(page?{page,pageLabel:arabicDigits(page),exercise:'نسخ لغتي'}:{}),days:planDays(subject,item,schedule.bySubject[subject]||[]),
       classId:CLASS_ID,schoolId:SCHOOL_ID,termId:TERM_ID,contentSource:'server/learning-content.js',scheduleSource:schedule.source,
       publishStatus:publish?'published':'ready',publishOnSaturday:true,source:'automation',updatedAt:nowIso()});
   }
@@ -97,30 +98,43 @@ async function scheduledSubjectsForDay(weekday){
 
 // Every homework states the subject, lesson, page (when the source has one), the exercise and exactly what to do.
 // Page numbers exist in the sources only for the Lughati copy exercise; nothing else is invented.
-function homeworkCopy(subject,item,daySpecific){
+function homeworkCopies(subject,item,daySpecific){
   if(subject==='quran'){
     const surah=daySpecific?.surah||item.surah||'',segment=daySpecific?.lesson||item.lesson||'';
-    return {title:`القرآن الكريم — ${surah} ${segment}`.trim(),lesson:surah?`سورة ${surah}`:'',segment,skill:'الحفظ',instructions:`حفظ أو مراجعة ${segment} من سورة ${surah}، مع قراءة صحيحة وتكرار المقطع.`};
+    return [{pathKey:'quran',taskType:quranTaskType(daySpecific,item),title:`القرآن الكريم — ${surah} ${segment}`.trim(),lesson:surah?`سورة ${surah}`:'',segment,skill:'الحفظ',instructions:`حفظ أو مراجعة ${segment} من سورة ${surah}، مع قراءة صحيحة وتكرار المقطع.`}];
   }
   if(subject==='arabic'){
-    const page=copyworkPage(item.lesson);if(!page)return null;
-    return {title:`لغتي — ${item.lesson}`,lesson:item.lesson,page,assignmentType:'تمرين الخط والنسخ',skill:'النسخ والخط',task:`أنجز تمرين «الخط والنسخ» في الصفحة ${arabicDigits(page)} من كتاب لغتي (درس «${item.lesson}»)، واكتب بخط جميل.`,instructions:`الدرس: ${item.lesson}. الصفحة: ${arabicDigits(page)}. الواجب: تمرين الخط والنسخ من كتاب لغتي، واكتب بخط جميل.`};
+    const task=item.copywork||null,page=task?.page||copyworkPage(item.lesson);if(!page)return [];
+    return [{pathKey:'copywork_lughati',taskType:'copywork_lughati',title:`نسخ لغتي — ${item.lesson}`,lesson:item.lesson,page,assignmentType:'نسخ لغتي',skill:'النسخ',
+      task:`أنجز واجب «نسخ لغتي» في الصفحة ${arabicDigits(page)} من كتاب لغتي (درس «${item.lesson}»)، واكتب بخط واضح.`,
+      instructions:`المصدر: كتاب لغتي. الدرس: ${item.lesson}. الصفحة: ${arabicDigits(page)}. المطلوب: نسخ لغتي.`}];
   }
-  if(subject==='islamic')return {title:`الدراسات الإسلامية — ${item.lesson}`,lesson:item.lesson,skill:item.skill||'',instructions:`راجع درس «${item.lesson}»، ثم اذكر مثالًا بسيطًا يوضح ${item.skill}.`};
-  const skill=item.skill||'';
-  return {title:`الإملاء والخط — ${skill||item.lesson}`,lesson:item.lesson,skill,assignmentType:'نسخ من كتاب فن الخط',instructions:`${skill?`تدريب الإملاء على مهارة «${skill}». `:''}واجب النسخ من كتاب فن الخط: ${item.lesson||item.skill}، واكتب بخط جميل وواضح.`};
+  if(subject==='islamic')return [{pathKey:'islamic',taskType:'lesson_practice',title:`الدراسات الإسلامية — ${item.lesson}`,lesson:item.lesson,skill:item.skill||'',instructions:`راجع درس «${item.lesson}»، ثم اذكر مثالًا بسيطًا يوضح ${item.skill}.`}];
+  const result=[];
+  if(item.spellingTask){
+    const task=item.spellingTask,page=Number(task.page)||null;
+    result.push({pathKey:'spelling_task',taskType:'spelling_task',title:`الإملاء — ${task.title}`,lesson:item.lesson,skill:task.title,page,assignmentType:'الإملاء',sourceBook:task.source,
+      task:`تدريب الإملاء: «${task.title}»${page?` — صفحة ${arabicDigits(page)}`:' — الصفحة لم تُحدد بعد'} من كتاب مهارة الإملاء وفن الخط.`,
+      instructions:`المصدر: كتاب مهارة الإملاء وفن الخط. المهارة: ${task.title}. ${page?`الصفحة: ${arabicDigits(page)}.`:'الصفحة: لم تُحدد بعد.'}`});
+  }
+  if(item.handwritingTask){
+    const task=item.handwritingTask,page=Number(task.page)||null;
+    result.push({pathKey:'handwriting_task',taskType:'handwriting_task',title:`فن الخط — ${task.title}`,lesson:task.title,skill:'فن الخط',page,assignmentType:'فن الخط',sourceBook:task.source,
+      task:`تدريب فن الخط: «${task.title}»${page?` — صفحة ${arabicDigits(page)}`:' — الصفحة لم تُحدد بعد'} من كتاب مهارة الإملاء وفن الخط.`,
+      instructions:`المصدر: كتاب مهارة الإملاء وفن الخط. فن الخط: ${task.title}. ${page?`الصفحة: ${arabicDigits(page)}.`:'الصفحة: لم تُحدد بعد.'} اكتب بخط النسخ مع مراعاة السطور.`});
+  }
+  return result;
 }
 function quranTaskType(daySpecific,item){
   const text=`${daySpecific?.lesson||item?.lesson||''} ${daySpecific?.surah||item?.surah||''}`;
   return /(تقويم|مراجعة|استكمال|اختبارات)/.test(text)?'quran_review':'quran_memorization';
 }
-function automationHomework(subject,item,daySpecific,localDate,week,scheduleSource){
-  const copy=homeworkCopy(subject,item,daySpecific);
-  if(!copy)return null;
-  return {
-    id:`auto-homework:${localDate}:${subject}`,
-    subject:subjectLabels[subject]||subject,
+function automationHomeworks(subject,item,daySpecific,localDate,week,scheduleSource){
+  return homeworkCopies(subject,item,daySpecific).map(copy=>({
+    id:`auto-homework:${localDate}:${copy.pathKey||subject}`,
+    subject:copy.taskType==='handwriting_task'?'فن الخط':copy.taskType==='spelling_task'?'الإملاء':subjectLabels[subject]||subject,
     subjectKey:subject,
+    learningPath:copy.pathKey||subject,
     title:copy.title,
     instructions:copy.instructions,
     task:copy.task||copy.instructions,
@@ -129,18 +143,19 @@ function automationHomework(subject,item,daySpecific,localDate,week,scheduleSour
     ...(copy.skill?{skill:copy.skill}:{}),
     ...(copy.page?{page:copy.page,pageLabel:arabicDigits(copy.page)}:{}),
     ...(copy.assignmentType?{assignmentType:copy.assignmentType,exercise:copy.assignmentType}:{}),
+    ...(copy.sourceBook?{sourceBook:copy.sourceBook}:{}),
     targetIds:[targetId(subject,week)],
     scheduledDate:localDate,
     dueDate:nextSchoolDay(localDate),
     kind:'homework',
-    taskType:subject==='quran'?quranTaskType(daySpecific,item):subject==='spelling'?'spelling_practice':subject==='arabic'?'copywriting':'lesson_practice',
+    taskType:copy.taskType||'lesson_practice',
     source:'automation',
     scheduleSource,
     weekNumber:week,
     weekKey:weekKey(week),
     termId:TERM_ID,
     schoolId:SCHOOL_ID
-  };
+  }));
 }
 
 // Idempotent: the homework id is derived from the day and the subject, and each student has one evidence record per homework.
@@ -151,23 +166,29 @@ export async function publishDailyHomework(date=new Date()){
   const content=contentForWeek(week),schedule=await scheduledSubjectsForDay(weekday),subjects=[...schedule.subjects],db=adminDb(),created=[],gaps=[];
   for(const subject of subjects){
     const item=content[subject];if(!item||item.holiday)continue;const daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(subject==='quran'&&!daySpecific)continue;
-    const planned=automationHomework(subject,item,daySpecific,localDate,week,schedule.source);
-    if(!planned){gaps.push({subject,code:'SOURCE_PAGE_MISSING',message:`${subjectLabels[subject]}: لا توجد صفحة نسخ مسجلة لدرس «${item.lesson||''}» في المصدر؛ لم يُنشر واجب لهذه المادة.`});continue}
-    const id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
-    if(existing.exists){
-      const current=existing.data()||{};
-      if(current.source==='automation'&&!current.editedByTeacherAt){const {id:_id,scheduledDate:_date,...refresh}=planned;await ref.set(refresh,{merge:true})}
-      created.push({id,subject,duplicate:true});continue;
+    const plannedList=automationHomeworks(subject,item,daySpecific,localDate,week,schedule.source);
+    if(!plannedList.length){gaps.push({subject,code:'SOURCE_PAGE_MISSING',message:`${subjectLabels[subject]}: لا توجد بيانات موثقة للمهمة في المصدر؛ لم يُنشر واجب لهذه المادة.`});continue}
+    for(const planned of plannedList){
+      const id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
+      if(existing.exists){
+        const current=existing.data()||{};
+        if(current.source==='automation'&&!current.editedByTeacherAt){const {id:_id,scheduledDate:_date,...refresh}=planned;await ref.set(refresh,{merge:true})}
+        created.push({id,subject,path:planned.learningPath,duplicate:true});continue;
+      }
+      const timestamp=nowIso(),record={...planned,classId:CLASS_ID,assignedAt:timestamp,publishedAt:timestamp,status:'published'};
+      const batch=db.batch();
+      batch.set(ref,record);
+      for(const student of QURAN_FOLLOWUP_ROSTER){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}
+      await batch.commit();
+      created.push({id,subject,path:record.learningPath,title:record.title,taskType:record.taskType,duplicate:false});
     }
-    const timestamp=nowIso(),record={...planned,classId:CLASS_ID,assignedAt:timestamp,publishedAt:timestamp,status:'published'};
-    const batch=db.batch();batch.set(ref,record);for(const student of QURAN_FOLLOWUP_ROSTER){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}await batch.commit();created.push({id,subject,title:record.title,taskType:record.taskType,duplicate:false});
   }
   return {saved:true,localDate,weekday,week,subjects,scheduleSource:schedule.source,timetableMissing:schedule.timetableCount===0,created,gaps};
 }
 
 export async function previewAutomation(date=new Date()){
   const weekday=riyadhWeekday(date),localDate=riyadhDateString(date),week=weekNumberForDate(date),content=contentForWeek(week),schedule=await scheduledSubjectsForDay(weekday),subjects=[...schedule.subjects];
-  const homework=subjects.map(subject=>{const item=content[subject],daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(!item||item.holiday||(subject==='quran'&&!daySpecific))return null;return automationHomework(subject,item,daySpecific,localDate,week,schedule.source)}).filter(Boolean);
+  const homework=subjects.flatMap(subject=>{const item=content[subject],daySpecific=subject==='quran'?quranForDay(week,weekday):null;if(!item||item.holiday||(subject==='quran'&&!daySpecific))return [];return automationHomeworks(subject,item,daySpecific,localDate,week,schedule.source)});
   return {ok:true,localDate,weekday,week,weekKey:weekKey(week),timetableMissing:schedule.timetableCount===0,scheduleSource:schedule.source,scheduledSubjects:subjects,classwork:subjects.includes('arabic')?[{subject:'لغتي',title:content.arabic?.lesson||'تدريبات المهارات والظواهر اللغوية',instructions:'تُحل تمارين المهارات والظواهر اللغوية داخل الفصل في كتاب لغتي.'}]:[],content,homework};
 }
 
