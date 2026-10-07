@@ -529,7 +529,7 @@ function TodayPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
   </div>;
 }
 
-/* ---------- messages: inbox and conversation with one guardian ---------- */
+/* ---------- messages: inbox and guardian conversation ---------- */
 type InboxThread={studentId:string;name:string;number:number;count:number;unread:number;last:{from:'guardian'|'teacher';text:string;createdAt:string};lastIncomingAt:string};
 function MessagesPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
   const remote=useRemote<{threads:InboxThread[];unread:number}>('inbox',()=>api(`${AUTOMATION}?action=messages_inbox`));
