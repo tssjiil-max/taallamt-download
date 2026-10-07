@@ -240,8 +240,7 @@ async function studentPwaManifest(req,res){
     prefer_related_applications:false,
     categories:['education'],
     icons:[
-      {src:'/pwa/student-192.png',sizes:'192x192',type:'image/png',purpose:'any'},
-      {src:'/pwa/student-512.png',sizes:'512x512',type:'image/png',purpose:'any maskable'}
+      {src:'/pwa/student-shakabumbo-trophy.png',sizes:'any',type:'image/png',purpose:'any maskable'}
     ]
   };
   res.setHeader('Content-Type','application/manifest+json; charset=utf-8');

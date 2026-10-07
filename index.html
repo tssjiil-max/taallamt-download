@@ -19,7 +19,7 @@
       var manifest = student && studentId && invite
         ? '/api/student-state?view=pwa-manifest&studentId=' + encodeURIComponent(studentId) + '&invite=' + encodeURIComponent(invite)
         : (student ? '/manifest-student.webmanifest' : '/manifest-teacher.webmanifest');
-      var icon = student ? '/pwa/student-192.png' : '/pwa/teacher-192.png';
+      var icon = student ? '/pwa/student-shakabumbo-trophy.png' : '/pwa/teacher-shakabumbo-logo.svg';
       var theme = student ? '#167e5e' : '#155e9b';
       var title = student ? 'تعلّمت - الطالب' : 'تعلّمت - المعلم';
 
@@ -47,6 +47,7 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/app/main.tsx"></script>
+  <script src="/pwa-install.js" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
