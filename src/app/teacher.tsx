@@ -545,6 +545,12 @@ function MessagesPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
   const lastLabel=(from:InboxThread['last']['from'])=>from==='guardian'?'ولي الأمر: ':from==='assistant'?'مساعد المعلم: ':'أنت: ';
   return <div className="tkPage">
     <PageHead title="الرسائل" subtitle={remote.data?(remote.data.unread?`${remote.data.unread} رسالة جديدة من أولياء الأمور`:'لا توجد رسائل جديدة'):'رسائل أولياء الأمور'} onBack={back}/>
+    {assistant&&<section className="tkAgentSettings">
+      <div className="tkBoxHead"><div><b>🤖 مساعد ولي الأمر</b><small>يرد من بيانات الطالب فقط، ويحوّل الموضوعات الحساسة للمعلم</small></div></div>
+      <div className="tkSeg three" role="group" aria-label="وضع مساعد ولي الأمر"><button type="button" disabled={savingAgent} className={assistant.mode==='off'?'on':''} onClick={()=>void saveAgent({mode:'off'})}>متوقف</button><button type="button" disabled={savingAgent} className={assistant.mode==='suggest'?'on':''} onClick={()=>void saveAgent({mode:'suggest'})}>اقتراح فقط</button><button type="button" disabled={savingAgent} className={assistant.mode==='auto_routine'?'on':''} onClick={()=>void saveAgent({mode:'auto_routine'})}>رد تلقائي</button></div>
+      <label className="tkField">مزود الذكاء عند الحاجة<select className="tkSelect" value={assistant.provider} disabled={savingAgent} onChange={event=>void saveAgent({provider:event.target.value as 'openai'|'gemini'})}><option value="openai">OpenAI {assistant.providers.openai.configured?'✓':'— غير مفعّل'}</option><option value="gemini">Gemini {assistant.providers.gemini.configured?'✓':'— غير مفعّل'}</option></select></label>
+      <p className="tkMeta">الأسئلة الروتينية الواضحة تُجاب من بيانات المنصة مباشرة. إذا كان السؤال ملتبسًا ولا يوجد مفتاح API مفعّل، يُحوّل للمعلم بدل التخمين.</p>
+    </section>}
     <div className="tkSeg" role="group" aria-label="فترة العرض"><button type="button" className={recent?'on':''} onClick={()=>setRecent(true)}>آخر 7 أيام</button><button type="button" className={!recent?'on':''} onClick={()=>setRecent(false)}>كل المحادثات</button></div>
     {remote.error&&!remote.data?<Failure error={remote.error} role="teacher" onRetry={()=>void remote.reload()}/>:!remote.data?<Loading/>
       :list.length?<div className="tkList">{list.map((thread,index)=><StudentCard key={thread.studentId} index={index} number={thread.number} name={thread.name}
