@@ -221,12 +221,11 @@ check('how a result was entered (bulk or individual) is never sent to a guardian
   }
 });
 
-check('teacher summary: each student counts once today, focused list size, recent messages',async()=>{
-  await call(studentState,{method:'POST',body:{studentId:s1,action:'guardian_message',summary:'نشكر متابعتكم.'},cookie:teacher});
+check('teacher summary: each student counts once today, focused list size, unread messages',async()=>{
   const before=(await T('teacher_home')).body;
   assert.equal(before.summary.students,ROSTER.length);assert.equal(before.summary.focused,2,'the general focused list (a per-subject entry is not counted)');
   assert.equal(before.summary.assessedToday,ROSTER.length-1,'everyone assessed in Lughati today except the one focused student still waiting');
-  assert.equal(before.summary.messages,1);assert.equal(before.messages[0].studentId,s1);
+  assert.equal(before.summary.messages,0,'no guardian has written yet');assert.equal(before.messages,undefined);
   await TP('assess_one',{subjectKey:'spelling',studentId:s1,result:'mastered'});
   const after=(await T('teacher_home')).body;
   assert.equal(after.summary.assessedToday,before.summary.assessedToday,'a second subject for the same student does not add to the count');
@@ -380,6 +379,180 @@ check('nothing is published after the term ends',async()=>{
   assert.equal((await call(cronWeekly)).body.skipped,'OUTSIDE_TERM');
   await home(s1);
   assert.deepEqual({plans:docs('weeklyPlans').length,homework:docs('homework').length},before);
+});
+
+// ---------- guardian ↔ teacher messages ----------
+const G=(id,action,body={},extra={})=>call(studentState,{method:'POST',body:{studentId:id,action,invite:invites[id],...body},...extra});
+const thread=id=>call(studentState,{query:{view:'messages',studentId:id,invite:invites[id]}});
+check('messages: a guardian writes, the teacher receives it, replies, and the guardian reads the reply',async()=>{
+  setNow('2026-10-04T05:00:00Z');
+  const empty=(await thread(s1)).body;
+  assert.equal(empty.messages.length,0);assert.equal(empty.canSend,true);
+  const sent=await G(s1,'message_send',{text:'  السلام عليكم، هل يوجد واجب اليوم؟  ',clientId:'client-msg-0001'});
+  assert.equal(sent.status,200);assert.equal(sent.body.duplicate,false);assert.equal(sent.body.message.text,'السلام عليكم، هل يوجد واجب اليوم؟');assert.equal(sent.body.message.from,'guardian');
+  const stored=doc(`messages/${sent.body.message.id}`);
+  assert.equal(stored.studentId,s1);assert.equal(stored.classId,'second-4');assert.ok(stored.teacherId&&stored.schoolId&&stored.createdAt);
+  // teacher side: the counter and the inbox
+  const summary=(await T('teacher_home')).body.summary;assert.equal(summary.messages,1,'«رسائل جديدة» counts the unread incoming message');
+  const inbox=(await T('messages_inbox')).body;
+  assert.equal(inbox.unread,1);assert.equal(inbox.threads.length,1);assert.equal(inbox.threads[0].studentId,s1);assert.equal(inbox.threads[0].unread,1);assert.equal(inbox.threads[0].last.from,'guardian');
+  const opened=(await T('messages_thread',{studentId:s1})).body;
+  assert.equal(opened.messages.length,1);assert.equal(opened.messages[0].mine,false);assert.equal(opened.messages[0].unread,true);
+  assert.equal((await TP('messages_mark_read',{studentId:s1})).body.marked,1);
+  assert.equal((await T('teacher_home')).body.summary.messages,0,'opening the conversation clears the counter');
+  assert.ok((await thread(s1)).body.messages[0].readAt,'the guardian sees that the message was read');
+  setNow('2026-10-04T05:10:00Z');
+  const reply=await TP('message_reply',{studentId:s1,text:'وعليكم السلام، نعم: تمرين الخط والنسخ.',clientId:'client-rep-0001'});
+  assert.equal(reply.status,200);assert.equal(reply.body.message.from,'teacher');
+  const student=await home(s1);
+  assert.deepEqual(student.messages,{total:2,unread:1,canSend:true});
+  const seen=(await thread(s1)).body;
+  assert.deepEqual(seen.messages.map(message=>[message.from,message.mine,message.unread]),[['guardian',true,false],['teacher',false,true]]);
+  assert.equal(seen.messages[1].text,'وعليكم السلام، نعم: تمرين الخط والنسخ.');
+  assert.equal((await G(s1,'messages_read')).body.marked,1);
+  assert.equal((await home(s1)).messages.unread,0);
+  assert.ok((await T('messages_thread',{studentId:s1})).body.messages[1].readAt,'the teacher sees that the reply was read');
+});
+check('messages: a retry with the same id never stores the message twice',async()=>{
+  const first=await G(s2,'message_send',{text:'شكرًا لكم',clientId:'client-dup-0001'});
+  const again=await G(s2,'message_send',{text:'شكرًا لكم',clientId:'client-dup-0001'});
+  assert.equal(first.body.duplicate,false);assert.equal(again.status,200);assert.equal(again.body.duplicate,true);assert.equal(again.body.message.id,first.body.message.id);
+  assert.equal((await thread(s2)).body.messages.length,1);
+  const replyA=await TP('message_reply',{studentId:s2,text:'العفو',clientId:'client-dup-0002'}),replyB=await TP('message_reply',{studentId:s2,text:'العفو',clientId:'client-dup-0002'});
+  assert.equal(replyB.body.duplicate,true);assert.equal(replyB.body.message.id,replyA.body.message.id);
+  assert.equal((await thread(s2)).body.messages.length,2);
+});
+check('messages: the sender comes from the verified link or session, never from what the browser sends',async()=>{
+  // no link, a wrong link, another student's link
+  assert.equal((await call(studentState,{method:'POST',body:{studentId:s1,action:'message_send',text:'x',clientId:'client-bad-0001'}})).status,401);
+  assert.equal((await call(studentState,{method:'POST',body:{studentId:s1,action:'message_send',invite:'x'.repeat(32),text:'x',clientId:'client-bad-0002'}})).status,403);
+  assert.equal((await call(studentState,{method:'POST',body:{studentId:s1,action:'message_send',invite:invites[s2],text:'x',clientId:'client-bad-0003'}})).status,403,'a guardian cannot write into another student\'s conversation');
+  assert.equal((await call(studentState,{query:{view:'messages',studentId:s1,invite:invites[s2]}})).status,403,'a guardian cannot read another student\'s conversation');
+  assert.equal((await call(studentState,{query:{view:'messages',studentId:s1}})).status,401);
+  // a teacher session without the guardian's link reads the thread but cannot post in the guardian's name
+  const preview=await call(studentState,{query:{view:'messages',studentId:s1},cookie:teacher});
+  assert.equal(preview.status,200);assert.equal(preview.body.canSend,false);
+  const asGuardian=await call(studentState,{method:'POST',body:{studentId:s1,action:'message_send',text:'x',clientId:'client-bad-0004'},cookie:teacher});
+  assert.equal(asGuardian.status,403);assert.equal(asGuardian.body.error,'GUARDIAN_LINK_REQUIRED');
+  // claiming to be the teacher in the body changes nothing
+  const spoof=await G(s1,'message_send',{text:'رسالة عادية',clientId:'client-spoof-001',from:'teacher',studentId:s1,teacherId:'teacher:other'});
+  assert.equal(spoof.body.message.from,'guardian');assert.equal(doc(`messages/${spoof.body.message.id}`).from,'guardian');
+  // the teacher endpoints need the teacher session
+  assert.equal((await call(automation,{query:{action:'messages_inbox'}})).status,401);
+  assert.equal((await call(automation,{query:{action:'messages_thread',studentId:s1}})).status,401);
+  assert.equal((await call(automation,{method:'POST',body:{action:'message_reply',studentId:s1,text:'x',clientId:'client-bad-0005'}})).status,401);
+  assert.equal((await call(automation,{method:'POST',body:{action:'message_reply',studentId:s1,text:'x',clientId:'client-bad-0006'},cookie:teacher,origin:'https://evil.example'})).status,403);
+  // one guardian's thread never contains another student's messages
+  assert.ok((await thread(s2)).body.messages.every(message=>!message.text.includes('واجب اليوم')));
+});
+check('messages: empty, oversized and malformed messages are refused; nothing is stored for them',async()=>{
+  const before=docs('messages').length;
+  assert.equal((await G(s1,'message_send',{text:'   ',clientId:'client-val-0001'})).body.error,'TEXT_REQUIRED');
+  const long=await G(s1,'message_send',{text:'ا'.repeat(1001),clientId:'client-val-0002'});assert.equal(long.status,400);assert.equal(long.body.error,'MESSAGE_TOO_LONG');
+  assert.equal((await G(s1,'message_send',{text:'مرحبا',clientId:'x'})).body.error,'CLIENT_ID_INVALID');
+  assert.equal((await G(s1,'message_send',{text:'مرحبا',clientId:'../../etc/passwd'})).body.error,'CLIENT_ID_INVALID');
+  assert.equal((await TP('message_reply',{studentId:'nobody',text:'مرحبا',clientId:'client-val-0003'})).status,404);
+  assert.equal(docs('messages').length,before);
+});
+check('messages: older conversations are kept; the counter follows unread incoming messages only',async()=>{
+  setNow('2026-10-04T06:00:00Z');
+  await G(s3,'message_send',{text:'متى اختبار الإملاء؟',clientId:'client-old-0001'});
+  assert.equal((await T('teacher_home')).body.summary.messages,3,'one unread message from each of three guardians');
+  setNow('2026-10-20T06:00:00Z');                                                      // sixteen days later
+  const inbox=(await T('messages_inbox')).body;
+  assert.equal(inbox.threads.length,3,'nothing was deleted by time');
+  assert.equal(inbox.threads.find(item=>item.studentId===s3).unread,1);
+  assert.equal((await T('teacher_home')).body.summary.messages,3);
+  assert.equal((await thread(s1)).body.messages.length,3);
+  for(const id of [s1,s2,s3])await TP('messages_mark_read',{studentId:id});
+  assert.equal((await T('teacher_home')).body.summary.messages,0);
+  setNow('2026-10-04T06:00:00Z');
+});
+
+// ---------- «شكابمبو — مساعد المعلم» ----------
+const realFetch=globalThis.fetch;
+function stubFetch(reply){const calls=[];globalThis.fetch=async(url,options={})=>{calls.push({url:String(url),headers:options.headers||{},body:JSON.parse(options.body||'{}')});return reply(String(url))};return calls}
+const json=(status,payload)=>({ok:status>=200&&status<300,status,json:async()=>payload});
+check('assistant: without a key it is «غير مفعّل» and never answers',async()=>{
+  delete process.env.OPENAI_API_KEY;delete process.env.GEMINI_API_KEY;
+  const calls=stubFetch(()=>json(200,{}));
+  try{
+    assert.equal((await call(automation,{query:{action:'assistant_status'}})).status,401,'teacher session required');
+    const status=(await T('assistant_status')).body;
+    assert.equal(status.providers.openai.configured,false);assert.equal(status.providers.gemini.configured,false);
+    assert.equal(status.providers.openai.keyEnv,'OPENAI_API_KEY');assert.equal(status.providers.gemini.keyEnv,'GEMINI_API_KEY');
+    assert.equal(status.context.week,6);assert.equal(status.context.subjects.find(item=>item.subjectKey==='arabic').lesson,'عذرًا يا جدي');
+    assert.equal(status.context.subjects.find(item=>item.subjectKey==='arabic').page,45);assert.equal(status.context.subjects.find(item=>item.subjectKey==='islamic').page,null);
+    const asked=await TP('assistant_ask',{provider:'openai',task:'explain_lesson',subjectKey:'arabic'});
+    assert.equal(asked.status,503);assert.equal(asked.body.error,'ASSISTANT_NOT_CONFIGURED');assert.equal(asked.body.keyEnv,'OPENAI_API_KEY');assert.equal(asked.body.answer,undefined);
+    assert.equal(calls.length,0,'no request leaves the server');
+    assert.equal((await call(automation,{method:'POST',body:{action:'assistant_ask',provider:'openai',task:'explain_lesson',subjectKey:'arabic'}})).status,401);
+  }finally{globalThis.fetch=realFetch}
+});
+check('assistant: the request goes to the chosen provider only, with curriculum context and without student names',async()=>{
+  process.env.OPENAI_API_KEY='test-openai-key-000000000000000000';process.env.GEMINI_API_KEY='test-gemini-key-000000000000000000';
+  const calls=stubFetch(url=>url.includes('openai')?json(200,{status:'completed',output:[{type:'reasoning'},{type:'message',content:[{type:'output_text',text:'شرح مقترح للدرس.'}]}]}):json(200,{candidates:[{finishReason:'STOP',content:{parts:[{text:'نشاط مقترح.'}]}}]}));
+  try{
+    const name=ROSTER[2].name;
+    const openai=await TP('assistant_ask',{provider:'openai',task:'explain_lesson',subjectKey:'arabic',question:`ركّز على ${name} لأنه ضعيف`});
+    assert.equal(openai.status,200);assert.equal(openai.body.answer,'شرح مقترح للدرس.');assert.equal(openai.body.provider,'openai');
+    assert.deepEqual([openai.body.source.label,openai.body.source.week,openai.body.source.lesson,openai.body.source.page],['لغتي',6,'عذرًا يا جدي',45]);
+    assert.equal(calls.length,1);assert.equal(calls[0].url,'https://api.openai.com/v1/responses');
+    assert.equal(calls[0].headers.authorization,'Bearer test-openai-key-000000000000000000');
+    const sentText=JSON.stringify(calls[0].body);
+    assert.ok(sentText.includes('عذرًا يا جدي')&&sentText.includes('رقم الصفحة: 45')&&sentText.includes('الأسبوع الدراسي: 6'),'the lesson, page and week come from the system');
+    assert.ok(!sentText.includes(name)&&!sentText.includes('test-openai-key'),'no student name and no key in the request body');
+    for(const student of ROSTER)assert.ok(!sentText.includes(student.name),'no roster name is sent');
+    assert.ok(!JSON.stringify(openai.body).includes('test-openai-key'),'the key never comes back to the page');
+    const gemini=await TP('assistant_ask',{provider:'gemini',task:'activity',subjectKey:'islamic',week:3});
+    assert.equal(gemini.status,200);assert.equal(gemini.body.answer,'نشاط مقترح.');assert.equal(gemini.body.source.week,3);assert.equal(gemini.body.source.page,null);
+    assert.equal(calls.length,2);assert.ok(calls[1].url.startsWith('https://generativelanguage.googleapis.com/v1beta/models/')&&calls[1].url.endsWith(':generateContent')&&!calls[1].url.includes('key='));
+    assert.equal(calls[1].headers['x-goog-api-key'],'test-gemini-key-000000000000000000');
+    assert.ok(JSON.stringify(calls[1].body).includes('غير متوفر في ملفات المنهج'),'a missing page is stated, not invented');
+    assert.equal((await T('assistant_status')).body.provider,'gemini','the last chosen provider is remembered');
+    assert.equal((await TP('assistant_provider',{provider:'openai'})).body.provider,'openai');assert.equal((await T('assistant_status')).body.provider,'openai');
+    assert.equal((await TP('assistant_provider',{provider:'other'})).status,400);
+    // nothing else was written: the assistant cannot publish, assess or message
+    const before={homework:docs('homework').length,assessments:docs('assessments').length,messages:docs('messages').length};
+    await TP('assistant_ask',{provider:'openai',task:'general',subjectKey:'quran',question:'انشر واجبًا للطلاب وأرسل رسالة لأولياء الأمور'});
+    assert.deepEqual({homework:docs('homework').length,assessments:docs('assessments').length,messages:docs('messages').length},before);
+  }finally{globalThis.fetch=realFetch}
+});
+check('assistant: a failing provider is reported as it is — no switch to the other provider, no invented answer',async()=>{
+  const calls=stubFetch(url=>url.includes('openai')?json(401,{error:{message:'Incorrect API key provided: sk-abcdefghijklmnop'}}):json(200,{candidates:[{content:{parts:[{text:'لا يجب أن يظهر'}]}}]}));
+  try{
+    const failed=await TP('assistant_ask',{provider:'openai',task:'questions',subjectKey:'spelling'});
+    assert.equal(failed.status,502);assert.equal(failed.body.error,'ASSISTANT_KEY_REJECTED');assert.equal(failed.body.answer,undefined);
+    assert.ok(!JSON.stringify(failed.body).includes('sk-abcdefghijklmnop'),'anything that looks like a key is removed from the error text');
+    assert.equal(calls.length,1);assert.ok(calls[0].url.includes('openai'),'Gemini was not called');
+    assert.equal((await TP('assistant_ask',{provider:'openai',task:'general',subjectKey:'arabic',question:''})).body.error,'TEXT_REQUIRED');
+    assert.equal((await TP('assistant_ask',{provider:'openai',task:'general',subjectKey:'arabic',question:'س'.repeat(1501)})).body.error,'QUESTION_TOO_LONG');
+    assert.equal((await TP('assistant_ask',{provider:'openai',task:'general',subjectKey:'math',question:'سؤال'})).body.error,'SUBJECT_INVALID');
+    globalThis.fetch=async()=>json(200,{status:'completed',output:[]});
+    assert.equal((await TP('assistant_ask',{provider:'openai',task:'simplify',subjectKey:'arabic'})).body.error,'ASSISTANT_EMPTY_ANSWER');
+  }finally{globalThis.fetch=realFetch}
+});
+check('assistant: daily usage limit',async()=>{
+  process.env.ASSISTANT_DAILY_LIMIT='2';setNow('2026-10-05T04:30:00Z');
+  const calls=stubFetch(()=>json(200,{output_text:'إجابة'}));
+  try{
+    assert.equal((await TP('assistant_ask',{provider:'openai',task:'simplify',subjectKey:'arabic'})).status,200);
+    assert.equal((await TP('assistant_ask',{provider:'openai',task:'simplify',subjectKey:'arabic'})).body.usage.used,2);
+    const third=await TP('assistant_ask',{provider:'openai',task:'simplify',subjectKey:'arabic'});
+    assert.equal(third.status,429);assert.equal(third.body.error,'ASSISTANT_DAILY_LIMIT');assert.equal(calls.length,2);
+  }finally{globalThis.fetch=realFetch;delete process.env.ASSISTANT_DAILY_LIMIT;delete process.env.OPENAI_API_KEY;delete process.env.GEMINI_API_KEY;setNow('2026-10-04T06:00:00Z')}
+});
+check('library: upload with each sharing option; a student sees only what is shared with him',async()=>{
+  const upload=(body)=>call(libraryFiles,{method:'POST',body:{name:'file.txt',mimeType:'text/plain',base64:Buffer.from('نص').toString('base64'),category:'worksheets',...body},cookie:teacher});
+  assert.equal((await call(libraryFiles,{method:'POST',body:{title:'x',name:'f.txt',mimeType:'text/plain',base64:'eA==',visibility:'public'}})).status,401);
+  assert.equal((await upload({title:'للجميع',visibility:'public'})).status,201);
+  assert.equal((await upload({title:'لطالب واحد',visibility:'private',targetStudentIds:[s1]})).status,201);
+  assert.equal((await upload({title:'للمعلم فقط',visibility:'teacher'})).status,201);
+  assert.equal((await upload({title:'بلا هدف',visibility:'private',targetStudentIds:[]})).status,400);
+  const titles=async(id)=>(await call(libraryFiles,{query:{role:'student',studentId:id,invite:invites[id]}})).body.files.map(file=>file.title).sort();
+  assert.deepEqual(await titles(s1),['لطالب واحد','للجميع']);assert.deepEqual(await titles(s2),['للجميع']);
+  assert.equal((await call(libraryFiles,{query:{role:'teacher'},cookie:teacher})).body.files.length,3);
+  assert.equal((await call(libraryFiles,{query:{role:'teacher'}})).status,401);
 });
 
 let failed=0;

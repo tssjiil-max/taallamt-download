@@ -86,6 +86,16 @@ export async function requireStudentAccess(req,studentId,body,{write=false}={}){
   return 'guardian';
 }
 
+// Writing as the guardian (a message to the teacher) needs that student's own invite link, checked on the server.
+// A teacher session alone is not enough here, so nobody can post in a guardian's name without the guardian's link.
+export async function requireGuardianLink(req,studentId,body){
+  const invite=inviteFrom(req,body);
+  if(!validInviteShape(invite))throw new AccessError(isTeacher(req)?'GUARDIAN_LINK_REQUIRED':'STUDENT_ACCESS_REQUIRED',isTeacher(req)?403:401);
+  const snap=await adminDb().doc(`workspaces/${WORKSPACE_ID}/studentProfiles/${studentId}`).get();
+  if(!inviteMatches(snap.exists?snap.data():null,invite))throw new AccessError('STUDENT_ACCESS_DENIED',403);
+  return 'guardian';
+}
+
 // Lockout is counted per client address, inside a transaction, and the attempt is recorded before the code is checked,
 // so parallel guesses cannot slip past the limit and one client cannot lock the teacher out from another network.
 const clientKey=req=>createHash('sha256').update(header(req,'x-real-ip')||header(req,'x-forwarded-for').split(',')[0].trim()||'unknown').digest('hex').slice(0,24);

@@ -4,28 +4,34 @@ import React from 'react';
 import iconPlan from './assets/icon-plan.webp';
 import iconAssessment from './assets/icon-assessment.webp';
 import iconHomework from './assets/icon-homework.webp';
-import iconStars from './assets/icon-stars.webp';
-import subjectArabic from './assets/subject-arabic.webp';
-import subjectQuran from './assets/subject-quran.webp';
-import subjectIslamic from './assets/subject-islamic.webp';
-import subjectSpelling from './assets/subject-spelling.webp';
+// Original Shakabumbo artwork supplied by the school (design/shakabumbo/originals), outer black background removed.
+import shakArabic from './assets/shak-arabic.webp';
+import shakQuran from './assets/shak-quran.webp';
+import shakIslamic from './assets/shak-islamic.webp';
+import shakSpelling from './assets/shak-spelling.webp';
+import shakStar from './assets/shak-star.webp';
+import shakLogo from './assets/shak-logo.webp';
+import shakSourati from './assets/shak-sourati.webp';
+import shakTrophy from './assets/shak-trophy.webp';
+import shakStanding from './assets/shak-standing.webp';
 
 export type SubjectKey='arabic'|'quran'|'islamic'|'spelling';
 export type Result='mastered'|'needs_repeat'|'not_mastered';
 export const SUBJECT_ORDER:SubjectKey[]=['arabic','quran','islamic','spelling'];
-export const SUBJECT_ICON:Record<SubjectKey,string>={arabic:subjectArabic,quran:subjectQuran,islamic:subjectIslamic,spelling:subjectSpelling};
+export const SUBJECT_ICON:Record<SubjectKey,string>={arabic:shakArabic,quran:shakQuran,islamic:shakIslamic,spelling:shakSpelling};
 export const SUBJECT_LABEL:Record<SubjectKey,string>={arabic:'لغتي',quran:'القرآن الكريم',islamic:'الدراسات الإسلامية',spelling:'الإملاء والخط'};
 export const SUBJECT_SHORT:Record<SubjectKey,string>={arabic:'لغتي',quran:'القرآن',islamic:'الدراسات',spelling:'الإملاء والخط'};
 export const RESULT_LABEL:Record<Result,string>={mastered:'أتقن',needs_repeat:'يحتاج إعادة',not_mastered:'لم يتقن'};
 export const RESULTS:Result[]=['mastered','needs_repeat','not_mastered'];
-export const CARD_ICON={plan:iconPlan,assessment:iconAssessment,homework:iconHomework,stars:iconStars};
-export const subjectIcon=(key:string)=>SUBJECT_ICON[key as SubjectKey]||subjectArabic;
-// Subject icons keep the proportions they have in the reference image (sizes in design units).
-// [width, height, drop below the common baseline] — measured from where each icon sits in the reference tiles.
-const SUBJECT_ICON_SIZE:Record<SubjectKey,[number,number,number]>={arabic:[21.33,18.91,.7],quran:[17.3,22.13,1.9],islamic:[19.72,22.94,-.1],spelling:[19.72,22.94,3.6]};
-export function SubjectImg({subject,scale=1,flat=false}:{subject:string;scale?:number;flat?:boolean}){
-  const key=(subject in SUBJECT_ICON_SIZE?subject:'arabic') as SubjectKey,[width,height,drop]=SUBJECT_ICON_SIZE[key];
-  return <span className="tkSubjectImg" aria-hidden="true"><img src={SUBJECT_ICON[key]} alt="" style={{width:`calc(var(--u)*${(width*scale).toFixed(2)})`,height:`calc(var(--u)*${(height*scale).toFixed(2)})`,transform:flat?undefined:`translateY(calc(var(--u)*${(drop*scale).toFixed(2)}))`}}/></span>;
+// Section icons: the stars section uses the original «نجم اليوم» artwork. No Shakabumbo originals were supplied for
+// the plan, assessment and homework sections, so those keep the icons of the approved reference design.
+export const CARD_ICON={plan:iconPlan,assessment:iconAssessment,homework:iconHomework,stars:shakStar};
+export const SHAK={logo:shakLogo,sourati:shakSourati,trophy:shakTrophy,standing:shakStanding,star:shakStar};
+export const subjectIcon=(key:string)=>SUBJECT_ICON[key as SubjectKey]||shakArabic;
+// The four subject pictures are trimmed to the artwork, so one box gives them the same visual size.
+export function SubjectImg({subject,size=50}:{subject:string;size?:number}){
+  const key=(subject in SUBJECT_ICON?subject:'arabic') as SubjectKey;
+  return <span className="tkSubjectImg" aria-hidden="true" style={{width:`calc(var(--u)*${(size*.82).toFixed(2)})`,height:`calc(var(--u)*${size})`}}><img src={SUBJECT_ICON[key]} alt=""/></span>;
 }
 
 /* ---------- API ---------- */
@@ -34,11 +40,11 @@ export class ApiError extends Error{
   kind:ApiErrorKind;code:string;status:number;data:any;
   constructor(kind:ApiErrorKind,code:string,status=0,data:any=null){super(code);this.kind=kind;this.code=code;this.status=status;this.data=data}
 }
-export async function api<T=any>(url:string,options:{method?:'GET'|'POST';body?:unknown}={}):Promise<T>{
+export async function api<T=any>(url:string,options:{method?:'GET'|'POST';body?:unknown;signal?:AbortSignal}={}):Promise<T>{
   let response:Response;
   try{
-    response=await fetch(url,{method:options.method||'GET',cache:'no-store',credentials:'same-origin',headers:options.body===undefined?undefined:{'content-type':'application/json'},body:options.body===undefined?undefined:JSON.stringify(options.body)});
-  }catch{throw new ApiError('offline','NETWORK_FAILED')}
+    response=await fetch(url,{method:options.method||'GET',cache:'no-store',credentials:'same-origin',signal:options.signal,headers:options.body===undefined?undefined:{'content-type':'application/json'},body:options.body===undefined?undefined:JSON.stringify(options.body)});
+  }catch(caught){if(options.signal?.aborted)throw new ApiError('offline','REQUEST_STOPPED');void caught;throw new ApiError('offline','NETWORK_FAILED')}
   let data:any=null;
   try{data=await response.json()}catch{data=null}
   if(data===null||typeof data!=='object')throw new ApiError(response.status>=500?'server':'nobackend',`HTTP_${response.status}`,response.status);
@@ -106,6 +112,29 @@ function dateText(calendar:string,date:Date){
 }
 export function hijriDate(date=new Date()){try{return `${dateText('islamic-umalqura',date)} هـ`}catch{return ''}}
 export function gregorianDate(date=new Date()){try{return `${dateText('gregory',date)} م`}catch{return ''}}
+// A school date (YYYY-MM-DD) in both calendars. The weekly plan always shows the two together.
+type Calendar='islamic-umalqura'|'gregory';
+function isoParts(calendar:Calendar,iso:string){
+  const parts=new Intl.DateTimeFormat(`ar-SA-u-ca-${calendar}-nu-latn`,{timeZone:'UTC',day:'numeric',month:'long',year:'numeric'}).formatToParts(new Date(`${iso.slice(0,10)}T00:00:00Z`));
+  const part=(type:string)=>parts.find(item=>item.type===type)?.value||'';
+  return {day:part('day'),month:part('month'),year:part('year')};
+}
+const ERA:Record<Calendar,string>={'islamic-umalqura':'هـ',gregory:'م'};
+export function rangeText(calendar:Calendar,start:string,end:string){
+  try{
+    const a=isoParts(calendar,start),b=isoParts(calendar,end),era=ERA[calendar];
+    if(a.month===b.month&&a.year===b.year)return `${a.day} إلى ${b.day} ${a.month} ${a.year} ${era}`;
+    if(a.year===b.year)return `${a.day} ${a.month} إلى ${b.day} ${b.month} ${a.year} ${era}`;
+    return `${a.day} ${a.month} ${a.year} إلى ${b.day} ${b.month} ${b.year} ${era}`;
+  }catch{return ''}
+}
+export const hijriRange=(range:{start:string;end:string})=>rangeText('islamic-umalqura',range.start,range.end);
+export const gregorianRange=(range:{start:string;end:string})=>rangeText('gregory',range.start,range.end);
+export function dayInBoth(iso:string){
+  try{const h=isoParts('islamic-umalqura',iso),g=isoParts('gregory',iso);return {hijri:`${h.day} ${h.month} ${h.year} هـ`,gregorian:`${g.day} ${g.month} ${g.year} م`,hijriShort:`${h.day} ${h.month}`,gregorianShort:`${g.day} ${g.month}`}}
+  catch{return {hijri:'',gregorian:iso,hijriShort:'',gregorianShort:iso}}
+}
+export const addDays=(iso:string,days:number)=>new Date(Date.parse(`${iso.slice(0,10)}T00:00:00Z`)+days*86400000).toISOString().slice(0,10);
 export function riyadhClock(date=new Date()){try{return new Intl.DateTimeFormat('ar-SA-u-nu-latn',{timeZone:'Asia/Riyadh',hour:'numeric',minute:'2-digit',hour12:true}).format(date)}catch{return ''}}
 // Re-renders once a minute so the date strip changes by itself at midnight.
 export function useNow(intervalMs=60000){
@@ -156,11 +185,11 @@ export function Header({title,subtitle,hero,heroClass='',heroAlt='',onAvatar,ava
   </header>;
 }
 export type CardTone='plan'|'assessment'|'homework'|'stars';
-export function Card({tone,title,subtitle,small,onOpen,children}:{tone:CardTone;title:string;subtitle:string;small?:string;onOpen:()=>void;children:React.ReactNode}){
+export function Card({tone,title,subtitle,small,dates,onOpen,children}:{tone:CardTone;title:string;subtitle:string;small?:string;dates?:string[];onOpen:()=>void;children:React.ReactNode}){
   return <section className={`tkCard ${tone}`} aria-label={title}>
     <button className="tkCardHead" type="button" onClick={onOpen} aria-label={`${title}: عرض التفاصيل`}>
       <img className="tkCardIcon" src={CARD_ICON[tone]} alt="" aria-hidden="true"/>
-      <b className="tkCardTitle">{title}</b><span className="tkCardSub">{subtitle}</span>{small&&<span className="tkCardSmall">{small}</span>}
+      <b className="tkCardTitle">{title}</b><span className="tkCardSub">{subtitle}</span>{dates&&dates.length>0&&<span className="tkCardDates">{dates.map(text=><span key={text} dir="rtl">{text}</span>)}</span>}{small&&<span className="tkCardSmall">{small}</span>}
       <span className="tkChevron" aria-hidden="true"><IconChevron/></span>
     </button>
     {children}
@@ -174,7 +203,7 @@ export function Check({on,busy=false}:{on:boolean;busy?:boolean}){return <span c
 
 export type NavItem={key:string;label:string;icon:React.ReactNode;activeIcon?:React.ReactNode;onClick?:()=>void;href?:string};
 export function BottomNav({items,active,label}:{items:NavItem[];active:string;label:string}){
-  return <nav className="tkNav" aria-label={label}>{items.map(item=>item.href
+  return <nav className={`tkNav ${items.length===5?'five':''}`} aria-label={label}>{items.map(item=>item.href
     ?<a key={item.key} href={item.href}>{item.icon}<span>{item.label}</span></a>
     :<button key={item.key} type="button" className={active===item.key?'on':''} aria-current={active===item.key?'page':undefined} onClick={item.onClick}>{active===item.key&&item.activeIcon?item.activeIcon:item.icon}<span>{item.label}</span></button>)}</nav>;
 }
@@ -217,7 +246,18 @@ export function useToast():[React.ReactNode,(text:string,bad?:boolean)=>void]{
 /* ---------- weekly plan details (the same block on both sites) ---------- */
 export type PlanItem={subjectKey:SubjectKey;label:string;short:string;unit:string;lesson:string;skill:string;holiday:boolean;page:number|null;exercise:string;days:{weekday:number;day:string;text:string}[];note:string;edited:boolean;summary:string;published:boolean};
 export type Plan={week:number;weekKey:string;termWeeks:number;range:{start:string;end:string};holiday:boolean;published:boolean;publishedAt:string;items:PlanItem[];gaps:{subjectKey:string;message:string}[];fromDistribution?:boolean};
-export function PlanSubject({item,action}:{item:PlanItem;action?:React.ReactNode}){
+const SCHOOL_DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+// The week in both calendars: the two ranges, then every school day with its Hijri and Gregorian date.
+export function PlanDates({plan,compact=false}:{plan:{week:number;range:{start:string;end:string}};compact?:boolean}){
+  return <section className="tkDates" aria-label={`تاريخ الأسبوع ${plan.week} بالهجري والميلادي`}>
+    <div className="tkDatesHead"><b>الأسبوع {plan.week}</b>
+      <span><IconCalendar/><span dir="rtl">{hijriRange(plan.range)}</span></span>
+      <span><IconCalendar/><span dir="rtl">{gregorianRange(plan.range)}</span></span></div>
+    {!compact&&<table className="tkDatesTable"><thead><tr><th scope="col">اليوم</th><th scope="col">هجري</th><th scope="col">ميلادي</th></tr></thead>
+      <tbody>{SCHOOL_DAYS.map((label,index)=>{const day=dayInBoth(addDays(plan.range.start,index));return <tr key={label}><th scope="row">{label}</th><td>{day.hijri}</td><td>{day.gregorian}</td></tr>})}</tbody></table>}
+  </section>;
+}
+export function PlanSubject({item,action,start}:{item:PlanItem;action?:React.ReactNode;start?:string}){
   const quran=item.subjectKey==='quran';
   return <section className="tkBox blue">
     <div className="tkBoxHead"><img src={subjectIcon(item.subjectKey)} alt="" aria-hidden="true"/><div><b>{item.label}</b>{item.unit&&!item.holiday&&<small>{quran?`سورة ${item.unit}`:`الوحدة: ${item.unit}`}</small>}</div>{action}</div>
@@ -226,7 +266,7 @@ export function PlanSubject({item,action}:{item:PlanItem;action?:React.ReactNode
       {item.page&&<Fact label="الصفحة"><span className="num">{item.page}</span>{item.exercise?` — ${item.exercise}`:''}</Fact>}
       {item.skill&&<Fact label="المهارة">{item.skill}</Fact>}
     </dl>}
-    {!item.holiday&&item.days.length>0&&<div className="tkDays">{item.days.map(day=><span key={day.weekday}><b>{day.day}</b>{day.text?`: ${day.text}`:''}</span>)}</div>}
+    {!item.holiday&&item.days.length>0&&<div className="tkDays">{item.days.map(day=>{const both=start?dayInBoth(addDays(start,day.weekday)):null;return <span key={day.weekday}><b>{day.day}</b>{both&&<i>{both.hijriShort} · {both.gregorianShort}</i>}{day.text?`: ${day.text}`:''}</span>})}</div>}
     {item.note&&<p className="tkNoteLine">ملاحظة المعلم: {item.note}</p>}
   </section>;
 }
@@ -235,4 +275,62 @@ export function planStamp(plan:Plan){
   const stamp=formatStamp(plan.publishedAt);
   return stamp?`نُشرت تلقائيًا: ${stamp}`:'نُشرت تلقائيًا';
 }
-export const weekTitle=(plan:{week:number;range:{start:string;end:string}})=>`الأسبوع ${plan.week} · ${formatDay(plan.range.start,false)} – ${formatDay(plan.range.end,false)}`;
+export const weekTitle=(plan:{week:number;range:{start:string;end:string}})=>`الأسبوع ${plan.week} · ${hijriRange(plan.range)} · ${gregorianRange(plan.range)}`;
+// One line for the plan card on the home pages: the week in both calendars.
+export const weekDatesLine=(plan:{range:{start:string;end:string}})=>`${hijriRange(plan.range)} · ${gregorianRange(plan.range)}`;
+
+/* ---------- conversation (the same block for the guardian and for the teacher) ---------- */
+export type ChatMessage={id:string;from:'guardian'|'teacher';mine:boolean;text:string;createdAt:string;readAt:string;unread:boolean};
+type Draft={clientId:string;text:string;state:'sending'|'failed';reason:string};
+export function chatFailure(error:ApiError){
+  if(error.kind==='offline')return 'تعذر الاتصال بالخادم';
+  if(error.code==='MESSAGE_TOO_LONG')return 'الرسالة أطول من الحد المسموح';
+  if(error.code==='MESSAGE_LIMIT_REACHED')return 'بلغت حد الرسائل اليومي';
+  if(error.code==='GUARDIAN_LINK_REQUIRED')return 'الإرسال يحتاج رابط ولي الأمر';
+  if(error.kind==='unauthorized'||error.kind==='forbidden')return 'لا توجد صلاحية للإرسال';
+  return `تعذر الإرسال (${error.code})`;
+}
+// `send` resolves only after the server stored the message. A failed message stays in the list with «إعادة المحاولة»,
+// and the retry reuses the same id, so the server never stores it twice.
+export function Chat({messages,canSend,blockedNote,otherLabel,send,maxLength=1000}:{messages:ChatMessage[];canSend:boolean;blockedNote?:string;otherLabel:string;send:(text:string,clientId:string)=>Promise<void>;maxLength?:number}){
+  const [text,setText]=React.useState(''),[drafts,setDrafts]=React.useState<Draft[]>([]);
+  const end=React.useRef<HTMLDivElement>(null);
+  const waiting=drafts.filter(draft=>!messages.some(message=>message.id.endsWith(`_${draft.clientId}`)));
+  const sending=waiting.some(draft=>draft.state==='sending');
+  React.useEffect(()=>{end.current?.scrollIntoView({block:'end'})},[messages.length,waiting.length]);
+  const deliver=async(draft:Draft)=>{
+    setDrafts(list=>list.map(item=>item.clientId===draft.clientId?{...item,state:'sending',reason:''}:item));
+    try{await send(draft.text,draft.clientId);setDrafts(list=>list.filter(item=>item.clientId!==draft.clientId))}
+    catch(caught){const reason=chatFailure(asApiError(caught));setDrafts(list=>list.map(item=>item.clientId===draft.clientId?{...item,state:'failed',reason}:item))}
+  };
+  const submit=(event?:React.FormEvent)=>{
+    event?.preventDefault();const value=text.trim();if(!value||sending||!canSend)return;
+    const draft:Draft={clientId:newRequestId(),text:value,state:'sending',reason:''};
+    setText('');setDrafts(list=>[...list,draft]);void deliver(draft);
+  };
+  return <>
+    <div className="tkChat" role="log" aria-label="سجل المحادثة">
+      {!messages.length&&!waiting.length&&<Empty>لا توجد رسائل بعد. اكتب رسالتك في الأسفل.</Empty>}
+      {messages.map(message=><div key={message.id} className={`tkBubble ${message.mine?'mine':''}`}>
+        <small>{message.mine?'أنت':otherLabel}</small><p>{message.text}</p>
+        <span>{formatStamp(message.createdAt)}{message.mine?(message.readAt?' · قُرئت ✓✓':' · أُرسلت ✓'):''}</span></div>)}
+      {waiting.map(draft=><div key={draft.clientId} className={`tkBubble mine ${draft.state==='failed'?'failed':''}`}>
+        <small>أنت</small><p>{draft.text}</p>
+        {draft.state==='sending'?<span>جارٍ الإرسال…</span>:<><span role="alert">لم تُرسل — {draft.reason}</span>
+          <div className="tkActions"><button className="tkMini on" type="button" onClick={()=>void deliver(draft)}>إعادة المحاولة</button><button className="tkMini" type="button" onClick={()=>setDrafts(list=>list.filter(item=>item.clientId!==draft.clientId))}>حذف</button></div></>}
+      </div>)}
+      <div ref={end}/>
+    </div>
+    {canSend?<form className="tkComposer" onSubmit={submit}>
+      <textarea value={text} maxLength={maxLength} rows={1} onChange={event=>setText(event.target.value)} placeholder="اكتب رسالتك…" aria-label="نص الرسالة"/>
+      <button className="tkBtn" type="submit" disabled={!text.trim()||sending}>{sending?'جارٍ الإرسال…':'إرسال'}</button>
+    </form>:<div className="tkAlert info">{blockedNote||'الإرسال غير متاح في هذه الصفحة.'}</div>}
+    {canSend&&text.length>maxLength*.8&&<p className="tkCount"><span className="num">{text.length}/{maxLength}</span></p>}
+  </>;
+}
+// Reloads a remote value on a timer while its page is open (new messages appear without leaving the page).
+export function usePolling(reload:(quiet?:boolean)=>Promise<void>,ms:number){
+  React.useEffect(()=>{const timer=setInterval(()=>{if(document.visibilityState==='visible')void reload(true)},ms);return ()=>clearInterval(timer)},[reload,ms]);
+}
+export const fileSize=(bytes:number)=>bytes>=1048576?`${(bytes/1048576).toFixed(1)} م.ب`:`${Math.max(1,Math.round(bytes/1024))} ك.ب`;
+export const IconFolder=(p:SvgProps)=><svg viewBox="0 0 24 24" aria-hidden="true" {...p}><path d="M3.5 7.5c0-1.1.9-2 2-2h4l2 2.2h7c1.1 0 2 .9 2 2v7.8c0 1.1-.9 2-2 2h-13c-1.1 0-2-.9-2-2Z" {...stroke}/></svg>;

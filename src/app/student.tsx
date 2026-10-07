@@ -3,11 +3,10 @@
 import React from 'react';
 import boy from './assets/boy.webp';
 import gift from './assets/gift.webp';
-import sourati from './assets/shakabumbo-sourati.webp';
 import {
-  api,asApiError,BottomNav,Card,CardsSkeleton,CARD_ICON,Check,countLabel,Cta,Empty,Fact,Failure,formatDay,formatStamp,greeting,gregorianDate,Header,hijriDate,IconChevron,IconGear,IconHeart,IconSpark,IconStar,IconTarget,IconTrophy,riyadhClock,
-  Loading,NavBook,NavHome,NavHomeLine,NavStar,NavUser,PageHead,Pill,Plan,PlanSubject,planStamp,Result,RESULT_LABEL,Screen,SubjectImg,SubjectKey,subjectIcon,SUBJECT_LABEL,
-  useHashRoute,useNow,useRemote,useToast,weekTitle
+  api,asApiError,BottomNav,Card,CardsSkeleton,CARD_ICON,Chat,ChatMessage,Check,countLabel,Cta,Empty,Fact,Failure,fileSize,formatDay,formatStamp,greeting,gregorianDate,gregorianRange,Header,hijriDate,hijriRange,IconChevron,IconFolder,IconGear,IconHeart,IconMessage,IconSpark,IconStar,IconTarget,IconTrophy,riyadhClock,
+  Loading,NavBook,NavHome,NavHomeLine,NavStar,NavUser,PageHead,Pill,Plan,PlanDates,PlanSubject,planStamp,Result,RESULT_LABEL,Screen,SHAK,SubjectImg,SubjectKey,subjectIcon,SUBJECT_LABEL,
+  useHashRoute,useNow,usePolling,useRemote,useToast
 } from './kit';
 
 type Homework={id:string;displayTitle?:string;subjectKey:string;subjectLabel:string;title:string;lesson:string;segment:string;skill:string;page:number|null;exercise:string;task:string;kind:string;source:string;publishedAt:string;publishedDate:string;dueDate:string;status:string;done:boolean;completedAt:string;confirmedBy:string;teacherApprovedAt:string};
@@ -24,6 +23,8 @@ type Home={
   stars:{count:number;goal:number;log:{id:string;stars:number;label:string;createdAt:string}[]};
   quran:{currentWeek:number;current:QuranWeek|null;counts:Record<Result,number>;assessedWeeks:number;pastWeeks:number;totalWeeks:number;upcoming:QuranWeek[];weeks:QuranWeek[]};
   notes:{id:string;reason:string;summary:string;createdAt:string}[];
+  teacherName:string;
+  messages:{total:number;unread:number;canSend:boolean};
 };
 
 const query=new URLSearchParams(location.search);
@@ -68,7 +69,7 @@ export function StudentApp(){
     }finally{setBusy('')}
   },[busy,home,showToast]);
 
-  const tab=route.startsWith('week')?'weeks':route==='stars'?'stars':['me','settings','quran','quran-log','hobbies','goals','achievements','skills'].includes(route)?'me':'home';
+  const tab=route.startsWith('week')?'weeks':route==='stars'?'stars':['me','settings','quran','quran-log','hobbies','goals','achievements','skills','chat','files'].includes(route)?'me':'home';
   const nav=<BottomNav label="تنقل الطالب" active={tab} items={[
     {key:'home',label:'الرئيسية',icon:<NavHomeLine/>,activeIcon:<NavHome/>,onClick:()=>go('')},
     {key:'weeks',label:'الفصول',icon:<NavBook/>,onClick:()=>go('weeks')},
@@ -103,6 +104,8 @@ export function StudentApp(){
   else if(route==='skills')body=<SkillsPage home={data} back={back}/>;
   else if(route==='quran')body=<QuranPage home={data} back={back} go={go}/>;
   else if(route==='quran-log')body=<QuranLogPage home={data} back={back}/>;
+  else if(route==='chat')body=<ChatPage home={data} back={back} reload={()=>void home.reload(true)}/>;
+  else if(route==='files')body=<FilesPage back={back}/>;
   else if(route==='settings')body=<SettingsPage home={data} back={back} go={go} reload={()=>void home.reload(true)} toast={showToast}/>;
   else body=<HomeCards home={data} go={go} toggle={toggleHomework} busy={busy} reload={()=>void home.reload(true)} toast={showToast}/>;
 
@@ -117,7 +120,7 @@ function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(i
   return <>
     <ProfileCard home={home} go={go} reload={reload} toast={toast} top/>
     <div className="tkCards">
-      <Card tone="plan" title="الخطة الأسبوعية" subtitle="ماذا سندرس هذا الأسبوع؟" small="مواعيد الدروس والمهارات في جميع المواد" onOpen={()=>go('plan')}>
+      <Card tone="plan" title="الخطة الأسبوعية" subtitle="ماذا سندرس هذا الأسبوع؟" dates={[hijriRange(plan.range),gregorianRange(plan.range)]} onOpen={()=>go('plan')}>
         <div className="tkCardBody">
           {plan.holiday?<p className="tkCardNote">إجازة هذا الأسبوع — لا توجد دروس جديدة.</p>
           :!plan.published?<p className="tkCardNote">خطة هذا الأسبوع قيد النشر، وستظهر هنا تلقائيًا.</p>
@@ -137,8 +140,8 @@ function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(i
         <div className="tkHwBody">
           <div className="tkHwCol">
             {rows.map(item=><button className="tkHwRow" type="button" key={item.id} onClick={()=>toggle(item)} aria-pressed={item.done} aria-label={`${item.title} — ${item.done?'أُنجز':'لم يُنجز بعد'}`}>
-              <SubjectImg subject={item.subjectKey} scale={1.09} flat/><span className="tkHwText"><b>{item.displayTitle||item.title}</b><small>{item.subjectLabel}</small></span><Check on={item.done} busy={busy===item.id}/></button>)}
-            {!rows.length&&<div className="tkHwRow" role="note"><SubjectImg subject="arabic" scale={1.09} flat/><span className="tkHwText"><b>{home.today.schoolDay?'لا يوجد واجب لليوم':'لا يوجد واجب اليوم'}</b><small>{homework.pending.length?`لديك ${countLabel(homework.pending.length,'واجب سابق','واجبان سابقان','واجبات سابقة','واجبًا سابقًا')}`:'استمتع بوقتك'}</small></span></div>}
+              <SubjectImg subject={item.subjectKey} size={34}/><span className="tkHwText"><b>{item.displayTitle||item.title}</b><small>{item.subjectLabel}</small></span><Check on={item.done} busy={busy===item.id}/></button>)}
+            {!rows.length&&<div className="tkHwRow" role="note"><SubjectImg subject="arabic" size={34}/><span className="tkHwText"><b>{home.today.schoolDay?'لا يوجد واجب لليوم':'لا يوجد واجب اليوم'}</b><small>{homework.pending.length?`لديك ${countLabel(homework.pending.length,'واجب سابق','واجبان سابقان','واجبات سابقة','واجبًا سابقًا')}`:'استمتع بوقتك'}</small></span></div>}
             <p className="tkHwCount">{homeworkCountText(home)}</p>
           </div>
           <Cta onClick={()=>go('homework')}/>
@@ -153,14 +156,16 @@ function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(i
         </div>
       </Card>
     </div>
+    <button className="tkRowBtn out" type="button" onClick={()=>go('chat')}><span className="tkRowIcon" aria-hidden="true"><IconMessage/></span><span className="tkGrow"><b>التواصل مع المعلم</b><small>{home.messages.unread?countLabel(home.messages.unread,'رسالة جديدة من المعلم','رسالتان جديدتان من المعلم','رسائل جديدة من المعلم','رسالة جديدة من المعلم'):'اكتب رسالة للمعلم واقرأ ردّه'}</small></span>{home.messages.unread>0&&<span className="tkUnread num" aria-label="رسائل غير مقروءة">{home.messages.unread}</span>}<IconChevron/></button>
   </>;
 }
 
 function PlanPage({home,back,go}:{home:Home;back:()=>void;go:Go}){
   const plan=home.plan;
   return <div className="tkPage">
-    <PageHead title="الخطة الأسبوعية" subtitle={weekTitle(plan)} icon={CARD_ICON.plan} onBack={back}/>
-    {plan.items.map(item=><PlanSubject key={item.subjectKey} item={item}/>)}
+    <PageHead title="الخطة الأسبوعية" subtitle={`${home.week.label} · بالتاريخ الهجري والميلادي`} icon={CARD_ICON.plan} onBack={back}/>
+    <PlanDates plan={plan}/>
+    {plan.items.map(item=><PlanSubject key={item.subjectKey} item={item} start={plan.range.start}/>)}
     <p className="tkMeta">{planStamp(plan)}</p>
     <div className="tkActions" style={{marginTop:'calc(var(--u)*8)'}}><button className="tkBtn ghost" type="button" onClick={()=>go('weeks')}>الأسابيع السابقة</button></div>
   </div>;
@@ -217,9 +222,10 @@ function SubjectPage({home,subjectKey,back,toggle,busy}:{home:Home;subjectKey:Su
   const homework=[...home.homework.today,...home.homework.pending].filter(item=>item.subjectKey===subjectKey);
   if(!planItem)return <div className="tkPage"><PageHead title="المادة" onBack={back}/><Empty>هذه المادة غير موجودة في الخطة.</Empty></div>;
   return <div className="tkPage">
-    <PageHead title={SUBJECT_LABEL[subjectKey]||planItem.label} subtitle={weekTitle(home.plan)} icon={subjectIcon(subjectKey)} onBack={back}/>
+    <PageHead title={SUBJECT_LABEL[subjectKey]||planItem.label} subtitle={`الأسبوع ${home.plan.week}`} icon={subjectIcon(subjectKey)} onBack={back}/>
     <h2 className="tkH">خطة الأسبوع</h2>
-    {home.plan.published||home.plan.holiday?<PlanSubject item={planItem}/>:<Empty>خطة هذا الأسبوع قيد النشر.</Empty>}
+    <PlanDates plan={home.plan} compact/>
+    {home.plan.published||home.plan.holiday?<PlanSubject item={planItem} start={home.plan.range.start}/>:<Empty>خطة هذا الأسبوع قيد النشر.</Empty>}
     <h2 className="tkH">تقييم مهارة الأسبوع</h2>
     <div className="tkRow"><div className="tkGrow"><b>{assessment?.skill||planItem.skill||'—'}</b>{assessment?.status&&assessment.updatedAt&&<small>{formatStamp(assessment.updatedAt)}</small>}</div><Pill status={assessment?.status||null}/></div>
     <h2 className="tkH">واجبات المادة</h2>
@@ -228,15 +234,60 @@ function SubjectPage({home,subjectKey,back,toggle,busy}:{home:Home;subjectKey:Su
 }
 
 function StarsPage({home,back}:{home:Home;back:()=>void}){
-  const {count,goal,log}=home.stars,left=Math.max(0,goal-count);
+  const {count,goal,log}=home.stars,left=Math.max(0,goal-count),percent=Math.max(0,Math.min(100,Math.round(count/Math.max(1,goal)*100)));
   return <div className="tkPage">
     <PageHead title="النجوم" subtitle="إنجازاتك وتحفيزك هذا الشهر" icon={CARD_ICON.stars} onBack={back}/>
     <section className="tkBox purple">
       <div className="tkBigStars"><img src={CARD_ICON.stars} alt="" aria-hidden="true"/><div><b className="num">{count}</b> <span>من <span className="num">{goal}</span> نجمة</span><p className="tkMeta" style={{textAlign:'right',margin:0}}>{left?`بقي ${left} للوصول إلى المكافأة القادمة`:'وصلت إلى المكافأة — أحسنت!'}</p></div></div>
+      <div className="tkStarsMeter"><div className="tkBar" role="progressbar" aria-valuemin={0} aria-valuemax={goal} aria-valuenow={count} aria-label="تقدم النجوم"><i style={{width:`${percent}%`}}/></div>
+        <p><span>التقدم: <span className="num">{percent}%</span></span><span>المكافأة القادمة عند <span className="num">{goal}</span> نجمة</span></p></div>
       <div className="tkStarGrid" aria-hidden="true">{Array.from({length:goal},(_,index)=><i key={index} className={index<count?'on':''}><IconStar/></i>)}</div>
+    </section>
+    <section className="tkTrophy" aria-label="شكابمبو يحمل كأس النجوم">
+      <img src={SHAK.trophy} alt="شكابمبو واقفًا يحمل كأسًا ذهبيًا" loading="lazy" width={570} height={760}/>
+      <b>{left?`واصل يا ${home.student.firstName}!`:`مبارك يا ${home.student.firstName}!`}</b>
+      <span>{left?`اجمع ${left} ${left===1?'نجمة':left===2?'نجمتين':left<=10?'نجوم':'نجمة'} لتصل إلى الكأس.`:'جمعت نجوم الشهر كلها.'}</span>
     </section>
     <h2 className="tkH">سجل النجوم</h2>
     {log.length?<div className="tkList">{log.map(entry=><div className="tkRow" key={entry.id}><div className="tkGrow"><b>{entry.label}</b><small>{formatStamp(entry.createdAt)}</small></div><span className={`tkDelta num ${entry.stars<0?'minus':''}`}>{entry.stars>0?`+${entry.stars}`:entry.stars}</span></div>)}</div>:<Empty>لم تُسجَّل نجوم هذا الشهر بعد. النجوم يمنحها المعلم.</Empty>}
+  </div>;
+}
+
+/* ---------- conversation with the teacher ---------- */
+type Thread={messages:ChatMessage[];unread:number;canSend:boolean;teacherName:string;maxLength:number};
+function ChatPage({home,back,reload}:{home:Home;back:()=>void;reload:()=>void}){
+  const remote=useRemote<Thread>(`chat:${STUDENT_ID}`,()=>api<Thread>(`/api/student-state?view=messages&${accessQuery}`));
+  usePolling(remote.reload,20000);
+  const thread=remote.data,unread=thread?.unread||0,canSend=Boolean(thread?.canSend);
+  // Opening the conversation marks the teacher's messages as read (only with the guardian's own link).
+  React.useEffect(()=>{
+    if(!unread||!canSend)return;
+    void api('/api/student-state',{method:'POST',body:{studentId:STUDENT_ID,action:'messages_read',invite:INVITE}}).then(()=>{void remote.reload(true);reload()}).catch(()=>undefined);
+  },[unread,canSend]);// eslint-disable-line react-hooks/exhaustive-deps
+  const send=async(text:string,clientId:string)=>{
+    await api('/api/student-state',{method:'POST',body:{studentId:STUDENT_ID,action:'message_send',invite:INVITE,text,clientId}});
+    await remote.reload(true);
+  };
+  return <div className="tkPage">
+    <PageHead title="التواصل مع المعلم" subtitle={`${home.teacherName} · ${home.student.name}`} onBack={back}/>
+    {remote.error&&!thread?<Failure error={remote.error} role="student" onRetry={()=>void remote.reload()}/>:!thread?<Loading/>
+      :<Chat messages={thread.messages} canSend={thread.canSend} otherLabel={home.teacherName} send={send} maxLength={thread.maxLength}
+        blockedNote="أنت تعاين صفحة الطالب بجلسة المعلم دون رابط ولي الأمر، لذلك تُعرض المحادثة للقراءة فقط. للرد افتح «الرسائل» من صفحة المعلم."/>}
+    <p className="tkMeta">تصل رسالتك إلى معلم الصف فقط، ولا يراها أحد من الطلاب أو أولياء الأمور الآخرين.</p>
+  </div>;
+}
+/* ---------- files the teacher shared with this student ---------- */
+type SharedFile={id:string;title:string;name:string;category:string;size:number;createdAt:string;note:string};
+const FILE_KIND:Record<string,string>={books:'كتاب أو دليل',worksheets:'ورقة عمل',remediation:'خطة علاجية',weekly:'خطة أسبوعية',assessments:'نموذج تقييم',spelling:'الإملاء والخط',general:'ملف تعليمي'};
+function FilesPage({back}:{back:()=>void}){
+  const remote=useRemote<{files:SharedFile[]}>(`files:${STUDENT_ID}`,()=>api(`/api/library-files?role=student&${accessQuery}`));
+  const files=(remote.data?.files||[]).filter(file=>file.category!=='teacher-portfolio');
+  return <div className="tkPage">
+    <PageHead title="ملفاتي من المعلم" subtitle="الكتب وأوراق العمل التي شاركها المعلم" onBack={back}/>
+    {remote.error?<Failure error={remote.error} role="student" onRetry={()=>void remote.reload()}/>:!remote.data?<Loading/>
+      :files.length?<section className="tkLibSec sky">{files.map(file=><div className="tkFile" key={file.id}><div><b>{file.title}</b><small>{FILE_KIND[file.category]||'ملف'} · {fileSize(file.size)} · {formatDay(file.createdAt,false)}</small>{file.note&&<small>{file.note}</small>}</div>
+        <a className="tkAct primary" href={`/api/library-files?action=download&id=${encodeURIComponent(file.id)}&role=student&${accessQuery}`}>تنزيل</a></div>)}</section>
+      :<Empty>لم يشارك المعلم ملفات معك بعد.</Empty>}
   </div>;
 }
 
@@ -253,9 +304,10 @@ function WeekPage({home,week,back}:{home:Home;week:number;back:()=>void}){
   const remote=useRemote<{plan:Plan}>(`week:${week}`,()=>api(`/api/student-state?view=week&week=${week}&${accessQuery}`));
   const results=home.assessment.history.filter(entry=>entry.week===week&&entry.subjectKey!=='quran');
   return <div className="tkPage">
-    <PageHead title={`الأسبوع ${week}`} subtitle={remote.data?weekTitle(remote.data.plan):home.student.termLabel} icon={CARD_ICON.plan} onBack={back}/>
+    <PageHead title={`الأسبوع ${week}`} subtitle={home.student.termLabel} icon={CARD_ICON.plan} onBack={back}/>
     {remote.error?<Failure error={remote.error} role="student" onRetry={()=>void remote.reload()}/>:!remote.data?<Loading/>:<>
-      {remote.data.plan.items.map(item=><PlanSubject key={item.subjectKey} item={item} action={(()=>{const result=results.find(entry=>entry.subjectKey===item.subjectKey);return result?<Pill status={result.status}/>:undefined})()}/>)}
+      <PlanDates plan={remote.data.plan}/>
+      {remote.data.plan.items.map(item=><PlanSubject key={item.subjectKey} item={item} start={remote.data!.plan.range.start} action={(()=>{const result=results.find(entry=>entry.subjectKey===item.subjectKey);return result?<Pill status={result.status}/>:undefined})()}/>)}
       <p className="tkMeta">{planStamp(remote.data.plan)}</p></>}
   </div>;
 }
@@ -312,7 +364,7 @@ function ProfileCard({home,go,reload,toast,top=false}:{home:Home;go:Go;reload:()
     <button className="tkGear" type="button" onClick={()=>go('settings')} aria-label="الإعدادات"><IconGear/></button>
     <div className="tkProfileTop">
       <button className={`tkPhoto ${student.photo?'custom':''}`} type="button" onClick={photo.open} disabled={photo.busy} aria-label="تغيير صورتي">
-        <img src={student.photo||sourati} alt={student.photo?'صورتي':'شكابمبو — صورتي'}/>{student.photo&&<span>صورتي</span>}
+        <img src={student.photo||SHAK.sourati} alt={student.photo?'صورتي':'شكابمبو — صورتي'}/>{student.photo&&<span>صورتي</span>}
       </button>
       {photo.field}
       <dl className="tkProfileText">
@@ -332,6 +384,8 @@ function AccountPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go;
     <ProfileCard home={home} go={go} reload={reload} toast={toast}/>
     <div className="tkList">
       <button className="tkRow" type="button" onClick={()=>go('settings')}><span className="tkRowIcon" aria-hidden="true"><IconGear/></span><span className="tkGrow"><b>الإعدادات</b><small>صورتي وهواياتي</small></span><IconChevron/></button>
+      <button className="tkRow" type="button" onClick={()=>go('chat')}><span className="tkRowIcon" aria-hidden="true"><IconMessage/></span><span className="tkGrow"><b>التواصل مع المعلم</b><small>{home.messages.unread?countLabel(home.messages.unread,'رسالة جديدة','رسالتان جديدتان','رسائل جديدة','رسالة جديدة'):'رسائلك مع المعلم'}</small></span>{home.messages.unread>0&&<span className="tkUnread num">{home.messages.unread}</span>}<IconChevron/></button>
+      <button className="tkRow" type="button" onClick={()=>go('files')}><span className="tkRowIcon green" aria-hidden="true"><IconFolder/></span><span className="tkGrow"><b>ملفاتي من المعلم</b><small>الكتب وأوراق العمل المشاركة معك</small></span><IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('quran')}><img src={subjectIcon('quran')} alt="" aria-hidden="true"/><span className="tkGrow"><b>متابعة حفظ القرآن الكريم</b><small>الأسبوع الحالي وسجل الحفظ</small></span><IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('assessment')}><img src={CARD_ICON.assessment} alt="" aria-hidden="true"/><span className="tkGrow"><b>تقييماتي وملاحظات المعلم</b><small>{home.notes.length?countLabel(home.notes.length,'ملاحظة واحدة','ملاحظتان','ملاحظات','ملاحظة'):'لا توجد ملاحظات'}</small></span><IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('weeks')}><img src={CARD_ICON.plan} alt="" aria-hidden="true"/><span className="tkGrow"><b>خطط الأسابيع السابقة</b><small>{student.termLabel}</small></span><IconChevron/></button>
@@ -345,7 +399,7 @@ function SettingsPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go
     <PageHead title="الإعدادات" subtitle={student.name} onBack={back}/>
     <h2 className="tkH">صورتي</h2>
     <section className="tkBox"><div className="tkSettingsPhoto">
-      <span className={`tkPhoto ${student.photo?'custom':''}`}><img src={student.photo||sourati} alt={student.photo?'صورتي':'شكابمبو — صورتي'}/></span>
+      <span className={`tkPhoto ${student.photo?'custom':''}`}><img src={student.photo||SHAK.sourati} alt={student.photo?'صورتي':'شكابمبو — صورتي'}/></span>
       <div className="tkActions">
         <button className="tkBtn" type="button" disabled={photo.busy} onClick={photo.open}>{photo.busy?'جارٍ الحفظ…':'تغيير الصورة'}</button>
         {student.photo&&<button className="tkBtn ghost" type="button" disabled={photo.busy} onClick={()=>void photo.remove()}>إزالة صورتي</button>}

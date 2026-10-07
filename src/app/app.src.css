@@ -61,6 +61,8 @@ a{color:inherit;text-decoration:none}
 .tkCard.homework .tkCardSub{margin-top:.7u;font-size:11.3u;line-height:14.7u;color:var(--orange-sub)}
 .tkCard.stars .tkCardSub{margin-top:2.4u;font-size:10.3u;line-height:13.4u;color:#61618d}
 .tkCardSmall{display:block;margin-top:.8u;font-size:7.2u;line-height:9.4u;color:#51667f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tkCardDates{display:flex;flex-wrap:wrap;gap:0 5u;margin-top:1.5u;font-size:8.6u;font-weight:600;line-height:12.4u;color:var(--blue-ink)}
+.tkCardDates span{white-space:nowrap}
 .tkChevron{position:absolute;top:13.2u;left:12u;width:28.5u;height:28.5u;border-radius:50%;display:grid;place-items:center}
 .tkChevron svg{width:13.5u;height:13.5u}
 .tkCard.plan .tkChevron{background:var(--blue-soft);color:#0b78ea}
@@ -77,13 +79,12 @@ a{color:inherit;text-decoration:none}
 .tkCta:active,.tkChevron:active,.tkTile:active{transform:scale(.97)}
 
 .tkTiles{flex:1;min-width:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6.4u}
-.tkTile{min-width:0;height:48.4u;border-radius:10u;background:rgba(255,255,255,.62);box-shadow:inset 0 0 0 1u rgba(255,255,255,.75);display:flex;flex-direction:column;align-items:center;padding:.6u 2u 0;text-align:center}
-.tkSubjectImg{flex:none;display:grid;place-items:end center}
-.tkSubjectImg img{display:block;object-fit:contain}
-.tkTile .tkSubjectImg{height:22u}
+.tkTile{min-width:0;min-height:74u;border-radius:10u;background:rgba(255,255,255,.62);box-shadow:inset 0 0 0 1u rgba(255,255,255,.75);display:flex;flex-direction:column;align-items:center;padding:3u 2u 4u;text-align:center}
+.tkSubjectImg{flex:none;display:grid;place-items:center}
+.tkSubjectImg img{display:block;width:100%;height:100%;object-fit:contain}
 .tkTile b{margin-top:2.8u;font-size:7.75u;font-weight:600;line-height:10u;color:#0a1b3d;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .tkTile small{margin-top:.5u;font-size:7u;font-weight:400;line-height:9.2u;color:#4f6585;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.tkCard.assessment .tkTile{height:60.4u;padding-top:.9u;background:rgba(255,255,255,.55)}
+.tkCard.assessment .tkTile{min-height:88u;background:rgba(255,255,255,.55)}
 .tkCard.assessment .tkTile b{margin-top:3.3u;font-size:7.8u}
 .tkPill{display:inline-grid;place-items:center;min-width:50.3u;max-width:100%;height:16u;margin-top:2.9u;padding:0 5u;border-radius:99u;font-size:8.2u;font-weight:500;line-height:1;color:#fff;white-space:nowrap;overflow:hidden}
 .tkPill.mastered{background:linear-gradient(180deg,#42ab50,#3aa248)}
@@ -96,7 +97,7 @@ a{color:inherit;text-decoration:none}
 .tkCardNote{flex:1;min-width:0;align-self:center;font-size:9.4u;line-height:1.55;color:var(--ink2);text-align:right;padding:2u 2u 6u}
 
 /* overflow:hidden + tight line boxes would clip the dots under ي: give the clip box room below */
-.tkHello p,.tkCardSub,.tkCardSmall,.tkTile b,.tkTile small,.tkHwText b,.tkHwText small,.tkPageHead h1,.tkPageHead p,.tkIdText h1,.tkIdText p,.tkStatText small,.tkProfileTile small{padding-bottom:3.5u;margin-bottom:-3.5u}
+.tkHello p,.tkCardSub,.tkCardSmall,.tkTile b,.tkTile small,.tkHwText b,.tkHwText small,.tkPageHead h1,.tkIdText h1,.tkIdText p,.tkStatText small,.tkProfileTile small{padding-bottom:3.5u;margin-bottom:-3.5u}
 
 /* homework card */
 .tkHwBody{display:flex;align-items:flex-end;gap:26.2u;padding:6.5u 54.2u 0 9.97u}
@@ -129,6 +130,8 @@ a{color:inherit;text-decoration:none}
 .tkStarCount>span{font-size:10.4u;font-weight:400;color:#61618b}
 
 /* ---------- bottom nav ---------- */
+.tkNav.five{grid-template-columns:repeat(5,1fr)}
+.tkNav img{width:27u;height:27u;object-fit:contain;margin-top:-1.2u}
 .tkNav{position:fixed;z-index:30;bottom:0;left:50%;transform:translateX(-50%);width:412u;max-width:100%;height:calc(51.6u + env(safe-area-inset-bottom,0px));padding:0 10.3u env(safe-area-inset-bottom,0px);display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-radius:15u 15u 0 0;box-shadow:0 -2u 10u rgba(60,100,150,.12)}
 .tkNav button,.tkNav a{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2.3u;padding-top:2.8u;color:#666f77;font-size:9.3u;font-weight:400;line-height:12u}
 .tkNav svg{width:24.6u;height:24.6u}
@@ -161,15 +164,15 @@ a{color:inherit;text-decoration:none}
 .tkBack svg{width:13u;height:13u;transform:scaleX(-1)}
 .tkPageHead>div{flex:1;min-width:0}
 .tkPageHead h1{font-size:15.6u;font-weight:700;line-height:1.3;color:#0a1b3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tkPageHead p{font-size:9.6u;line-height:1.4;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tkPageHead img{flex:none;width:32u;height:32u;object-fit:contain}
+.tkPageHead p{font-size:9.6u;line-height:1.5;color:var(--ink2);overflow-wrap:anywhere}
+.tkPageHead img{flex:none;width:38u;height:40u;object-fit:contain}
 .tkBox{border-radius:14u;background:rgba(255,255,255,.86);border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.11);padding:10u 11u;margin-bottom:6u}
 .tkBox.blue{background:linear-gradient(180deg,#f1f8ff,#e7f3fe)}
 .tkBox.green{background:linear-gradient(180deg,#f1f9f1,#e8f5e9)}
 .tkBox.orange{background:linear-gradient(180deg,#fff9ec,#fff3dd)}
 .tkBox.purple{background:linear-gradient(180deg,#f5f2fe,#ece8fb)}
 .tkBoxHead{display:flex;align-items:center;gap:7u;margin-bottom:6u}
-.tkBoxHead img{flex:none;width:24u;height:24u;object-fit:contain}
+.tkBoxHead img{flex:none;width:30u;height:36u;object-fit:contain}
 .tkBoxHead>div{flex:1;min-width:0}
 .tkBoxHead b{display:block;font-size:12.4u;font-weight:600;line-height:1.35;color:#0a1b3d}
 .tkBoxHead small{display:block;font-size:9u;line-height:1.4;color:var(--ink3)}
@@ -182,11 +185,12 @@ a{color:inherit;text-decoration:none}
 .tkDays{display:flex;flex-wrap:wrap;gap:4u;margin-top:6u}
 .tkDays span{padding:3u 8u;border-radius:99u;background:#fff;box-shadow:inset 0 0 0 1u #d5e6f7;font-size:8.8u;line-height:1.5;color:var(--ink2)}
 .tkDays b{font-weight:600;color:#0a1b3d}
+.tkDays i{font-style:normal;margin-inline-start:4u;color:var(--blue-ink);font-size:8.2u}
 .tkNoteLine{margin-top:6u;padding:6u 9u;border-radius:10u;background:#fff8e6;box-shadow:inset 0 0 0 1u #f6e0a8;font-size:9.6u;line-height:1.65;color:#6a4a0d}
 .tkMeta{margin:4u 4u 0;font-size:8.6u;line-height:1.7;color:var(--ink3);text-align:center}
 .tkList{display:grid;gap:5u}
 .tkRow{display:flex;align-items:center;gap:8u;min-height:38u;padding:6u 10u;border-radius:12u;background:rgba(255,255,255,.88);border:1.2u solid #fff;box-shadow:0 1.5u 6u rgba(72,118,170,.09);text-align:right;width:100%}
-.tkRow>img{flex:none;width:22u;height:22u;object-fit:contain}
+.tkRow>img{flex:none;width:28u;height:34u;object-fit:contain}
 .tkRow>span.tkGrow,.tkRow>div.tkGrow{flex:1;min-width:0;display:grid;gap:1u}
 .tkRow b{font-size:10.6u;font-weight:600;line-height:1.4;color:#0a1b3d;overflow-wrap:anywhere}
 .tkRow small{font-size:8.8u;line-height:1.45;color:var(--ink3);overflow-wrap:anywhere}
@@ -197,7 +201,7 @@ a{color:inherit;text-decoration:none}
 .tkChips{display:flex;gap:5u;overflow-x:auto;padding:1u 1u 6u;scrollbar-width:none}
 .tkChips::-webkit-scrollbar{display:none}
 .tkChip{flex:none;display:flex;align-items:center;gap:4u;min-height:28u;padding:0 11u;border-radius:99u;background:rgba(255,255,255,.82);box-shadow:inset 0 0 0 1.1u #d3e4f4;font-size:9.8u;font-weight:500;color:var(--ink2);white-space:nowrap}
-.tkChip img{width:15u;height:15u;object-fit:contain}
+.tkChip img{width:18u;height:22u;object-fit:contain}
 .tkChip.on{background:var(--blue);color:#fff;box-shadow:none}
 .tkSelect{width:100%;min-height:34u;padding:0 11u;border-radius:11u;border:1.2u solid #cfe1f3;background:#fff;font-size:max(10.4u,16px);color:#0a1b3d}
 .tkField{display:grid;gap:3.5u;margin-bottom:7u;font-size:9.6u;color:var(--ink2)}
@@ -275,9 +279,11 @@ a{color:inherit;text-decoration:none}
 .tkSeg button{min-height:26u;border-radius:99u;font-size:9.4u;color:var(--ink2)}
 .tkSeg button.on{background:#fff;color:var(--blue-ink);font-weight:600;box-shadow:0 1u 4u rgba(60,110,170,.18)}
 .tkSaved{font-size:8.8u;color:#2a7d3a;text-align:center;margin:6u 0 0}
-.tkStarBtns{flex:none;display:flex;align-items:center;gap:5u}
-.tkStarBtns button{width:28u;height:28u;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.2u #d9d0f3;font-size:14u;font-weight:600;color:#5539ab;display:grid;place-items:center;line-height:1}
-.tkStarBtns b{min-width:20u;text-align:center;font-size:12u;color:#5539ab}
+.tkStarBtns{flex:1 1 auto;display:flex;align-items:center;gap:7u}
+.tkStarBtns button{width:max(44px,36u);height:max(44px,36u);border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.2u #d9d0f3;font-size:max(17u,20px);font-weight:600;color:#5539ab;display:grid;place-items:center;line-height:1}
+.tkStarBtns button:disabled{opacity:.45}
+.tkStarBtns b{min-width:26u;text-align:center;font-size:max(15u,17px);color:#5539ab}
+.tkStarBtns span{font-size:max(9.4u,11px);color:#61618b}
 .tkProgressLine{height:6u;border-radius:99u;background:#e6edf4;overflow:hidden;margin-top:5u;direction:ltr}
 .tkProgressLine i{display:block;height:100%;border-radius:99u;background:var(--ok)}
 
@@ -367,3 +373,128 @@ a{color:inherit;text-decoration:none}
 .tkSettingsPhoto{display:flex;align-items:center;gap:11u}
 .tkSettingsPhoto .tkActions{flex:1;flex-direction:column;align-items:stretch}
 .tkSettingsPhoto .tkActions>*{flex:none}
+
+/* ---------- weekly plan: Hijri and Gregorian together ---------- */
+.tkDates{border-radius:14u;background:linear-gradient(180deg,#ffffff,#f2f9ff);border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.11);padding:9u 10u;margin-bottom:6u}
+.tkDatesHead{display:flex;flex-wrap:wrap;align-items:center;gap:5u 8u}
+.tkDatesHead b{font-size:12.4u;font-weight:700;color:var(--blue-ink)}
+.tkDatesHead>span{display:inline-flex;align-items:center;gap:4u;min-height:22u;padding:0 9u;border-radius:99u;background:#eaf4fe;font-size:9.6u;font-weight:600;color:#17407c;white-space:nowrap}
+.tkDatesHead>span+span{background:#eaf6ea;color:#1c5a30}
+.tkDatesHead svg{flex:none;width:11u;height:11u}
+.tkDatesTable{width:100%;margin-top:7u;border-collapse:separate;border-spacing:0 3u;font-size:9.6u;line-height:1.5}
+.tkDatesTable th,.tkDatesTable td{padding:4u 7u;text-align:right;background:#f4f9fe}
+.tkDatesTable thead th{background:none;padding:0 7u;font-size:8.4u;font-weight:500;color:var(--ink3)}
+.tkDatesTable tbody th{font-weight:600;color:#0a1b3d;border-radius:0 9u 9u 0;white-space:nowrap}
+.tkDatesTable tbody td{color:#17407c;font-weight:500}
+.tkDatesTable tbody td:last-child{color:#1c5a30;border-radius:9u 0 0 9u}
+
+/* ---------- student rows: large names, one pastel card per student ---------- */
+.tkSt{display:grid;gap:7u;border-radius:15u;padding:10u 11u;border:1.3u solid rgba(255,255,255,.95);box-shadow:0 1.5u 6u rgba(72,118,170,.1)}
+.tkSt.c0{background:linear-gradient(180deg,#eff8ff,#e0f0fe)}
+.tkSt.c1{background:linear-gradient(180deg,#f0f9f0,#e2f3e4)}
+.tkSt.c2{background:linear-gradient(180deg,#fff9e8,#fdf0cd)}
+.tkSt.c3{background:linear-gradient(180deg,#f5f1fe,#e9e3fb)}
+.tkStHead{display:flex;align-items:center;gap:9u}
+.tkStNum{flex:none;min-width:31u;height:31u;padding:0 4u;border-radius:10u;background:#fff;color:var(--blue-ink);font-size:max(12.5u,13px);font-weight:700;display:grid;place-items:center;box-shadow:0 1u 3u rgba(72,118,170,.14)}
+.tkStName{flex:1;min-width:0;font-size:clamp(20px,21u,22px);font-weight:700;line-height:1.5;color:#061a3a;overflow-wrap:anywhere}
+.tkStMeta{display:flex;flex-wrap:wrap;align-items:center;gap:5u}
+.tkBadge{display:inline-flex;align-items:center;gap:3u;min-height:22u;padding:0 9u;border-radius:99u;background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 1u rgba(120,150,185,.35);font-size:max(9.4u,11px);font-weight:500;line-height:1.3;color:#2b4567;white-space:nowrap}
+.tkBadge.focus{background:#fff;box-shadow:inset 0 0 0 1.4u #e79a2f;color:#7a3c00;font-weight:700}
+.tkBadge.new{background:#1688f0;color:#fff;box-shadow:none;font-weight:700}
+.tkBadge.mastered{background:#e2f4e5;color:#1c6a31;box-shadow:none}
+.tkBadge.needs_repeat{background:#ffedc8;color:#7a4d00;box-shadow:none}
+.tkBadge.not_mastered{background:#fde3e1;color:#9c2a25;box-shadow:none}
+.tkStActions{display:flex;flex-wrap:wrap;gap:6u}
+.tkAct{flex:1 1 auto;display:inline-grid;place-items:center;min-height:max(44px,38u);min-width:max(44px,38u);padding:0 12u;border-radius:13u;background:#fff;box-shadow:inset 0 0 0 1.2u #c9dcef;font-size:max(11u,13px);font-weight:600;line-height:1.3;color:var(--blue-ink);text-align:center}
+.tkAct.primary{background:var(--blue);color:#fff;box-shadow:none}
+.tkAct.green{background:var(--green);color:#fff;box-shadow:none}
+.tkAct.warn{box-shadow:inset 0 0 0 1.2u #efc27b;color:#7a4300}
+.tkAct:disabled{opacity:.5}
+.tkAct:active{transform:scale(.98)}
+.tkSt .tkTri{margin-top:0}
+.tkSt .tkTri button{min-height:max(44px,36u);font-size:max(10.6u,13px);font-weight:600}
+.tkStLine{font-size:max(10u,12px);line-height:1.6;color:#2b4567;overflow-wrap:anywhere}
+.tkStLine b{font-weight:600;color:#0a1b3d}
+.tkConfirm{display:grid;gap:6u;padding:8u 10u;border-radius:12u;background:#fff8e6;box-shadow:inset 0 0 0 1.2u #f1cf8a;font-size:9.8u;line-height:1.7;color:#6a4a0d}
+.tkScope{font-size:9.4u;line-height:1.7;color:var(--ink2);margin:2u 2u 0}
+
+/* ---------- conversation between the guardian and the teacher ---------- */
+.tkChat{display:grid;gap:7u;padding:2u 0 4u}
+.tkBubble{max-width:86%;justify-self:start;display:grid;gap:3u;padding:8u 11u;border-radius:15u 15u 15u 5u;background:#fff;box-shadow:0 1.5u 6u rgba(72,118,170,.12)}
+.tkBubble.mine{justify-self:end;border-radius:15u 15u 5u 15u;background:linear-gradient(180deg,#e4f6e7,#d6efdb)}
+.tkBubble.failed{background:#fdeceb;box-shadow:inset 0 0 0 1.2u #f0b2ad}
+.tkBubble small{font-size:max(8.4u,10.5px);font-weight:600;color:var(--blue-ink)}
+.tkBubble.mine small{color:#1c5a30}
+.tkBubble p{font-size:max(11.6u,15px);line-height:1.75;color:#0a1b3d;white-space:pre-wrap;overflow-wrap:anywhere}
+.tkBubble span{font-size:max(8.2u,10.5px);line-height:1.5;color:var(--ink3)}
+.tkBubble .tkActions{margin-top:2u}
+.tkBubble .tkMini{min-height:max(40px,30u);padding:0 10u;font-size:max(9.4u,12px)}
+.tkComposer{position:sticky;bottom:calc(56u + env(safe-area-inset-bottom,0px));z-index:15;display:flex;align-items:flex-end;gap:6u;margin-top:8u;padding:7u;border-radius:16u;background:rgba(255,255,255,.96);box-shadow:0 2u 12u rgba(60,100,150,.2)}
+.tkComposer textarea{flex:1;min-width:0;min-height:44px;max-height:120u;padding:9u 10u;border-radius:12u;border:1.2u solid #cfe1f3;background:#fff;font-size:max(11u,16px);line-height:1.6;resize:none}
+.tkComposer .tkBtn{flex:none;min-height:max(44px,36u);padding:0 15u;border-radius:13u;font-size:max(11u,14px);font-weight:600}
+.tkCount{font-size:8.4u;color:var(--ink3);text-align:left;margin:2u 4u 0}
+.tkUnread{flex:none;min-width:22u;height:22u;padding:0 6u;border-radius:99u;background:#e0463f;color:#fff;font-size:max(9.6u,11px);font-weight:700;display:grid;place-items:center}
+
+/* ---------- stars: Shakabumbo with the trophy in his own space ---------- */
+.tkTrophy{display:grid;justify-items:center;gap:4u;margin:8u 0 4u;padding:12u 10u 10u;border-radius:16u;background:linear-gradient(180deg,#f7f4ff,#ece7fb);border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.11)}
+.tkTrophy img{display:block;width:auto;height:208u;max-width:100%;object-fit:contain}
+.tkTrophy b{font-size:12.4u;font-weight:700;color:var(--purple-ink);text-align:center}
+.tkTrophy span{font-size:9.6u;line-height:1.6;color:#61618b;text-align:center}
+.tkBigStars img{width:62u;height:68u;object-fit:contain}
+.tkStarsMeter{display:grid;gap:4u;margin-top:9u}
+.tkStarsMeter .tkBar{margin:0;height:12u;flex:none}
+.tkStarsMeter p{display:flex;justify-content:space-between;gap:8u;font-size:9.4u;color:#61618b}
+
+/* ---------- assistant: «شكابمبو — مساعد المعلم» ---------- */
+.tkAssistHead{display:flex;align-items:center;gap:9u;margin-bottom:7u;padding:9u 10u;border-radius:15u;background:linear-gradient(180deg,#ffffff,#eef7ff);border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.11)}
+.tkAssistHead img{flex:none;width:46u;height:48u;object-fit:contain}
+.tkAssistHead b{display:block;font-size:11.6u;font-weight:700;color:#0a1b3d}
+.tkAssistHead small{display:block;font-size:9u;line-height:1.6;color:var(--ink2)}
+.tkProviders{display:grid;grid-template-columns:1fr 1fr;gap:6u;margin-bottom:6u}
+.tkProvider{display:grid;gap:2u;min-height:max(56px,48u);padding:7u 9u;border-radius:13u;background:#fff;box-shadow:inset 0 0 0 1.2u #cfe1f3;text-align:right}
+.tkProvider.on{box-shadow:inset 0 0 0 2u var(--blue);background:#f1f8ff}
+.tkProvider b{font-size:max(11u,13px);font-weight:700;color:#0a1b3d}
+.tkProvider small{font-size:max(8.4u,10.5px);line-height:1.5;color:var(--ink3)}
+.tkProvider i{justify-self:start;font-style:normal;padding:1u 7u;border-radius:99u;font-size:max(8.4u,10.5px);font-weight:600;background:#fdeceb;color:#9c2a25}
+.tkProvider i.ok{background:#e2f4e5;color:#1c6a31}
+.tkPair{display:grid;grid-template-columns:1fr 1fr;gap:6u;margin-bottom:6u}
+.tkQuick{display:grid;grid-template-columns:1fr 1fr;gap:6u;margin:6u 0}
+.tkQuick button{min-height:max(44px,38u);padding:5u 8u;border-radius:13u;background:#fff;box-shadow:inset 0 0 0 1.2u #c9dcef;font-size:max(10.4u,13px);font-weight:600;line-height:1.4;color:var(--blue-ink)}
+.tkQuick button:disabled{opacity:.5}
+.tkAnswer{display:grid;gap:6u;border-radius:14u;background:#fff;border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.11);padding:10u 11u;margin-bottom:6u}
+.tkAnswer h3{font-size:10.4u;font-weight:600;color:var(--blue-ink)}
+.tkAnswer .tkAsk{font-size:max(10u,13px);line-height:1.7;color:var(--ink2)}
+.tkAnswer .tkText{font-size:max(11.4u,15px);line-height:1.9;color:#0a1b3d;white-space:pre-wrap;overflow-wrap:anywhere}
+.tkAnswer .tkSrc{padding:7u 9u;border-radius:11u;background:#f1f9f2;font-size:max(9.4u,12px);line-height:1.7;color:#1c5a30}
+.tkAnswer .tkSrc b{font-weight:700}
+.tkAnswer footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5u;font-size:max(8.4u,10.5px);color:var(--ink3)}
+.tkWorking{display:flex;align-items:center;justify-content:space-between;gap:8u;padding:9u 11u;border-radius:14u;background:#eaf4fe;font-size:max(10.4u,13px);color:#174a84;margin-bottom:6u}
+
+/* ---------- library ---------- */
+.tkLibTop{display:grid;grid-template-columns:1fr 1fr;gap:6u;margin-bottom:6u}
+.tkLibTop .tkBtn{min-height:max(46px,40u);border-radius:14u;font-size:max(11u,14px);font-weight:600;white-space:normal;text-align:center;padding:4u 10u}
+.tkLibSec{border-radius:15u;border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.11);padding:9u 10u;margin-bottom:6u}
+.tkLibSec.sky{background:linear-gradient(180deg,#eff8ff,#e0f0fe)}.tkLibSec.green{background:linear-gradient(180deg,#f0f9f0,#e2f3e4)}.tkLibSec.gold{background:linear-gradient(180deg,#fff9e8,#fdf0cd)}.tkLibSec.purple{background:linear-gradient(180deg,#f5f1fe,#e9e3fb)}
+.tkLibSec>header{display:flex;align-items:center;gap:8u;margin-bottom:6u}
+.tkLibSec>header span{flex:none;width:30u;height:30u;border-radius:10u;background:#fff;display:grid;place-items:center;color:var(--blue-ink)}
+.tkLibSec>header svg{width:17u;height:17u}
+.tkLibSec>header div{flex:1;min-width:0}
+.tkLibSec>header b{display:block;font-size:12.4u;font-weight:700;color:#0a1b3d}
+.tkLibSec>header small{display:block;font-size:9u;color:var(--ink2)}
+.tkFile{display:flex;align-items:center;gap:8u;padding:7u 9u;border-radius:12u;background:rgba(255,255,255,.9);margin-top:4u}
+.tkFile div{flex:1;min-width:0;display:grid;gap:1u}
+.tkFile b{font-size:max(10.8u,13px);font-weight:600;line-height:1.5;color:#0a1b3d;overflow-wrap:anywhere}
+.tkFile small{font-size:max(8.6u,10.5px);line-height:1.5;color:var(--ink3);overflow-wrap:anywhere}
+.tkFile .tkAct{flex:none}
+.tkChecks{display:grid;grid-template-columns:1fr 1fr;gap:4u;max-height:190u;overflow:auto;padding:6u;border-radius:11u;background:#fff;box-shadow:inset 0 0 0 1.2u #cfe1f3;margin-bottom:7u}
+.tkChecks label,.tkCheckLine{display:flex;align-items:center;gap:6u;min-height:max(40px,30u);font-size:max(10u,13px);color:#0a1b3d}
+.tkChecks input,.tkCheckLine input{flex:none;width:18px;height:18px}
+.tkCheckLine{margin-bottom:7u;line-height:1.5}
+.tkSeg.three{grid-template-columns:repeat(3,1fr)}
+.tkSeg button{min-height:max(40px,26u)}
+.tkRowBtn{display:flex;align-items:center;gap:8u;width:100%;min-height:max(48px,42u);margin-top:6u;padding:7u 11u;border-radius:14u;background:linear-gradient(180deg,#ffffff,#eef7ff);border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.12);text-align:right}
+.tkRowBtn>span.tkGrow{flex:1;min-width:0;display:grid;gap:1u}
+.tkRowBtn b{font-size:max(11.4u,14px);font-weight:700;color:#0a1b3d}
+.tkRowBtn small{font-size:max(8.8u,11px);color:var(--ink2)}
+.tkRowBtn>svg{flex:none;width:12u;height:12u;color:#9db0c4}
+.tkCards+.tkRowBtn,.tkRowBtn.out{margin:6u 9u 0;width:calc(100% - 18u)}
