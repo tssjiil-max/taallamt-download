@@ -530,7 +530,10 @@ function TodayPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
 }
 
 /* ---------- messages: inbox and guardian conversation ---------- */
-type InboxThread={studentId:string;name:string;number:number;count:number;unread:number;last:{from:'guardian'|'teacher';text:string;createdAt:string};lastIncomingAt:string};
+type GuardianAssistantMode='off'|'suggest'|'auto_routine';
+type GuardianAssistantConfig={mode:GuardianAssistantMode;provider:'openai'|'gemini';enabled:boolean;limit:number;providers:Record<'openai'|'gemini',{label:string;configured:boolean}>};
+type InboxThread={studentId:string;name:string;number:number;count:number;unread:number;last:{from:'guardian'|'teacher'|'assistant';text:string;createdAt:string};lastIncomingAt:string;needsTeacherReply:boolean;assistantReplied:boolean;lastClassification:string};
+type InboxPayload={threads:InboxThread[];unread:number;assistant:GuardianAssistantConfig};
 function MessagesPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
   const remote=useRemote<{threads:InboxThread[];unread:number}>('inbox',()=>api(`${AUTOMATION}?action=messages_inbox`));
   usePolling(remote.reload,30000);
