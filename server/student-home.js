@@ -7,7 +7,8 @@ import {QURAN_FOLLOWUP_WEEKS} from './quran-followup-curriculum.js';
 import {AccessError,inviteFrom,inviteMatches,isTeacher,validInviteShape} from './access.js';
 import {SUBJECTS,SUBJECT_KEYS,buildPlan,clampWeek,planWeekForDate,readWeekPlan,subjectKeyOf,todayInfo,weekKeyFor,weekRange,workspaceRoot} from './plan.js';
 import {currentQuranWeek,quranWeekInfo,resultFromQuran,resultFromStored} from './quick-assess.js';
-import {CLASS_LABEL,CLASS_SHORT,rosterStudent,SCHOOL_NAME,TERM_LABEL} from './roster.js';
+import {guardianSummary,readThread} from './messages.js';
+import {CLASS_LABEL,CLASS_SHORT,rosterStudent,SCHOOL_NAME,TERM_LABEL,TEACHER_NAME} from './roster.js';
 
 const DAY_MS=86400000;
 const STAR_GOAL=30;
@@ -96,14 +97,15 @@ function starsSummary(ledger,events){
 export async function buildStudentHome(studentId,{profile=null,date=new Date()}={}){
   const student=rosterStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
   const db=adminDb(),base=workspaceRoot(),today=todayInfo(date),month=date.toISOString().slice(0,7),planWeek=planWeekForDate(date);
-  const [plan,assessments,quran,evidence,ledger,events,communications]=await Promise.all([
+  const [plan,assessments,quran,evidence,ledger,events,communications,messages]=await Promise.all([
     readWeekPlan(db,planWeek),
     db.collection(`${base}/assessments`).where('studentId','==',studentId).get(),
     db.collection(`${base}/quranFollowups`).where('studentId','==',studentId).get(),
     db.collection(`${base}/homeworkEvidence`).where('studentId','==',studentId).get(),
     db.doc(`${base}/rewardLedgers/${studentId}_${month}`).get(),
     db.collection(`${base}/rewardEvents`).where('studentId','==',studentId).get(),
-    db.collection(`${base}/communications`).where('studentId','==',studentId).get()
+    db.collection(`${base}/communications`).where('studentId','==',studentId).get(),
+    guardianSummary(db,studentId)
   ]);
   const since=new Date(date.getTime()-8*DAY_MS).toISOString();
   const recentEvidence=rows(evidence).filter(item=>String(item.assignedAt||'')>=since&&item.homeworkId);
@@ -124,6 +126,7 @@ export async function buildStudentHome(studentId,{profile=null,date=new Date()}=
     homework:{today:todayHomework,pending,countToday:todayHomework.length,doneToday:todayHomework.filter(item=>item.done).length,doneRecent:homeworkAll.filter(item=>item.done).length},
     stars:starsSummary(ledger.exists?ledger.data():null,rows(events).filter(item=>String(item.month||'')===month||String(item.createdAt||'').startsWith(month))),
     quran:quranSummary(rows(quran),date),
+    teacherName:TEACHER_NAME,messages,
     notes:rows(communications).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,12).map(item=>({id:item.id,reason:String(item.reason||'ملاحظة'),summary:String(item.summary||''),createdAt:String(item.createdAt||'')}))
   };
 }
@@ -143,7 +146,11 @@ export async function studentViewHandler(req,res,{ensureFresh}={}){
   if(!teacher&&!validInviteShape(invite))throw new AccessError('STUDENT_ACCESS_REQUIRED',401);
   const snap=await adminDb().doc(`${workspaceRoot()}/studentProfiles/${studentId}`).get(),profile=snap.exists?snap.data():null;
   if(!teacher&&!inviteMatches(profile,invite))throw new AccessError('STUDENT_ACCESS_DENIED',403);
+  // Messages can be written only with the student's own link; a teacher previewing the page reads the thread.
+  const guardianLink=inviteMatches(profile,invite);
+  if(view==='messages')return res.status(200).json({ok:true,...await readThread(studentId,'guardian'),canSend:guardianLink,role:teacher?'teacher':'guardian'});
   if(view==='week')return res.status(200).json({...await buildStudentWeek(req.query?.week),role:teacher?'teacher':'guardian'});
   if(ensureFresh)await ensureFresh();
-  return res.status(200).json({...await buildStudentHome(studentId,{profile}),role:teacher?'teacher':'guardian'});
+  const home=await buildStudentHome(studentId,{profile});
+  return res.status(200).json({...home,messages:{...home.messages,canSend:guardianLink},role:teacher?'teacher':'guardian'});
 }

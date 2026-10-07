@@ -2,7 +2,9 @@ import {randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {createAutoGradingConfig,gradeHomeworkAnswer,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
-import {accessFailure,isTeacher,requireStudentAccess,requireTeacher} from '../server/access.js';
+import {accessFailure,isTeacher,requireGuardianLink,requireStudentAccess,requireTeacher} from '../server/access.js';
+import {markThreadRead,sendMessage} from '../server/messages.js';
+import {rosterStudent} from '../server/roster.js';
 import {studentViewHandler} from '../server/student-home.js';
 import {ensureFresh} from './learning-automation.js';
 
@@ -228,6 +230,11 @@ export default async function handler(req,res){
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
     previewWriteGuard();
     const action=String(body.action||'');let result,role='teacher';
+    if(action==='message_send'||action==='messages_read'){
+      await requireGuardianLink(req,studentId,body);
+      if(!rosterStudent(studentId))return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
+      return res.status(200).json({ok:true,...(action==='message_send'?await sendMessage(studentId,'guardian',body):await markThreadRead(studentId,'guardian'))});
+    }
     // Only the student's own profile (photo, hobbies) can be changed with an invite link; everything else is a teacher action.
     if(action==='student_profile')role=await requireStudentAccess(req,studentId,body,{write:true});
     else requireTeacher(req,{write:true});
@@ -246,7 +253,7 @@ export default async function handler(req,res){
   }catch(error){
     if(accessFailure(res,error))return;
     const message=error instanceof Error?error.message:String(error);
-    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message==='ACCESS_INVITE_INVALID'?403:message.endsWith('_REQUIRED')||message.endsWith('_EMPTY')||message.endsWith('_INVALID')?400:500;
+    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message==='ACCESS_INVITE_INVALID'?403:message.endsWith('_REQUIRED')||message.endsWith('_EMPTY')||message.endsWith('_INVALID')||message==='MESSAGE_TOO_LONG'?400:message==='MESSAGE_LIMIT_REACHED'?429:500;
     console.error('student-state',message);
     return res.status(status).json({ok:false,error:message});
   }

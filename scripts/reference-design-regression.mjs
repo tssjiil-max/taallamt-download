@@ -28,7 +28,7 @@ assert.ok(kit.includes("SUBJECT_ORDER:SubjectKey[]=['arabic','quran','islamic','
 for(const tone of ['plan','assessment','homework','stars'])assert.ok(css.includes(`.tkCard.${tone}{`),`${tone} card colour`);
 assert.ok(css.includes('--blue-card')&&css.includes('--green-card')&&css.includes('--orange-card')&&css.includes('--purple-card'));
 assert.ok(css.includes("font-family:'Readex Pro'")&&existsSync('src/app/assets/ReadexPro-ar.ttf')&&existsSync('src/app/assets/ReadexPro-OFL.txt'),'the Arabic font is self-hosted with its licence');
-for(const asset of ['boy','icon-plan','icon-assessment','icon-homework','icon-stars','gift','subject-arabic','subject-quran','subject-islamic','subject-spelling','shakabumbo'])assert.ok(existsSync(`src/app/assets/${asset}.webp`),`${asset} asset`);
+for(const asset of ['boy','icon-plan','icon-assessment','icon-homework','gift','shak-arabic','shak-quran','shak-islamic','shak-spelling','shak-star','shak-logo','shak-sourati','shak-trophy','shak-standing'])assert.ok(existsSync(`src/app/assets/${asset}.webp`),`${asset} asset`);
 execFileSync(process.execPath,['scripts/build-app-css.mjs','--check'],{stdio:'pipe'});
 
 // Teacher header: identity card, day strip in Saudi time, four live summary tiles, credit at the bottom.
@@ -38,10 +38,10 @@ assert.ok(teacher.includes('summary.students')&&teacher.includes('summary.focuse
 assert.ok(css.includes('.tkStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))'),'summary tiles: two per row on a phone');
 // Student profile card inside حسابي.
 for(const text of ['هواياتي','أهدافي','إنجازاتي','مهاراتي','اسم الطالب:','الصف:'])assert.ok(student.includes(text),`student profile has «${text}»`);
-assert.ok(existsSync('src/app/assets/shakabumbo-sourati.webp')&&student.includes("action:'student_profile'"),'the original Shakabumbo picture is the default, and the student saves his own profile');
+assert.ok(existsSync('src/app/assets/shak-sourati.webp')&&student.includes('SHAK.sourati')&&student.includes("action:'student_profile'"),'the original Shakabumbo picture is the default, and the student saves his own profile');
 
 // Quick assessment wording and states.
-for(const text of ['أتقن بقية الطلاب','أتقن جميع الطلاب','تراجع عن آخر عملية','المتابعة المركزة'])assert.ok(teacher.includes(text),`teacher screen has «${text}»`);
+for(const text of ['أتقن بقية الطلاب','أتقن الكل مع المتابعة المركزة','تراجع عن آخر عملية','المتابعة المركزة'])assert.ok(teacher.includes(text),`teacher screen has «${text}»`);
 assert.ok(kit.includes("mastered:'أتقن',needs_repeat:'يحتاج إعادة',not_mastered:'لم يتقن'")&&kit.includes('لم يُقيّم بعد'),'the three approved results plus "not assessed yet"');
 assert.ok(!student.includes('تلاوة')&&!teacher.includes('تلاوة'),'Quran follow-up is memorisation only');
 
@@ -63,5 +63,45 @@ assert.ok(!/STAGING_CODE=\{[^}]*code:/.test(access),'only a digest of the stagin
 const roster=read('server/class-roster.js');
 assert.ok(roster.includes("WORKSPACE_ID=IS_PRODUCTION?PRODUCTION_WORKSPACE_ID:STAGING_WORKSPACE_ID"),'Staging and Production use different workspaces');
 assert.ok(main.includes('<StudentApp/>')&&main.includes('<TeacherApp'));
+
+
+// ----- unified identity, 7 Oct 2026 -----
+// Weekly plan: Hijri and Gregorian together, on both sites, on the card and in the details.
+assert.ok(kit.includes('export function PlanDates')&&kit.includes('hijriRange(plan.range)')&&kit.includes('gregorianRange(plan.range)')&&kit.includes("<th scope=\"col\">هجري</th><th scope=\"col\">ميلادي</th>"),'the plan block shows both calendars');
+for(const [name,source] of [['student',student],['teacher',teacher]]){
+  assert.ok(source.includes('dates={[hijriRange(plan.range),gregorianRange(plan.range)]}'),`${name}: the plan card carries both dates`);
+  assert.ok(source.includes('<PlanDates plan='),`${name}: the plan page carries both dates`);
+}
+// Student rows: large names, pastel cards in turn, a written focus badge, 44px touch targets, file and assessment apart.
+assert.ok(css.includes('.tkStName{flex:1;min-width:0;font-size:clamp(20px,21u,22px)')&&!/\.tkStName\{[^}]*(ellipsis|nowrap)/.test(css),'student names are 20–22px and never truncated');
+for(const tone of ['c0','c1','c2','c3'])assert.ok(css.includes(`.tkSt.${tone}{`),`row colour ${tone}`);
+assert.ok(teacher.includes('className={`tkSt c${index%4}`} data-focus=')&&teacher.includes('<span className="tkBadge focus">المتابعة المركزة</span>'),'colour cycles by position; the focus state is a written badge');
+assert.ok(css.includes('.tkAct{flex:1 1 auto;display:inline-grid;place-items:center;min-height:max(44px,38u);min-width:max(44px,38u)'),'row actions are at least 44px');
+for(const page of ['function StudentsPage','function FollowupPage','function TodayPage']){const body=teacher.slice(teacher.indexOf(page),teacher.indexOf('\nfunction ',teacher.indexOf(page)+10));assert.ok(body.includes('<StudentCard')&&body.includes('ملف الطالب')&&body.includes('تقييم'),`${page}: big rows with separate file and assessment actions`)}
+assert.ok(teacher.includes('طلاب المتابعة المركزة مستثنون، ولا تتغير أي نتيجة سُجّلت سابقًا')&&teacher.includes('role="alertdialog"'),'the bulk buttons state their scope; «أتقن الكل» needs a confirmation');
+// Original Shakabumbo artwork: originals kept, derived copies separate, pictures never stretched.
+for(const file of ['01-sourati-star.jpg','02-lughati-pencil.jpg','03-shield-logo.jpg','04-standing-white-hair-star.png','05-najm-alyawm-white-hair.jpg','06-najm-alyawm-orange-hair.jpg','07-quran.jpg','08-islamic.jpg','09-spelling.jpg'])assert.ok(existsSync(`design/shakabumbo/originals/${file}`),`original kept: ${file}`);
+for(const file of ['standing-orange.png','standing-trophy.png'])assert.ok(existsSync(`design/shakabumbo/derived/${file}`),`derived copy: ${file}`);
+assert.ok(kit.includes("arabic:shakArabic,quran:shakQuran,islamic:shakIslamic,spelling:shakSpelling")&&kit.includes('stars:shakStar'),'each subject uses its own original picture; the stars section uses «نجم اليوم»');
+assert.ok(css.includes('.tkSubjectImg img{display:block;width:100%;height:100%;object-fit:contain}')&&css.includes('.tkTrophy img{display:block;width:auto;height:208u;max-width:100%;object-fit:contain}'),'pictures keep their proportions');
+assert.ok(student.includes('<section className="tkTrophy"')&&student.indexOf('tkTrophy')>student.indexOf('tkStarGrid')&&!/\.tkTrophy[^}]*position:(fixed|sticky)/.test(css),'Shakabumbo with the trophy sits below the stars content, in the page flow');
+// Messaging: real conversation stored on the server; the old "no inbox" note is gone.
+assert.ok(!teacher.includes('لا يوجد في النظام بريد وارد')&&student.includes('التواصل مع المعلم')&&student.includes("action:'message_send'")&&teacher.includes("post('message_reply'"),'both sites send through the server');
+const messages=read('server/messages.js');
+assert.ok(messages.includes("collection(db).doc(id)")&&messages.includes('runTransaction')&&!/req\.|body\.from|body\?\.from/.test(messages),'messages are stored in the database; the sender never comes from the request body');
+assert.ok(read('api/student-state.js').includes("await requireGuardianLink(req,studentId,body)")&&access.includes('export async function requireGuardianLink'),'a guardian message needs the student\'s own link');
+// Assistant: keys only on the server, the chosen provider only, never a simulated answer.
+const assistant=read('server/assistant.js');
+for(const file of ['student.tsx','teacher.tsx','kit.tsx','main.tsx'])assert.ok(!/sk-[A-Za-z0-9]{8}|AIza[A-Za-z0-9_-]{8}|api\.openai\.com|generativelanguage/.test(read(`src/app/${file}`)),`${file}: no provider key or provider address in the page`);
+assert.ok(assistant.includes("keyEnv:'OPENAI_API_KEY'")&&assistant.includes("keyEnv:'GEMINI_API_KEY'")&&assistant.includes('https://api.openai.com/v1/responses')&&assistant.includes(':generateContent')&&assistant.includes("'x-goog-api-key':key"),'official server-side APIs, keys from the environment');
+assert.ok(assistant.includes("throw new AssistantError('ASSISTANT_NOT_CONFIGURED',503")&&!/console\.(log|error|warn)/.test(assistant),'no key → «غير مفعّل»; nothing is logged');
+assert.ok(teacher.includes('شكابمبو — مساعد المعلم')&&teacher.includes("abort.current?.abort()")&&teacher.includes('غير مفعّل'),'assistant panel: title, stop button and the disabled state');
+for(const label of ['اشرح درس هذا الأسبوع','بسّط الفكرة لطالب','اقترح نشاطًا','جهّز تدريب نسخ وإملاء','أنشئ أسئلة تقييم','اسأل سؤالًا عامًا'])assert.ok(assistant.includes(label),`quick action «${label}»`);
+assert.equal(vercel.functions?.['api/learning-automation.js']?.maxDuration,60,'the assistant request has room to finish');
+// Older teacher tools share the same identity and lose the oversized mascot.
+const unified=read('public/unified-identity.css');
+assert.ok(legacy.includes('/unified-identity.css')&&legacy.indexOf('/unified-identity.css')>legacy.indexOf('/student-teacher-link.css')&&legacy.includes('/unified-identity.js'),'the unified stylesheet loads last on the older tools');
+assert.ok(unified.includes('html body .bottomNav.teacherNav,html body .mascotNav{display:none!important}')&&unified.includes('html body .taNativeAction{display:grid!important')&&read('public/unified-identity.js').includes('/teacher#assistant'),'old bar replaced; «رفع ملف» and «ملف إنجاز المعلم» are buttons');
+assert.ok(teacher.includes("{key:'library',label:'الكتب',icon:<NavBook/>,onClick:()=>go('library')}")&&teacher.includes('ملف إنجاز المعلم')&&teacher.includes("['public','جميع الطلاب'],['private','طالب أو مجموعة'],['teacher','المعلم فقط']"),'the library opens inside the new pages with the three sharing options');
 
 console.log('Reference design, wiring and permission regression checks passed.');

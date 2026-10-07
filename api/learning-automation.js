@@ -1,19 +1,19 @@
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
-import {contentForWeek,quranForDay,riyadhDateString,riyadhWeekday,termPhase,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
+import {contentForWeek,COPYWORK_PAGES,quranForDay,riyadhDateString,riyadhWeekday,termPhase,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
 import {readClassOverview,sendClassHomework} from '../server/class-link.js';
 import {QURAN_FOLLOWUP_ROSTER} from '../server/quran-followup-curriculum.js';
 import {accessFailure,requireTeacher,sessionStatus,teacherLogin,teacherLogout} from '../server/access.js';
 import {nextSchoolDay,planWeekForDate,WEEKDAY_LABELS} from '../server/plan.js';
 import {SCHOOL_ID,TERM_ID} from '../server/roster.js';
 import {teacherRead,teacherWrite} from '../server/teacher-api.js';
+import {assistantAsk,assistantFailure} from '../server/assistant.js';
 
 const root=()=>`workspaces/${WORKSPACE_ID}`;
 const nowIso=()=>new Date().toISOString();
 const weekKey=(week)=>`1448-f1-w${String(week).padStart(2,'0')}`;
 const subjectLabels={arabic:'لغتي',quran:'القرآن الكريم',islamic:'الدراسات الإسلامية',spelling:'الإملاء والخط',handwriting:'الإملاء والخط'};
 const fallbackSchedule={0:['arabic','quran'],1:['arabic','quran'],2:['islamic','quran'],3:['islamic'],4:['spelling']};
-const COPYWORK_PAGES={'صلة الرحم':34,'عذرًا يا جدي':45,'الصديقان':69,'الجار الصغير':80,'مدينتان مقدستان':103,'علم بلادي':112,'رحلة حبة قمح':135,'من أنا؟':145};
 const arabicDigits=value=>String(value).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[Number(d)]);
 const copyworkPage=lesson=>COPYWORK_PAGES[String(lesson||'').trim()]||null;
 const normalizeSubject=(value)=>{
@@ -253,13 +253,19 @@ export default async function handler(req,res){
     if(action==='daily')return res.status(200).json({ok:true,...await publishDailyHomework()});
     if(action==='ensure'){const result=await ensureCurrentLearning();await recordAutomationRun('teacher',result);return res.status(200).json({ok:true,...result})}
     if(action==='class_homework')return res.status(200).json({ok:true,...await sendClassHomework(body)});
+    if(action==='assistant_ask'){
+      // «إيقاف» in the page closes the connection; that cancels the request to the provider as well.
+      const stop=new AbortController();
+      if(typeof res.on==='function')res.on('close',()=>{if(!res.writableEnded)stop.abort()});
+      return res.status(200).json(await assistantAsk(body,{signal:stop.signal}));
+    }
     const result=await teacherWrite(action,body);
     if(result)return res.status(200).json({ok:true,...result});
     return res.status(400).json({ok:false,error:'ACTION_INVALID'});
   }catch(error){
-    if(accessFailure(res,error))return;
+    if(accessFailure(res,error)||assistantFailure(res,error))return;
     const message=error instanceof Error?error.message:String(error);
-    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message.endsWith('_REQUIRED')||message.endsWith('_INVALID')?400:message.endsWith('_NOT_FOUND')?404:message==='SCOPE_NOT_ASSESSABLE'?409:500;
+    const status=message==='PRODUCTION_WRITE_BLOCKED'?403:message.endsWith('_REQUIRED')||message.endsWith('_INVALID')||message==='MESSAGE_TOO_LONG'?400:message.endsWith('_NOT_FOUND')?404:message==='SCOPE_NOT_ASSESSABLE'?409:message==='MESSAGE_LIMIT_REACHED'?429:500;
     return res.status(status).json({ok:false,error:message});
   }
 }

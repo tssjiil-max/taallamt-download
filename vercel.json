@@ -9,6 +9,9 @@
       "schedule": "0 5 * * 6"
     }
   ],
+  "functions": {
+    "api/learning-automation.js": { "maxDuration": 60 }
+  },
   "rewrites": [
     {
       "source": "/teacher/student/:id",

@@ -85,6 +85,10 @@ export const QURAN_WEEKS={
   18:{surah:'نهاية الفصل',weekly:'اختبارات نهاية الفصل',days:['اختبارات','اختبارات','اختبارات']}
 };
 
+// Page of the «الخط والنسخ» exercise of each لغتي lesson, as recorded in the approved distribution. These are the only
+// page numbers the project has; no other page number may be shown or generated.
+export const COPYWORK_PAGES={'صلة الرحم':34,'عذرًا يا جدي':45,'الصديقان':69,'الجار الصغير':80,'مدينتان مقدستان':103,'علم بلادي':112,'رحلة حبة قمح':135,'من أنا؟':145};
+
 export function riyadhDateString(date=new Date()){
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
   const value=Object.fromEntries(parts.map(part=>[part.type,part.value]));
