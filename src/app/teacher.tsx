@@ -670,7 +670,7 @@ function assistFailure(error:ApiError){
 }
 
 /* Opening the phone apps themselves (never the websites). Android only: a launcher intent aimed at the package. */
-const PHONE_APPS={openai:{name:'ChatGPT',pkg:'com.openai.chatgpt'},gemini:{name:'Gemini',pkg:'com.google.android.apps.bard'}} as const;
+const PHONE_APPS={openai:{name:'ChatGPT',pkg:'com.openai.chatgpt',host:'chatgpt.com',path:'/'},gemini:{name:'Gemini',pkg:'com.google.android.apps.bard',host:'gemini.google.com',path:'/app'}} as const;
 const isAndroid=()=>typeof navigator!=='undefined'&&/Android/i.test(navigator.userAgent);
 const bridgeOpen=(pkg:string):boolean|null=>{
   const bridge=(window as unknown as {TaallamtNative?:{openApp?:(pkg:string)=>boolean}}).TaallamtNative;
@@ -684,8 +684,9 @@ function openPhoneApp(key:ProviderKey):Promise<'opened'|'missing'|'unsupported'>
   return new Promise(resolve=>{
     let left=false;const mark=()=>{left=true};
     document.addEventListener('visibilitychange',mark,{once:true});window.addEventListener('pagehide',mark,{once:true});window.addEventListener('blur',mark,{once:true});
-    window.location.href=`intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${app.pkg};end`;
-    window.setTimeout(()=>{document.removeEventListener('visibilitychange',mark);window.removeEventListener('pagehide',mark);window.removeEventListener('blur',mark);resolve(left||document.hidden?'opened':'missing')},1800);
+    // The app's own chat link (VIEW + package), so the installed app opens its normal chat; if it cannot take the link, the same chat opens on the web — never the Play Store page.
+    window.location.href=`intent://${app.host}${app.path}#Intent;scheme=https;package=${app.pkg};S.browser_fallback_url=${encodeURIComponent(`https://${app.host}${app.path}`)};end`;
+    window.setTimeout(()=>{document.removeEventListener('visibilitychange',mark);window.removeEventListener('pagehide',mark);window.removeEventListener('blur',mark);resolve('opened')},1800);
   });
 }
 function buildLessonPrompt(status:AssistStatus,facts:AssistFacts|null,taskKey:string,extra:string){
@@ -763,10 +764,10 @@ function AssistantPage({home,back,log,setLog}:{home:TeacherHome;back:()=>void;lo
       <div className="tkPair">{(['openai','gemini'] as ProviderKey[]).map(key=><button key={key} type="button" className="tkBtn" disabled={!draft.trim()} onClick={()=>void openApp(key,true)}>نسخ الطلب وفتح تطبيق {PHONE_APPS[key].name}</button>)}</div>
       <div className="tkPair">{(['openai','gemini'] as ProviderKey[]).map(key=><button key={key} type="button" className="tkBtn ghost" onClick={()=>void openApp(key,false)}>فتح {PHONE_APPS[key].name}</button>)}</div>
       {appNote&&<div className={`tkAlert ${appNote.kind==='copied'?'info':''}`} role="alert" style={{marginTop:0}}>
-        {appNote.kind==='copied'&&<>جرى طلب فتح تطبيق {PHONE_APPS[appNote.key].name}.{draft.trim()?' نُسخ الطلب؛ الصقه داخل المحادثة.':''}</>}
+        {appNote.kind==='copied'&&<>فُتحت محادثة {PHONE_APPS[appNote.key].name} (في التطبيق إن كان مثبتًا، وإلا في المتصفح).{draft.trim()?' نُسخ الطلب؛ الصقه داخل المحادثة.':''}</>}
         {appNote.kind==='copyFailed'&&<>تعذّر نسخ الطلب إلى الحافظة، فلم يُفتح التطبيق. انسخ النص من الخانة يدويًا ثم افتح التطبيق.</>}
-        {appNote.kind==='unsupported'&&<>فتح التطبيق مباشرة متاح على أندرويد فقط. لم يُفتح موقع الويب بدلًا منه.{draft.trim()?' نُسخ الطلب ويمكنك لصقه في التطبيق يدويًا.':''}</>}
-        {appNote.kind==='missing'&&<>تطبيق {PHONE_APPS[appNote.key].name} غير مثبت على هذا الجهاز أو تعذّر فتحه. <a className="tkMini" href={`https://play.google.com/store/apps/details?id=${PHONE_APPS[appNote.key].pkg}`}>تثبيت التطبيق</a></>}
+        {appNote.kind==='unsupported'&&<>فتح التطبيق مباشرة متاح على أندرويد فقط.{draft.trim()?' نُسخ الطلب ويمكنك لصقه في التطبيق يدويًا.':''}</>}
+        {appNote.kind==='missing'&&<>تعذّر فتح {PHONE_APPS[appNote.key].name} من التطبيق.</>}
       </div>}
       {working&&<div className="tkWorking" role="status"><span>جارٍ توليد الإجابة: {taskLabel(working)}…</span><button className="tkBtn ghost" type="button" onClick={()=>abort.current?.abort()}>إيقاف</button></div>}
       {problem&&<div className="tkAlert" role="alert" style={{marginTop:0,marginBottom:'calc(var(--u)*6)'}}>{problem}</div>}
