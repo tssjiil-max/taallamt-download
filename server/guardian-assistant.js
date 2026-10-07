@@ -111,6 +111,7 @@ function ruleAnswer(question,home){
     const parts=[item.unit?`سورة ${item.unit}`:'',item.lesson||''].filter(Boolean).join(' — ');
     return {classification:'routine',reply:`المطلوب في القرآن الكريم هذا الأسبوع: ${parts}.`,confidence:.98,needsTeacherReply:false};
   }
+  if(/الخطة|خطة/.test(q)&&!subject){const items=(home.plan?.items||[]).filter(item=>!item.holiday&&(item.lesson||item.skill));if(!items.length)return {classification:'teacher_required',reply:NO_DATA,confidence:.99,needsTeacherReply:true};return {classification:'routine',reply:`خطة هذا الأسبوع: ${items.map(item=>`${item.label}: ${item.lesson||item.skill}`).join(' — ')}`,confidence:.98,needsTeacherReply:false}}
   if(/درس|الخطة|خطة|مهارة|صفحة|وش ندرس|ماذا ندرس/.test(q)){
     if(!subject)return {classification:'needs_clarification',reply:'أي مادة تقصد: لغتي، القرآن الكريم، الدراسات الإسلامية، أم الإملاء والخط؟',confidence:.97,needsTeacherReply:false};
     const item=planItem(home,subject);
