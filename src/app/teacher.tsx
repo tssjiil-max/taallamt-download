@@ -567,7 +567,7 @@ function MessagesPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
     <p className="tkMeta">الرسائل محفوظة في قاعدة بيانات المنصة ولا تُحذف بمرور الوقت. كل ولي أمر يرى محادثة ابنه فقط.</p>
   </div>;
 }
-type TeacherThread={messages:ChatMessage[];unread:number;maxLength:number};
+type TeacherThread={messages:ChatMessage[];unread:number;maxLength:number;assistantState:{needsTeacherReply:boolean;suggestedReply:string;assistantReplied:boolean;lastClassification:string}};
 function TeacherChatPage({home,studentId,back,refresh}:{home:TeacherHome;studentId:string;back:()=>void;refresh:()=>void}){
   const student=home.students.find(entry=>entry.id===studentId);
   const remote=useRemote<TeacherThread>(student?`thread:${studentId}`:null,()=>api<TeacherThread>(`${AUTOMATION}?action=messages_thread&studentId=${encodeURIComponent(studentId)}`));
