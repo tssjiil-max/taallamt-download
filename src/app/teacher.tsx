@@ -535,12 +535,14 @@ type GuardianAssistantConfig={mode:GuardianAssistantMode;provider:'openai'|'gemi
 type InboxThread={studentId:string;name:string;number:number;count:number;unread:number;last:{from:'guardian'|'teacher'|'assistant';text:string;createdAt:string};lastIncomingAt:string;needsTeacherReply:boolean;assistantReplied:boolean;lastClassification:string};
 type InboxPayload={threads:InboxThread[];unread:number;assistant:GuardianAssistantConfig};
 function MessagesPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
-  const remote=useRemote<{threads:InboxThread[];unread:number}>('inbox',()=>api(`${AUTOMATION}?action=messages_inbox`));
+  const remote=useRemote<InboxPayload>('inbox',()=>api(`${AUTOMATION}?action=messages_inbox`));
   usePolling(remote.reload,30000);
-  const [recent,setRecent]=React.useState(true),[pick,setPick]=React.useState('');
-  const cutoff=new Date(Date.now()-7*86400000).toISOString(),threads=remote.data?.threads||[];
+  const [recent,setRecent]=React.useState(true),[pick,setPick]=React.useState(''),[savingAgent,setSavingAgent]=React.useState(false);
+  const cutoff=new Date(Date.now()-7*86400000).toISOString(),threads=remote.data?.threads||[],assistant=remote.data?.assistant;
   // «آخر 7 أيام» only filters what is shown. Unread conversations are always shown, and nothing is deleted.
-  const list=threads.filter(thread=>!recent||thread.unread>0||thread.last.createdAt>=cutoff),hidden=threads.length-list.length;
+  const list=threads.filter(thread=>!recent||thread.unread>0||thread.needsTeacherReply||thread.last.createdAt>=cutoff),hidden=threads.length-list.length;
+  const saveAgent=async(patch:Partial<Pick<GuardianAssistantConfig,'mode'|'provider'|'enabled'>>)=>{if(savingAgent)return;setSavingAgent(true);try{await post('guardian_assistant_settings',patch as Record<string,unknown>);await remote.reload(true)}finally{setSavingAgent(false)}};
+  const lastLabel=(from:InboxThread['last']['from'])=>from==='guardian'?'ولي الأمر: ':from==='assistant'?'مساعد المعلم: ':'أنت: ';
   return <div className="tkPage">
     <PageHead title="الرسائل" subtitle={remote.data?(remote.data.unread?`${remote.data.unread} رسالة جديدة من أولياء الأمور`:'لا توجد رسائل جديدة'):'رسائل أولياء الأمور'} onBack={back}/>
     <div className="tkSeg" role="group" aria-label="فترة العرض"><button type="button" className={recent?'on':''} onClick={()=>setRecent(true)}>آخر 7 أيام</button><button type="button" className={!recent?'on':''} onClick={()=>setRecent(false)}>كل المحادثات</button></div>
