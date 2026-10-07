@@ -554,7 +554,7 @@ function MessagesPage({home,back,go}:{home:TeacherHome;back:()=>void;go:Go}){
     <div className="tkSeg" role="group" aria-label="فترة العرض"><button type="button" className={recent?'on':''} onClick={()=>setRecent(true)}>آخر 7 أيام</button><button type="button" className={!recent?'on':''} onClick={()=>setRecent(false)}>كل المحادثات</button></div>
     {remote.error&&!remote.data?<Failure error={remote.error} role="teacher" onRetry={()=>void remote.reload()}/>:!remote.data?<Loading/>
       :list.length?<div className="tkList">{list.map((thread,index)=><StudentCard key={thread.studentId} index={index} number={thread.number} name={thread.name}
-        meta={<>{thread.unread>0&&<span className="tkBadge new">{thread.unread===1?'رسالة جديدة':`${thread.unread} رسائل جديدة`}</span>}<span className="tkBadge">{formatStamp(thread.last.createdAt)}</span></>}>
+        meta={<>{thread.needsTeacherReply&&<span className="tkBadge danger">يحتاج رد المعلم</span>}{thread.assistantReplied&&!thread.needsTeacherReply&&<span className="tkBadge agent">تم الرد بواسطة المساعد</span>}{thread.unread>0&&<span className="tkBadge new">{thread.unread===1?'رسالة جديدة':`${thread.unread} رسائل جديدة`}</span>}<span className="tkBadge">{formatStamp(thread.last.createdAt)}</span></>}>
         <p className="tkStLine"><b>{lastLabel(thread.last.from)}</b>{thread.last.text}</p>
         <div className="tkStActions"><button className="tkAct primary" type="button" onClick={()=>go(`chat/${thread.studentId}`)} aria-label={`فتح محادثة ${thread.name}`}>فتح المحادثة</button></div>
       </StudentCard>)}</div>
