@@ -5,7 +5,6 @@
   "description": "صفحة الطالب وولي الأمر في منصة تعلّمت",
   "lang": "ar",
   "dir": "rtl",
-  "start_url": "/student?source=pwa",
   "scope": "/student",
   "display": "standalone",
   "display_override": [
