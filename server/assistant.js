@@ -28,8 +28,8 @@ const TIMEOUT_MS=45000;
 const MAX_OUTPUT_TOKENS=3000;
 const env=name=>String(process.env[name]||'').trim();
 const dailyLimit=()=>{const value=Number(env('ASSISTANT_DAILY_LIMIT'));return Number.isFinite(value)&&value>0?Math.min(1000,Math.floor(value)):60};
-const modelFor=provider=>{const value=env(PROVIDERS[provider].modelEnv);return /^[A-Za-z0-9._-]{3,64}$/.test(value)?value:PROVIDERS[provider].defaultModel};
-const configured=provider=>env(PROVIDERS[provider].keyEnv).length>=20;
+export const modelFor=provider=>{const value=env(PROVIDERS[provider].modelEnv);return /^[A-Za-z0-9._-]{3,64}$/.test(value)?value:PROVIDERS[provider].defaultModel};
+export const configured=provider=>env(PROVIDERS[provider].keyEnv).length>=20;
 export class AssistantError extends Error{constructor(code,status,extra={}){super(code);this.code=code;this.status=status;this.extra=extra}}
 
 const settingsRef=()=>adminDb().doc(`${workspaceRoot()}/teacherSettings/assistant`);
@@ -102,7 +102,7 @@ function sourcesText(context,facts,excerpts){
   return lines.join('\n');
 }
 
-async function callOpenAI({key,model,instructions,input,signal}){
+export async function callOpenAI({key,model,instructions,input,signal}){
   const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',signal,headers:{authorization:`Bearer ${key}`,'content-type':'application/json'},
     body:JSON.stringify({model,instructions,input,max_output_tokens:MAX_OUTPUT_TOKENS,store:false,...(/^(gpt-[5-9]|o\d)/.test(model)?{reasoning:{effort:'low'}}:{})})});
   const data=await response.json().catch(()=>null);
@@ -111,7 +111,7 @@ async function callOpenAI({key,model,instructions,input,signal}){
     :(Array.isArray(data?.output)?data.output:[]).filter(item=>item?.type==='message').flatMap(item=>Array.isArray(item.content)?item.content:[]).filter(part=>part?.type==='output_text').map(part=>String(part.text||'')).join('\n');
   return {text:text.trim(),truncated:data?.status==='incomplete'};
 }
-async function callGemini({key,model,instructions,input,signal}){
+export async function callGemini({key,model,instructions,input,signal}){
   const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',signal,headers:{'x-goog-api-key':key,'content-type':'application/json'},
     body:JSON.stringify({systemInstruction:{parts:[{text:instructions}]},contents:[{role:'user',parts:[{text:input}]}],generationConfig:{maxOutputTokens:MAX_OUTPUT_TOKENS+1000,temperature:.4}})});
   const data=await response.json().catch(()=>null);
@@ -121,6 +121,13 @@ async function callGemini({key,model,instructions,input,signal}){
   const text=(Array.isArray(candidate?.content?.parts)?candidate.content.parts:[]).filter(part=>!part?.thought&&typeof part?.text==='string').map(part=>part.text).join('');
   return {text:text.trim(),truncated:candidate?.finishReason==='MAX_TOKENS'};
 }
+export async function callAssistantProvider({provider,instructions,input,signal}){
+  if(!PROVIDERS[provider])throw new AssistantError('PROVIDER_INVALID',400);
+  if(!configured(provider))throw new AssistantError('ASSISTANT_NOT_CONFIGURED',503,{provider,keyEnv:PROVIDERS[provider].keyEnv});
+  const model=modelFor(provider),result=await (provider==='openai'?callOpenAI:callGemini)({key:env(PROVIDERS[provider].keyEnv),model,instructions,input,signal});
+  return {provider,model,...result};
+}
+
 // Provider error text may be shown to the teacher, so anything that looks like a credential is removed first.
 const safeDetail=value=>String(value||'').replace(/(sk-|AIza)[A-Za-z0-9_-]{6,}/g,'***').replace(/[A-Za-z0-9_-]{32,}/g,'***').slice(0,200);
 function providerFailure(status,message){
@@ -176,7 +183,7 @@ export async function assistantAsk(body={},{signal,date=new Date()}={}){
   if(signal){if(signal.aborted)onAbort();else signal.addEventListener('abort',onAbort,{once:true})}
   const model=modelFor(provider),started=Date.now();
   try{
-    const result=await (provider==='openai'?callOpenAI:callGemini)({key:env(PROVIDERS[provider].keyEnv),model,instructions:INSTRUCTIONS,input,signal:controller.signal});
+    const result=await callAssistantProvider({provider,instructions:INSTRUCTIONS,input,signal:controller.signal});
     if(!result.text)throw new AssistantError('ASSISTANT_EMPTY_ANSWER',502);
     return {
       ok:true,provider,model,task,answer:result.text,truncated:result.truncated,ms:Date.now()-started,
