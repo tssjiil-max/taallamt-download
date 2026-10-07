@@ -266,6 +266,7 @@ function ChatPage({home,back,reload}:{home:Home;back:()=>void;reload:()=>void}){
   },[unread,canSend]);// eslint-disable-line react-hooks/exhaustive-deps
   const send=async(text:string,clientId:string)=>{
     await api('/api/student-state',{method:'POST',body:{studentId:STUDENT_ID,action:'message_send',invite:INVITE,text,clientId}});
+    await new Promise(resolve=>window.setTimeout(resolve,800+Math.floor(Math.random()*1001)));
     await remote.reload(true);
   };
   return <div className="tkPage">
