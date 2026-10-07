@@ -32,6 +32,8 @@ const backendStatus=(await import('../api/backend-status.js')).default;
 const actionSmoke=(await import('../api/action-smoke.js')).default;
 const {WORKSPACE_ID,PRODUCTION_WORKSPACE_ID}=await import('../server/class-roster.js');
 const {ROSTER}=await import('../server/roster.js');
+// Keep the legacy messaging journey deterministic; the guardian agent has its own full regression suite.
+fakeStore.set(`workspaces/${WORKSPACE_ID}/teacherSettings/guardianAssistant`,{mode:'off',provider:'openai',enabled:true});
 const {teacherGate}=await import('../server/access.js');
 
 const HOST='staging.example.test';
