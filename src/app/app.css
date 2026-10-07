@@ -44,6 +44,11 @@ a{color:inherit;text-decoration:none}
 .tkCard.assessment{background:linear-gradient(180deg,#eef8ee,var(--green-card));min-height:calc(var(--u)*126)}
 .tkCard.homework{background:linear-gradient(180deg,#fff7e6,var(--orange-card));min-height:calc(var(--u)*113.5)}
 .tkCard.stars{background:linear-gradient(180deg,#f2effe,#eae7fa);min-height:calc(var(--u)*101.4);margin-top:calc(var(--u)*1.2)}
+/* Home-only vertical breathing room: same cards and identity, slightly taller to avoid an empty lower band. */
+.tkHomeCards .tkCard.plan{min-height:calc(var(--u)*126)}
+.tkHomeCards .tkCard.assessment{min-height:calc(var(--u)*134)}
+.tkHomeCards .tkCard.homework{min-height:calc(var(--u)*122)}
+.tkHomeCards .tkCard.stars{min-height:calc(var(--u)*110)}
 .tkCardHead{position:relative;display:block;width:100%;text-align:right;padding:calc(var(--u)*8.67) calc(var(--u)*72.6) 0 calc(var(--u)*46)}
 .tkCard.assessment .tkCardHead{padding:calc(var(--u)*10.5) calc(var(--u)*71.8) 0 calc(var(--u)*46)}
 .tkCard.homework .tkCardHead{padding:calc(var(--u)*10.2) calc(var(--u)*70.6) 0 calc(var(--u)*46)}
@@ -72,6 +77,8 @@ a{color:inherit;text-decoration:none}
 .tkCard.stars .tkChevron{top:calc(var(--u)*11.8);background:var(--purple-soft);color:#684ebb}
 .tkCardBody{display:flex;align-items:flex-end;gap:calc(var(--u)*10.46);padding:calc(var(--u)*4.86) calc(var(--u)*7.96) calc(var(--u)*6.6) calc(var(--u)*9.16)}
 .tkCard.assessment .tkCardBody{gap:calc(var(--u)*16.1);padding:calc(var(--u)*7.2) calc(var(--u)*8.76) calc(var(--u)*7.96) calc(var(--u)*9.16)}
+.tkHomeCards .tkCard.plan .tkCardBody{padding-bottom:calc(var(--u)*13)}
+.tkHomeCards .tkCard.assessment .tkCardBody{padding-bottom:calc(var(--u)*14.5)}
 .tkCta{flex:0 0 calc(var(--u)*84.5);height:calc(var(--u)*28.2);border-radius:calc(var(--u)*99);color:#fff;font-size:calc(var(--u)*9.4);font-weight:500;line-height:1;display:grid;place-items:center;white-space:nowrap;margin-bottom:calc(var(--u)*1);box-shadow:0 calc(var(--u)*2) calc(var(--u)*5) rgba(20,60,110,.14)}
 .tkCard.plan .tkCta{background:linear-gradient(180deg,#1b8cf2,#1485ee)}
 .tkCard.assessment .tkCta{background:linear-gradient(180deg,#3c9459,#378d54);margin-bottom:calc(var(--u)*-.4)}
@@ -102,6 +109,7 @@ a{color:inherit;text-decoration:none}
 
 /* homework card */
 .tkHwBody{display:flex;align-items:flex-end;gap:calc(var(--u)*26.2);padding:calc(var(--u)*6.5) calc(var(--u)*54.2) 0 calc(var(--u)*9.97)}
+.tkHomeCards .tkCard.homework .tkHwBody{padding-bottom:calc(var(--u)*8)}
 .tkCard.homework .tkCta{margin-bottom:calc(var(--u)*8.36)}
 .tkHwCol{flex:1;min-width:0;display:grid;gap:calc(var(--u)*3.4)}
 .tkHwRow{display:flex;align-items:center;gap:calc(var(--u)*9.3);width:100%;min-height:calc(var(--u)*34.2);padding:calc(var(--u)*4) calc(var(--u)*10.9) calc(var(--u)*4) calc(var(--u)*10);border-radius:calc(var(--u)*12);background:rgba(255,255,255,.78);box-shadow:inset 0 0 0 calc(var(--u)*1) rgba(255,255,255,.9);text-align:right}
@@ -118,6 +126,7 @@ a{color:inherit;text-decoration:none}
 
 /* stars card */
 .tkStarsBody{display:flex;direction:ltr;align-items:flex-end;padding:calc(var(--u)*3.8) calc(var(--u)*27) calc(var(--u)*7.55) calc(var(--u)*9.97)}
+.tkHomeCards .tkCard.stars .tkStarsBody{padding-bottom:calc(var(--u)*15)}
 .tkCard.stars .tkCta{margin-bottom:0}
 .tkReward{flex:none;width:calc(var(--u)*68.8);display:flex;align-items:flex-end;gap:calc(var(--u)*4);margin-left:calc(var(--u)*15.7);margin-bottom:calc(var(--u)*12)}
 .tkReward img{flex:none;width:calc(var(--u)*29.78);height:calc(var(--u)*30.18);object-fit:contain}
@@ -166,6 +175,8 @@ a{color:inherit;text-decoration:none}
 .tkPageHead>div{flex:1;min-width:0}
 .tkPageHead h1{font-size:calc(var(--u)*15.6);font-weight:700;line-height:1.3;color:#0a1b3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tkPageHead p{font-size:calc(var(--u)*9.6);line-height:1.5;color:var(--ink2);overflow-wrap:anywhere}
+.tkPageHead .tkPageDate{display:flex;flex-wrap:wrap;align-items:center;gap:calc(var(--u)*2) calc(var(--u)*5);margin-top:calc(var(--u)*1.5);font-size:calc(var(--u)*7.9);line-height:1.45;color:var(--ink3)}
+.tkPageDate i{font-style:normal;color:#9db0c4}
 .tkPageHead img{flex:none;width:calc(var(--u)*38);height:calc(var(--u)*40);object-fit:contain}
 .tkBox{border-radius:calc(var(--u)*14);background:rgba(255,255,255,.86);border:calc(var(--u)*1.3) solid #fff;box-shadow:0 calc(var(--u)*2) calc(var(--u)*8) rgba(72,118,170,.11);padding:calc(var(--u)*10) calc(var(--u)*11);margin-bottom:calc(var(--u)*6)}
 .tkBox.blue{background:linear-gradient(180deg,#f1f8ff,#e7f3fe)}
