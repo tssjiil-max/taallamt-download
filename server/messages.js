@@ -20,12 +20,13 @@ function cleanClientId(value){
   if(!/^[A-Za-z0-9_-]{8,48}$/.test(id))throw new Error('CLIENT_ID_INVALID');
   return id;
 }
-const otherSide=role=>role==='teacher'?'guardian':'teacher';
 const readField=role=>role==='teacher'?'readByTeacherAt':'readByGuardianAt';
+const incomingFor=(row,viewer)=>viewer==='teacher'?row.from==='guardian':row.from==='teacher'||row.from==='assistant';
 // What either side may see of a message: the text, who wrote it, when, and whether the other side has read it.
 function view(row,viewer){
   const mine=row.from===viewer;
-  return {id:row.id,from:row.from,mine,text:String(row.text||''),createdAt:String(row.createdAt||''),readAt:mine?String(row[readField(otherSide(viewer))]||''):'',unread:!mine&&!row[readField(viewer)]};
+  const readAt=mine?(row.from==='teacher'?String(row.readByGuardianAt||''):row.from==='guardian'?String(row.readByTeacherAt||''):''):'';
+  return {id:row.id,from:row.from,mine,text:String(row.text||''),createdAt:String(row.createdAt||''),readAt,unread:incomingFor(row,viewer)&&!row[readField(viewer)]};
 }
 async function threadRows(db,studentId){
   return rows(await collection(db).where('studentId','==',studentId).get()).sort(byTime);
@@ -57,10 +58,22 @@ export async function sendMessage(studentId,from,body,date=new Date()){
   return {saved:true,duplicate:false,message:view(record,from)};
 }
 
+export async function sendAssistantMessage(studentId,textValue,sourceMessageId,date=new Date()){
+  const student=rosterStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
+  const text=cleanText(textValue);if(!text)throw new Error('TEXT_REQUIRED');if(text.length>MESSAGE_MAX_LENGTH)throw new Error('MESSAGE_TOO_LONG');
+  const token=String(sourceMessageId||'').replace(/[^A-Za-z0-9_-]/g,'').slice(-36)||String(date.getTime());
+  const clientId=cleanClientId(`assistant_${token}`.slice(0,48)),db=adminDb(),id=`msg_${student.id}_a_${clientId}`,ref=collection(db).doc(id);
+  const existing=await ref.get();if(existing.exists)return {saved:true,duplicate:true,message:view({id,...existing.data()},'guardian')};
+  const createdAt=date.toISOString(),record={id,studentId:student.id,classId:CLASS_ID,schoolId:SCHOOL_ID,teacherId:TEACHER_ID,from:'assistant',text,clientId,createdAt,sourceMessageId:String(sourceMessageId||''),readByTeacherAt:createdAt,readByGuardianAt:''};
+  const created=await db.runTransaction(async tx=>{const snap=await tx.get(ref);if(snap.exists)return false;tx.set(ref,record);return true});
+  if(!created){const stored=await ref.get();return {saved:true,duplicate:true,message:view({id,...stored.data()},'guardian')}}
+  return {saved:true,duplicate:false,message:view(record,'guardian')};
+}
+
 // Opening a thread marks the other side's messages as read for the viewer only.
 export async function markThreadRead(studentId,viewer,date=new Date()){
   if(!rosterStudent(studentId))throw new Error('STUDENT_NOT_FOUND');
-  const db=adminDb(),field=readField(viewer),unread=(await threadRows(db,studentId)).filter(row=>row.from!==viewer&&!row[field]);
+  const db=adminDb(),field=readField(viewer),unread=(await threadRows(db,studentId)).filter(row=>incomingFor(row,viewer)&&!row[field]);
   if(!unread.length)return {saved:true,marked:0};
   const batch=db.batch(),timestamp=date.toISOString();
   for(const row of unread.slice(0,400))batch.set(collection(db).doc(row.id),{[field]:timestamp},{merge:true});
@@ -88,5 +101,5 @@ export async function unreadForTeacher(db=adminDb()){
 }
 export async function guardianSummary(db,studentId){
   const list=await threadRows(db,studentId);
-  return {total:list.length,unread:list.filter(row=>row.from==='teacher'&&!row.readByGuardianAt).length};
+  return {total:list.length,unread:list.filter(row=>(row.from==='teacher'||row.from==='assistant')&&!row.readByGuardianAt).length};
 }
