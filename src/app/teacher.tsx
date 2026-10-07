@@ -572,13 +572,16 @@ function TeacherChatPage({home,studentId,back,refresh}:{home:TeacherHome;student
   const student=home.students.find(entry=>entry.id===studentId);
   const remote=useRemote<TeacherThread>(student?`thread:${studentId}`:null,()=>api<TeacherThread>(`${AUTOMATION}?action=messages_thread&studentId=${encodeURIComponent(studentId)}`));
   usePolling(remote.reload,20000);
-  const unread=remote.data?.unread||0;
+  const unread=remote.data?.unread||0,suggested=remote.data?.assistantState?.suggestedReply||'';
+  const [editingSuggestion,setEditingSuggestion]=React.useState(false),[suggestionText,setSuggestionText]=React.useState('');
+  React.useEffect(()=>{setSuggestionText(suggested);setEditingSuggestion(false)},[suggested]);
   React.useEffect(()=>{
     if(!unread)return;
     void post('messages_mark_read',{studentId}).then(()=>{void remote.reload(true);refresh()}).catch(()=>undefined);
   },[unread,studentId]);// eslint-disable-line react-hooks/exhaustive-deps
   if(!student)return <div className="tkPage"><PageHead title="المحادثة" onBack={back}/><Empty>هذا الطالب غير موجود في قائمة الصف.</Empty></div>;
-  const send=async(text:string,clientId:string)=>{await post('message_reply',{studentId,text,clientId});await remote.reload(true)};
+  const send=async(text:string,clientId:string)=>{await post('message_reply',{studentId,text,clientId});await remote.reload(true);refresh()};
+  const sendSuggestion=async()=>{const value=suggestionText.trim();if(!value)return;await send(value,newRequestId());setEditingSuggestion(false)};
   return <div className="tkPage">
     <PageHead title={student.name} subtitle="محادثة ولي الأمر" onBack={back}/>
     {remote.error&&!remote.data?<Failure error={remote.error} role="teacher" onRetry={()=>void remote.reload()}/>:!remote.data?<Loading/>
