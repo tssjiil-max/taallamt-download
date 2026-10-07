@@ -89,6 +89,38 @@ export const QURAN_WEEKS={
 // page numbers the project has; no other page number may be shown or generated.
 export const COPYWORK_PAGES={'صلة الرحم':34,'عذرًا يا جدي':45,'الصديقان':69,'الجار الصغير':80,'مدينتان مقدستان':103,'علم بلادي':112,'رحلة حبة قمح':135,'من أنا؟':145};
 
+// المصدر المعتمد: كتاب «مهارة الإملاء وفن الخط». الخط والإملاء مساران مستقلان وصفحاتهما مستقلة عن «نسخ لغتي».
+export const SPELLING_HANDWRITING_BOOK_WEEKS={
+  1:{handwriting:{title:'صلة الرحم',page:3},spelling:{title:'الحركات القصيرة والسكون',page:4}},
+  2:{handwriting:{title:'زيارة الجد',page:5},spelling:{title:'اللام القمرية',page:6}},
+  3:{handwriting:{title:'الأقارب',page:7},spelling:{title:'اللام الشمسية',page:8}},
+  4:{handwriting:{title:'أسرتي',page:9},spelling:{title:'التمييز بين اللام الشمسية واللام القمرية',page:10}},
+  5:{handwriting:{title:'عذرًا يا جدي',page:11},spelling:{title:'تنوين الضم',page:12}},
+  6:{handwriting:{title:'الاعتذار',page:13},spelling:{title:'تنوين الفتح',page:14}},
+  7:{handwriting:{title:'الصديق الوفي',page:15},spelling:{title:'تنوين الكسر',page:16}},
+  8:{handwriting:{title:'مع أصدقائي',page:17},spelling:{title:'الشدة',page:18}},
+  9:{handwriting:{title:'حق الجار',page:19},spelling:{title:'الشدة مع اللام الشمسية',page:20}},
+  10:{handwriting:{title:'الجار الطيب',page:21},spelling:{title:'مراجعة التنوين والشدة',page:22}},
+  11:{handwriting:{title:'وطني السعودية',page:23},spelling:{title:'التاء المربوطة',page:24}},
+  12:{handwriting:{title:'مكة والمدينة',page:25},spelling:{title:'التنوين مع التاء المربوطة',page:26}},
+  13:{handwriting:{title:'علم المملكة',page:27},spelling:{title:'المد بالألف',page:28}},
+  14:{handwriting:{title:'أحب لغتي العربية',page:29},spelling:{title:'المد بالواو',page:30}},
+  15:{handwriting:{title:'التمر',page:31},spelling:{title:'المد بالياء',page:32}},
+  16:{handwriting:{title:'النخلة المباركة',page:33},spelling:{title:'مراجعة المدود الثلاثة',page:34}},
+  17:{handwriting:{title:'محاصيل بلادي',page:35},spelling:{title:'مراجعة شاملة على مهارات الفصل',page:36}},
+  18:{handwriting:{title:'ختام الفصل',page:37},spelling:{title:'اختبار ختامي ومراجعة',page:38}}
+};
+export const WRITING_BOOK_BREAK_WEEK=13;
+export const writingBookWeek=week=>week===WRITING_BOOK_BREAK_WEEK?null:(week>WRITING_BOOK_BREAK_WEEK?week-1:week);
+export function writingBookTasksForWeek(week){
+  const bookWeek=writingBookWeek(Number(week)),row=bookWeek?SPELLING_HANDWRITING_BOOK_WEEKS[bookWeek]:null;
+  if(!row)return null;
+  return {bookWeek,
+    spelling:{key:'spelling_task',title:row.spelling.title,page:row.spelling.page,source:'كتاب مهارة الإملاء وفن الخط'},
+    handwriting:{key:'handwriting_task',title:row.handwriting.title,page:row.handwriting.page,source:'كتاب مهارة الإملاء وفن الخط'}};
+}
+
+
 export function riyadhDateString(date=new Date()){
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
   const value=Object.fromEntries(parts.map(part=>[part.type,part.value]));
@@ -114,12 +146,13 @@ export function termPhase(date=new Date()){
 export function contentForWeek(week){
   const w=Math.max(1,Math.min(TERM_WEEKS,Number(week)||1));
   const teachingWeek=quranTeachingWeek(w),q=teachingWeek?QURAN_WEEKS[teachingWeek]:null;
+  const arabicWeek=ARABIC_WEEKS[w]||{},copyPage=COPYWORK_PAGES[String(arabicWeek.lesson||'').trim()]||null,writing=writingBookTasksForWeek(w);
   return {
     week:w,
-    arabic:{subject:'arabic',title:'لغتي',...ARABIC_WEEKS[w]},
+    arabic:{subject:'arabic',title:'لغتي',...arabicWeek,copywork:copyPage?{key:'copywork_lughati',title:'نسخ لغتي',lesson:arabicWeek.lesson,page:copyPage,source:'كتاب لغتي'}:null},
     quran:teachingWeek?{subject:'quran',title:'القرآن الكريم',unit:q?.surah||'',lesson:q?.weekly||'',skill:'الحفظ وصحة القراءة والمراجعة',surah:q?.surah,days:q?.days||[]}:{subject:'quran',title:'القرآن الكريم',unit:'إجازة الخريف',lesson:'لا يوجد حفظ جديد',skill:'مراجعة اختيارية',surah:'',days:[],holiday:true},
     islamic:{subject:'islamic',title:'الدراسات الإسلامية',...ISLAMIC_WEEKS[w]},
-    spelling:{subject:'spelling',title:'الإملاء والخط',...SPELLING_WEEKS[w]}
+    spelling:{subject:'spelling',title:'الإملاء والخط',...SPELLING_WEEKS[w],spellingTask:writing?.spelling||null,handwritingTask:writing?.handwriting||null}
   };
 }
 export function quranForDay(week,weekday){
