@@ -72,8 +72,10 @@ function sensitive(q){
 function unsafe(q){return /انتحار|أؤذي|اؤذي|قتل|سلاح|مخدر|ابتزاز/.test(q)}
 function outside(q){return /طقس|جو اليوم|مباراة|الاتحاد|هلال|سهم|بورصة|سياسة|سياسي/.test(q)}
 
+function otherStudentMention(q,currentId){return ROSTER.some(student=>student.id!==currentId&&q.includes(student.name.split(' ').slice(0,2).join(' ')))}
 function ruleAnswer(question,home){
   const q=text(question),subject=subjectKeyOfQuestion(q);
+  if(otherStudentMention(q,home.student?.id))return {classification:'teacher_required',reply:THREAD_FALLBACK,confidence:1,needsTeacherReply:true};
   if(unsafe(q))return {classification:'unsafe',reply:THREAD_FALLBACK,confidence:1,needsTeacherReply:true};
   if(sensitive(q))return {classification:'teacher_required',reply:THREAD_FALLBACK,confidence:1,needsTeacherReply:true};
   if(outside(q))return {classification:'out_of_scope',reply:OUT_OF_SCOPE,confidence:.99,needsTeacherReply:false};
