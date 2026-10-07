@@ -105,7 +105,7 @@ function homeworkCopies(subject,item,daySpecific){
   }
   if(subject==='arabic'){
     const task=item.copywork||null,page=task?.page||copyworkPage(item.lesson);if(!page)return [];
-    return [{pathKey:'copywork_lughati',taskType:'copywork_lughati',title:`نسخ لغتي — ${item.lesson}`,lesson:item.lesson,page,assignmentType:'نسخ لغتي',skill:'النسخ',
+    return [{pathKey:'arabic',learningPath:'copywork_lughati',taskType:'copywriting',title:`نسخ لغتي — ${item.lesson}`,lesson:item.lesson,page,assignmentType:'نسخ لغتي',skill:'النسخ',
       task:`أنجز واجب «نسخ لغتي» في الصفحة ${arabicDigits(page)} من كتاب لغتي (درس «${item.lesson}»)، واكتب بخط واضح.`,
       instructions:`المصدر: كتاب لغتي. الدرس: ${item.lesson}. الصفحة: ${arabicDigits(page)}. المطلوب: نسخ لغتي.`}];
   }
@@ -113,13 +113,13 @@ function homeworkCopies(subject,item,daySpecific){
   const result=[];
   if(item.spellingTask){
     const task=item.spellingTask,page=Number(task.page)||null;
-    result.push({pathKey:'spelling_task',taskType:'spelling_task',title:`الإملاء — ${task.title}`,lesson:item.lesson,skill:task.title,page,assignmentType:'الإملاء',sourceBook:task.source,
+    result.push({pathKey:'spelling',learningPath:'spelling_task',taskType:'spelling_practice',title:`الإملاء — ${task.title}`,lesson:item.lesson,skill:task.title,page,assignmentType:'الإملاء',sourceBook:task.source,
       task:`تدريب الإملاء: «${task.title}»${page?` — صفحة ${arabicDigits(page)}`:' — الصفحة لم تُحدد بعد'} من كتاب مهارة الإملاء وفن الخط.`,
       instructions:`المصدر: كتاب مهارة الإملاء وفن الخط. المهارة: ${task.title}. ${page?`الصفحة: ${arabicDigits(page)}.`:'الصفحة: لم تُحدد بعد.'}`});
   }
   if(item.handwritingTask){
     const task=item.handwritingTask,page=Number(task.page)||null;
-    result.push({pathKey:'handwriting_task',taskType:'handwriting_task',title:`فن الخط — ${task.title}`,lesson:task.title,skill:'فن الخط',page,assignmentType:'فن الخط',sourceBook:task.source,
+    result.push({pathKey:'handwriting',learningPath:'handwriting_task',taskType:'handwriting_task',title:`فن الخط — ${task.title}`,lesson:task.title,skill:'فن الخط',page,assignmentType:'فن الخط',sourceBook:task.source,
       task:`تدريب فن الخط: «${task.title}»${page?` — صفحة ${arabicDigits(page)}`:' — الصفحة لم تُحدد بعد'} من كتاب مهارة الإملاء وفن الخط.`,
       instructions:`المصدر: كتاب مهارة الإملاء وفن الخط. فن الخط: ${task.title}. ${page?`الصفحة: ${arabicDigits(page)}.`:'الصفحة: لم تُحدد بعد.'} اكتب بخط النسخ مع مراعاة السطور.`});
   }
@@ -134,7 +134,7 @@ function automationHomeworks(subject,item,daySpecific,localDate,week,scheduleSou
     id:`auto-homework:${localDate}:${copy.pathKey||subject}`,
     subject:copy.taskType==='handwriting_task'?'فن الخط':copy.taskType==='spelling_task'?'الإملاء':subjectLabels[subject]||subject,
     subjectKey:subject,
-    learningPath:copy.pathKey||subject,
+    learningPath:copy.learningPath||copy.pathKey||subject,
     title:copy.title,
     instructions:copy.instructions,
     task:copy.task||copy.instructions,
