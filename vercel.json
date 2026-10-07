@@ -10,7 +10,9 @@
     }
   ],
   "functions": {
-    "api/learning-automation.js": { "maxDuration": 60 }
+    "api/learning-automation.js": {
+      "maxDuration": 60
+    }
   },
   "rewrites": [
     {
@@ -58,5 +60,33 @@
     "deploymentEnabled": {
       "preview/student-teacher-staging-20261006": true
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/pwa/sw.js",
+      "headers": [
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/pwa/:name.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ]
 }

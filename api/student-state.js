@@ -1,3 +1,4 @@
+import pwaManifest from '../server/pwa-manifest.js';
 import {randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
@@ -215,6 +216,7 @@ async function stagingSmoke(){
 }
 
 export default async function handler(req,res){
+  if(req.method==='GET'&&req.query?.view==='pwa-manifest')return pwaManifest(req,res);
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke'){requireTeacher(req);return res.status(200).json(await stagingSmoke())}
