@@ -8,6 +8,7 @@ import {assessBulk,assessOne,assessUndo,assessView,assessedToday,isFocused,readP
 import {homeworkDisplayTitle,homeworkStatus} from './student-home.js';
 import {assistantStatus,saveProvider} from './assistant.js';
 import {markThreadRead,readThread,sendMessage,teacherInbox,unreadForTeacher} from './messages.js';
+import {guardianAssistantSettings,guardianAssistantThreadState,markTeacherReplied,saveGuardianAssistantSettings} from './guardian-assistant.js';
 import {CLASS_LABEL,CLASS_SHORT,ROSTER,rosterStudent,SCHOOL_ID,SCHOOL_NAME,TEACHER_FIRST_NAME,TEACHER_NAME,TERM_ID,TERM_LABEL} from './roster.js';
 
 const rows=snap=>snap.docs.map(doc=>({id:doc.id,...doc.data()}));
@@ -77,8 +78,16 @@ export async function teacherRead(action,query={},date=new Date()){
     const current=planWeekForDate(date),week=clampWeek(query.week||current),plan=await readWeekPlan(adminDb(),week);
     return {ok:true,currentWeek:current,plan:plan.published?plan:{...buildPlan(week,[]),fromDistribution:true}};
   }
-  if(action==='messages_inbox')return teacherInbox();
-  if(action==='messages_thread')return {ok:true,...await readThread(String(query.studentId||''),'teacher')};
+  if(action==='messages_inbox'){
+    const [inbox,assistant]=await Promise.all([teacherInbox(),guardianAssistantSettings()]);
+    const threads=await Promise.all(inbox.threads.map(async thread=>({...thread,...await guardianAssistantThreadState(thread.studentId)})));
+    return {...inbox,threads,assistant};
+  }
+  if(action==='messages_thread'){
+    const studentId=String(query.studentId||'');
+    const [thread,assistantState]=await Promise.all([readThread(studentId,'teacher'),guardianAssistantThreadState(studentId)]);
+    return {ok:true,...thread,assistantState};
+  }
   if(action==='assistant_status')return assistantStatus(query,date);
   if(action==='homework_day'){
     const day=/^\d{4}-\d{2}-\d{2}$/.test(String(query.date||''))?String(query.date):riyadhDateString(date);
@@ -156,8 +165,13 @@ export async function teacherWrite(action,body={},date=new Date()){
   if(action==='homework_edit')return homeworkEdit(body);
   if(action==='homework_review')return homeworkReview(body);
   // The teacher's identity comes from the signed session checked by the caller, never from the request body.
-  if(action==='message_reply')return sendMessage(String(body.studentId||''),'teacher',body,date);
+  if(action==='message_reply'){
+    const studentId=String(body.studentId||''),result=await sendMessage(studentId,'teacher',body,date);
+    await markTeacherReplied(studentId,date);
+    return result;
+  }
   if(action==='messages_mark_read')return markThreadRead(String(body.studentId||''),'teacher',date);
   if(action==='assistant_provider')return saveProvider(body);
+  if(action==='guardian_assistant_settings')return saveGuardianAssistantSettings(body);
   return null;
 }
