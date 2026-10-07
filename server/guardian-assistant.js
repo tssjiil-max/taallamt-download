@@ -80,7 +80,7 @@ function ruleAnswer(question,home){
   if(sensitive(q))return {classification:'teacher_required',reply:THREAD_FALLBACK,confidence:1,needsTeacherReply:true};
   if(outside(q))return {classification:'out_of_scope',reply:OUT_OF_SCOPE,confidence:.99,needsTeacherReply:false};
 
-  if(/كيف.*(استخدم|استعمل)|طريقة.*الصفحة|وين.*(واجب|تقييم|نجوم)/.test(q)){
+  if(/كيف.*(أستخدم|استخدم|استعمل)|طريقة.*الصفحة|وين.*(واجب|تقييم|نجوم)/.test(q)){
     return {classification:'routine',reply:'من الصفحة الرئيسية ستجد الخطة الأسبوعية، ثم التقييم، ثم الواجبات، ثم النجوم. ويمكن فتح «عرض التفاصيل» لكل قسم.',confidence:.98,needsTeacherReply:false};
   }
   if(/نجمة|نجوم|رصيد/.test(q)){
