@@ -280,7 +280,7 @@ export const weekTitle=(plan:{week:number;range:{start:string;end:string}})=>`ا
 export const weekDatesLine=(plan:{range:{start:string;end:string}})=>`${hijriRange(plan.range)} · ${gregorianRange(plan.range)}`;
 
 /* ---------- conversation (the same block for the guardian and for the teacher) ---------- */
-export type ChatMessage={id:string;from:'guardian'|'teacher';mine:boolean;text:string;createdAt:string;readAt:string;unread:boolean};
+export type ChatMessage={id:string;from:'guardian'|'teacher'|'assistant';mine:boolean;text:string;createdAt:string;readAt:string;unread:boolean};
 type Draft={clientId:string;text:string;state:'sending'|'failed';reason:string};
 export function chatFailure(error:ApiError){
   if(error.kind==='offline')return 'تعذر الاتصال بالخادم';
@@ -311,8 +311,8 @@ export function Chat({messages,canSend,blockedNote,otherLabel,send,maxLength=100
   return <>
     <div className="tkChat" role="log" aria-label="سجل المحادثة">
       {!messages.length&&!waiting.length&&<Empty>لا توجد رسائل بعد. اكتب رسالتك في الأسفل.</Empty>}
-      {messages.map(message=><div key={message.id} className={`tkBubble ${message.mine?'mine':''}`}>
-        <small>{message.mine?'أنت':otherLabel}</small><p>{message.text}</p>
+      {messages.map(message=><div key={message.id} className={`tkBubble ${message.mine?'mine':''} ${message.from==='assistant'?'assistant':''}`}>
+        <small>{message.mine?'أنت':message.from==='assistant'?'🤖 مساعد المعلم':otherLabel}</small><p>{message.text}</p>
         <span>{formatStamp(message.createdAt)}{message.mine?(message.readAt?' · قُرئت ✓✓':' · أُرسلت ✓'):''}</span></div>)}
       {waiting.map(draft=><div key={draft.clientId} className={`tkBubble mine ${draft.state==='failed'?'failed':''}`}>
         <small>أنت</small><p>{draft.text}</p>
