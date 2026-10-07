@@ -88,7 +88,7 @@ function ruleAnswer(question,home){
     return {classification:'routine',reply:`رصيد الطالب الحالي ${count} نجمة من ${goal} نجمة.`,confidence:.99,needsTeacherReply:false};
   }
   if(/واجب|واجبات|تسليم/.test(q)){
-    const items=home.homework?.today||[];
+    const weekly=/الأسبوع|الاسبوع/.test(q),source=weekly?[...(home.homework?.today||[]),...(home.homework?.pending||[])]:home.homework?.today||[],items=[...new Map(source.map(item=>[item.id,item])).values()];
     if(!items.length)return {classification:'routine',reply:'لا يوجد واجب منشور لليوم في المنصة.',confidence:.99,needsTeacherReply:false};
     const filtered=subject?items.filter(item=>item.subjectKey===subject):items;
     if(subject&&!filtered.length)return {classification:'teacher_required',reply:NO_DATA,confidence:.99,needsTeacherReply:true};
@@ -97,7 +97,7 @@ function ruleAnswer(question,home){
       if(!withDue.length)return {classification:'teacher_required',reply:NO_DATA,confidence:.99,needsTeacherReply:true};
       return {classification:'routine',reply:withDue.map(item=>`${item.subjectLabel}: موعد التسليم ${item.dueDate}.`).join(' '),confidence:.99,needsTeacherReply:false};
     }
-    return {classification:'routine',reply:`واجب اليوم: ${filtered.map(homeworkLine).join(' — ')}`,confidence:.99,needsTeacherReply:false};
+    return {classification:'routine',reply:`${weekly?'واجبات هذا الأسبوع':'واجب اليوم'}: ${filtered.map(homeworkLine).join(' — ')}`,confidence:.99,needsTeacherReply:false};
   }
   if(/أتقن|اتقن|تقييم|قيّم|قيم|مستواه/.test(q)){
     if(!subject)return {classification:'needs_clarification',reply:'أي مادة تقصد في التقييم: لغتي، القرآن الكريم، الدراسات الإسلامية، أم الإملاء والخط؟',confidence:.98,needsTeacherReply:false};
