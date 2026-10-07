@@ -127,8 +127,8 @@ check('the plan and the homework are published by the scheduled job alone (teach
 check('Lughati homework is the copy / handwriting exercise with lesson and page',async()=>{
   const hw=doc('homework/auto-homework:2026-10-04:arabic');
   assert.ok(hw,'published on a Lughati day');
-  assert.equal(hw.lesson,'عذرًا يا جدي');assert.equal(hw.page,45);assert.equal(hw.exercise,'تمرين الخط والنسخ');assert.equal(hw.taskType,'copywriting');
-  assert.ok(hw.task.includes('الخط والنسخ')&&hw.task.includes('٤٥'));
+  assert.equal(hw.lesson,'عذرًا يا جدي');assert.equal(hw.page,45);assert.equal(hw.exercise,'نسخ لغتي');assert.equal(hw.taskType,'copywriting');assert.equal(hw.learningPath,'copywork_lughati');
+  assert.ok(hw.task.includes('نسخ لغتي')&&hw.task.includes('٤٥'));
   assert.equal(hw.scheduledDate,'2026-10-04');assert.equal(hw.dueDate,'2026-10-05');assert.ok(hw.publishedAt);
   assert.equal(docs('homeworkEvidence').filter(key=>key.includes('auto-homework:2026-10-04:arabic_')).length,ROSTER.length,'one record per student');
 });
@@ -336,8 +336,9 @@ check('everything is still there after a fresh read (persistence)',async()=>{
 check('spelling homework follows the week\'s spelling skill (Thursday), without repeating the Lughati task',async()=>{
   setNow('2026-10-08T02:05:00Z');                                              // Thursday 05:05 Asia/Riyadh
   await call(cronDaily);
-  const hw=doc('homework/auto-homework:2026-10-08:spelling');
-  assert.ok(hw);assert.equal(hw.skill,'تنوين الفتح');assert.ok(hw.task.includes('تنوين الفتح'));assert.equal(hw.dueDate,'2026-10-11','due on the next school day');
+  const hw=doc('homework/auto-homework:2026-10-08:spelling'),hand=doc('homework/auto-homework:2026-10-08:handwriting');
+  assert.ok(hw);assert.equal(hw.skill,'تنوين الفتح');assert.equal(hw.page,14);assert.equal(hw.learningPath,'spelling_task');assert.ok(hw.task.includes('تنوين الفتح'));assert.equal(hw.dueDate,'2026-10-11','due on the next school day');
+  assert.ok(hand);assert.equal(hand.lesson,'الاعتذار');assert.equal(hand.page,13);assert.equal(hand.learningPath,'handwriting_task');assert.ok(hand.task.includes('فن الخط'));
   assert.equal(doc('homework/auto-homework:2026-10-08:arabic'),undefined);
   assert.equal(doc('automationRuns/2026-10-08').firstSource,'cron-daily');
   const response=JSON.stringify((await call(cronDaily)).body);
