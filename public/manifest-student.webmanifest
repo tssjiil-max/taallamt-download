@@ -30,5 +30,7 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "start_url": "/student",
+  "prefer_related_applications": false
 }

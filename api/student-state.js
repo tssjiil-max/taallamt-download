@@ -215,10 +215,44 @@ async function stagingSmoke(){
   return {ok:true,firebaseAdmin:true,write:true,read:readable,delete:deleted,autoGrade,productionProtected:process.env.VERCEL_ENV!=='production'};
 }
 
+async function studentPwaManifest(req,res){
+  const studentId=String(req.query?.studentId||'');
+  const student=getStudent(studentId);
+  if(!student)return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
+  // The install manifest is available only through the same verified guardian link as the student page.
+  await requireStudentAccess(req,studentId,null);
+  const invite=String(req.query?.inviteToken||req.query?.invite||'').trim();
+  const startQuery=`studentId=${encodeURIComponent(studentId)}&invite=${encodeURIComponent(invite)}&source=pwa`;
+  const manifest={
+    id:`/student?studentId=${encodeURIComponent(studentId)}`,
+    name:'تعلّمت - الطالب',
+    short_name:'تعلّمت طالب',
+    description:'صفحة الطالب وولي الأمر في منصة تعلّمت',
+    lang:'ar',
+    dir:'rtl',
+    start_url:`/student?${startQuery}`,
+    scope:'/student',
+    display:'standalone',
+    display_override:['standalone','minimal-ui'],
+    orientation:'portrait-primary',
+    background_color:'#f6f8fb',
+    theme_color:'#167e5e',
+    prefer_related_applications:false,
+    categories:['education'],
+    icons:[
+      {src:'/pwa/student-192.png',sizes:'192x192',type:'image/png',purpose:'any'},
+      {src:'/pwa/student-512.png',sizes:'512x512',type:'image/png',purpose:'any maskable'}
+    ]
+  };
+  res.setHeader('Content-Type','application/manifest+json; charset=utf-8');
+  return res.status(200).send(JSON.stringify(manifest));
+}
+
 export default async function handler(req,res){
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke'){requireTeacher(req);return res.status(200).json(await stagingSmoke())}
+    if(req.method==='GET'&&String(req.query?.view||'')==='pwa-manifest')return await studentPwaManifest(req,res);
     if(req.method==='GET'&&req.query?.view)return await studentViewHandler(req,res,{ensureFresh});
     const body=req.method==='GET'?{}:jsonBody(req);
     const studentId=String((req.method==='GET'?req.query?.studentId:body.studentId)||'');

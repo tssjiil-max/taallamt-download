@@ -13,7 +13,12 @@
   <script>
     (function () {
       var student = location.pathname.replace(/\/+$/, '').startsWith('/student');
-      var manifest = student ? '/manifest-student.webmanifest' : '/manifest-teacher.webmanifest';
+      var query = new URLSearchParams(location.search);
+      var studentId = query.get('studentId') || '';
+      var invite = query.get('invite') || query.get('inviteToken') || '';
+      var manifest = student && studentId && invite
+        ? '/api/student-state?view=pwa-manifest&studentId=' + encodeURIComponent(studentId) + '&invite=' + encodeURIComponent(invite)
+        : (student ? '/manifest-student.webmanifest' : '/manifest-teacher.webmanifest');
       var icon = student ? '/pwa/student-192.png' : '/pwa/teacher-192.png';
       var theme = student ? '#167e5e' : '#155e9b';
       var title = student ? 'تعلّمت - الطالب' : 'تعلّمت - المعلم';
