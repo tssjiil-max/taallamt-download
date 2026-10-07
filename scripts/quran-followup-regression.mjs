@@ -37,9 +37,9 @@ assert(app.includes('function TeacherQuranFollowup')&&app.includes('أتقن ا�
 assert(app.includes('function QuranFollowupStudent')&&app.includes('عرض السجل')&&app.includes('متابعة حفظ القرآن الكريم'));
 assert(css.includes('.quranTeacherPage')&&css.includes('.quranParentCard'));
 assert(automation.includes("if(subject==='arabic'){")&&automation.includes('تُحل تمارين المهارات والظواهر اللغوية داخل الفصل في كتاب لغتي'));
-assert(automation.includes('كتاب فن الخط')&&automation.includes('اكتب بخط جميل'));
+assert(automation.includes('كتاب مهارة الإملاء وفن الخط')&&automation.includes("pathKey:'spelling_task'")&&automation.includes("pathKey:'handwriting_task'"));
 for(const [lesson,page] of [['صلة الرحم',34],['عذرًا يا جدي',45],['الصديقان',69],['الجار الصغير',80],['مدينتان مقدستان',103],['علم بلادي',112],['رحلة حبة قمح',135],['من أنا؟',145]])assert(readFileSync('server/learning-content.js','utf8').includes(`'${lesson}':${page}`)&&automation.includes('COPYWORK_PAGES'),`copywork mapping: ${lesson}`);
-assert(automation.includes("taskType:subject==='quran'?quranTaskType(daySpecific,item):subject==='spelling'?'spelling_practice':subject==='arabic'?'copywriting'"));
+assert(automation.includes('quranTaskType(daySpecific,item)')&&automation.includes("taskType:'copywork_lughati'")&&automation.includes("taskType:'spelling_task'")&&automation.includes("taskType:'handwriting_task'"));
 assert(homeworkBridge.includes("task.taskType==='copywriting'")&&homeworkBridge.includes('تمرين الخط والنسخ'));
 assert(homeworkBridge.includes('تم الإنجاز ✓'));
 console.log('Quran follow-up curriculum, roster, privacy, UI and automation regression checks passed.');
