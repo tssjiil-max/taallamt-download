@@ -43,6 +43,11 @@ a{color:inherit;text-decoration:none}
 .tkCard.assessment{background:linear-gradient(180deg,#eef8ee,var(--green-card));min-height:126u}
 .tkCard.homework{background:linear-gradient(180deg,#fff7e6,var(--orange-card));min-height:113.5u}
 .tkCard.stars{background:linear-gradient(180deg,#f2effe,#eae7fa);min-height:101.4u;margin-top:1.2u}
+/* Home-only vertical breathing room: same cards and identity, slightly taller to avoid an empty lower band. */
+.tkHomeCards .tkCard.plan{min-height:126u}
+.tkHomeCards .tkCard.assessment{min-height:134u}
+.tkHomeCards .tkCard.homework{min-height:122u}
+.tkHomeCards .tkCard.stars{min-height:110u}
 .tkCardHead{position:relative;display:block;width:100%;text-align:right;padding:8.67u 72.6u 0 46u}
 .tkCard.assessment .tkCardHead{padding:10.5u 71.8u 0 46u}
 .tkCard.homework .tkCardHead{padding:10.2u 70.6u 0 46u}
@@ -71,6 +76,8 @@ a{color:inherit;text-decoration:none}
 .tkCard.stars .tkChevron{top:11.8u;background:var(--purple-soft);color:#684ebb}
 .tkCardBody{display:flex;align-items:flex-end;gap:10.46u;padding:4.86u 7.96u 6.6u 9.16u}
 .tkCard.assessment .tkCardBody{gap:16.1u;padding:7.2u 8.76u 7.96u 9.16u}
+.tkHomeCards .tkCard.plan .tkCardBody{padding-bottom:13u}
+.tkHomeCards .tkCard.assessment .tkCardBody{padding-bottom:14.5u}
 .tkCta{flex:0 0 84.5u;height:28.2u;border-radius:99u;color:#fff;font-size:9.4u;font-weight:500;line-height:1;display:grid;place-items:center;white-space:nowrap;margin-bottom:1u;box-shadow:0 2u 5u rgba(20,60,110,.14)}
 .tkCard.plan .tkCta{background:linear-gradient(180deg,#1b8cf2,#1485ee)}
 .tkCard.assessment .tkCta{background:linear-gradient(180deg,#3c9459,#378d54);margin-bottom:-.4u}
@@ -101,6 +108,7 @@ a{color:inherit;text-decoration:none}
 
 /* homework card */
 .tkHwBody{display:flex;align-items:flex-end;gap:26.2u;padding:6.5u 54.2u 0 9.97u}
+.tkHomeCards .tkCard.homework .tkHwBody{padding-bottom:8u}
 .tkCard.homework .tkCta{margin-bottom:8.36u}
 .tkHwCol{flex:1;min-width:0;display:grid;gap:3.4u}
 .tkHwRow{display:flex;align-items:center;gap:9.3u;width:100%;min-height:34.2u;padding:4u 10.9u 4u 10u;border-radius:12u;background:rgba(255,255,255,.78);box-shadow:inset 0 0 0 1u rgba(255,255,255,.9);text-align:right}
@@ -117,6 +125,7 @@ a{color:inherit;text-decoration:none}
 
 /* stars card */
 .tkStarsBody{display:flex;direction:ltr;align-items:flex-end;padding:3.8u 27u 7.55u 9.97u}
+.tkHomeCards .tkCard.stars .tkStarsBody{padding-bottom:15u}
 .tkCard.stars .tkCta{margin-bottom:0}
 .tkReward{flex:none;width:68.8u;display:flex;align-items:flex-end;gap:4u;margin-left:15.7u;margin-bottom:12u}
 .tkReward img{flex:none;width:29.78u;height:30.18u;object-fit:contain}
@@ -165,6 +174,8 @@ a{color:inherit;text-decoration:none}
 .tkPageHead>div{flex:1;min-width:0}
 .tkPageHead h1{font-size:15.6u;font-weight:700;line-height:1.3;color:#0a1b3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tkPageHead p{font-size:9.6u;line-height:1.5;color:var(--ink2);overflow-wrap:anywhere}
+.tkPageHead .tkPageDate{display:flex;flex-wrap:wrap;align-items:center;gap:2u 5u;margin-top:1.5u;font-size:7.9u;line-height:1.45;color:var(--ink3)}
+.tkPageDate i{font-style:normal;color:#9db0c4}
 .tkPageHead img{flex:none;width:38u;height:40u;object-fit:contain}
 .tkBox{border-radius:14u;background:rgba(255,255,255,.86);border:1.3u solid #fff;box-shadow:0 2u 8u rgba(72,118,170,.11);padding:10u 11u;margin-bottom:6u}
 .tkBox.blue{background:linear-gradient(180deg,#f1f8ff,#e7f3fe)}

@@ -132,12 +132,12 @@ function TeacherTop({home,go}:{home?:TeacherHome|null;go?:Go}){
     <section className="tkIdCard" aria-label="بطاقة المعلم">
       {go?<button className="tkIdAvatar" type="button" onClick={()=>go('more')} aria-label="حساب المعلم والمزيد"><IconUserFilled/></button>:<span className="tkIdAvatar" aria-hidden="true"><IconUserFilled/></span>}
       <div className="tkIdText"><h1>{teacher.name}</h1><p>{teacher.school}</p><p>الصف: {teacher.classShort}</p></div>
-      <div className="tkBrand" aria-label="تعلّمت — معًا نصنع جيلًا أفضل"><div><i aria-hidden="true"><IconSpark/></i><b>تعلّمت</b><IconBookLogo/></div><small>معًا نصنع جيلًا أفضل</small></div>
+      <div className="tkBrand" aria-label="تعلّمت — المعرفة قوة"><div><i aria-hidden="true"><IconSpark/></i><b>تعلّمت</b><IconBookLogo/></div><small>المعرفة قوة</small></div>
     </section>
     <div className="tkDay" aria-label="تاريخ اليوم">
       <span><IconCalendar/><span dir="rtl">{hijriDate(now)}</span></span>
       <span><IconCalendar/><span dir="rtl">{gregorianDate(now)}</span></span>
-      <p><IconSprout/>كل خطوة في التعليم … تصنع فرقًا كبيرًا</p>
+      <p><IconSprout/>القمة تكفي الجميع</p>
     </div>
     {go&&tiles.length>0&&<div className="tkStats" aria-label="ملخص اليوم">{tiles.map(([tone,label,value,icon,route])=><button key={route} type="button" className={`tkStat ${tone}`} onClick={()=>go(route)} aria-label={`${label}: ${value}`}>
       <span className="tkStatIcon" aria-hidden="true">{icon}</span><span className="tkStatText"><small>{label}</small><b className="num">{value}</b></span></button>)}</div>}
@@ -153,7 +153,7 @@ function progressPill(item:Progress){
 function HomeCards({home,go}:{home:TeacherHome;go:Go}){
   const {plan,assessment,homework,stars}=home,first=homework.items[0];
   const starPercent=Math.round(stars.withStars/Math.max(1,home.students.length)*100);
-  return <div className="tkCards">
+  return <div className="tkCards tkHomeCards">
     <Card tone="plan" title="الخطة الأسبوعية" subtitle={plan.holiday?'إجازة هذا الأسبوع':plan.published?`خطة ${home.week.label} منشورة للطلاب`:'خطة الأسبوع قيد النشر'} dates={[hijriRange(plan.range),gregorianRange(plan.range)]} onOpen={()=>go('plan')}>
       <div className="tkCardBody">
         {plan.holiday?<p className="tkCardNote">إجازة — لا توجد دروس جديدة هذا الأسبوع.</p>

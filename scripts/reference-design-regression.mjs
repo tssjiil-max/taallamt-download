@@ -32,8 +32,11 @@ for(const asset of ['boy','icon-plan','icon-assessment','icon-homework','gift','
 execFileSync(process.execPath,['scripts/build-app-css.mjs','--check'],{stdio:'pipe'});
 
 // Teacher header: identity card, day strip in Saudi time, four live summary tiles, credit at the bottom.
-for(const text of ['عدد الطلاب','يحتاجون متابعة','تم تقييمهم اليوم','رسائل جديدة','معًا نصنع جيلًا أفضل','برمجة: سلطان الصاعدي'])assert.ok(teacher.includes(text),`teacher header has «${text}»`);
+for(const text of ['عدد الطلاب','يحتاجون متابعة','تم تقييمهم اليوم','رسائل جديدة','المعرفة قوة','القمة تكفي الجميع','برمجة: سلطان الصاعدي'])assert.ok(teacher.includes(text),`teacher header has «${text}»`);
+assert.ok(!teacher.includes('معًا نصنع جيلًا أفضل')&&!teacher.includes('كل خطوة في التعليم'),'the replaced teacher slogans never reappear');
 assert.ok(teacher.includes('hijriDate(now)')&&teacher.includes('gregorianDate(now)')&&kit.includes("timeZone:'Asia/Riyadh'")&&kit.includes('islamic-umalqura'),'dates follow Saudi time and update by themselves');
+assert.ok(kit.includes('className="tkPageDate"')&&kit.includes('hijriDate(now)')&&kit.includes('gregorianDate(now)'),'internal page heads carry the same Hijri/Gregorian Saudi date logic');
+assert.ok(student.includes('tkCards tkHomeCards')&&teacher.includes('tkCards tkHomeCards')&&css.includes('.tkHomeCards .tkCard.plan')&&css.includes('.tkHomeCards .tkCard.stars'),'only home card groups receive the requested extra vertical room');
 assert.ok(teacher.includes('summary.students')&&teacher.includes('summary.focused')&&teacher.includes('summary.assessedToday')&&teacher.includes('summary.messages'),'summary numbers come from the server');
 assert.ok(css.includes('.tkStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))'),'summary tiles: two per row on a phone');
 // Student profile card inside حسابي.

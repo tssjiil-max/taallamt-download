@@ -209,7 +209,8 @@ export function BottomNav({items,active,label}:{items:NavItem[];active:string;la
 }
 
 export function PageHead({title,subtitle,icon,onBack}:{title:string;subtitle?:string;icon?:string;onBack:()=>void}){
-  return <header className="tkPageHead"><button className="tkBack" type="button" onClick={onBack} aria-label="رجوع"><IconChevron/></button><div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}</div>{icon&&<img src={icon} alt="" aria-hidden="true"/>}</header>;
+  const now=useNow();
+  return <header className="tkPageHead"><button className="tkBack" type="button" onClick={onBack} aria-label="رجوع"><IconChevron/></button><div><h1>{title}</h1>{subtitle&&<p>{subtitle}</p>}<p className="tkPageDate" aria-label="تاريخ اليوم"><span dir="rtl">{hijriDate(now)}</span><i aria-hidden="true">•</i><span dir="rtl">{gregorianDate(now)}</span></p></div>{icon&&<img src={icon} alt="" aria-hidden="true"/>}</header>;
 }
 export function Fact({label,children}:{label:string;children:React.ReactNode}){return <div className="tkFact"><dt>{label}</dt><dd>{children}</dd></div>}
 

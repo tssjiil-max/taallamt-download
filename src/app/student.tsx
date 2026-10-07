@@ -119,7 +119,7 @@ function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(i
   const percent=Math.max(0,Math.min(100,Math.round(stars.count/Math.max(1,stars.goal)*100)));
   return <>
     <ProfileCard home={home} go={go} reload={reload} toast={toast} top/>
-    <div className="tkCards">
+    <div className="tkCards tkHomeCards">
       <Card tone="plan" title="الخطة الأسبوعية" subtitle="ماذا سندرس هذا الأسبوع؟" dates={[hijriRange(plan.range),gregorianRange(plan.range)]} onOpen={()=>go('plan')}>
         <div className="tkCardBody">
           {plan.holiday?<p className="tkCardNote">إجازة هذا الأسبوع — لا توجد دروس جديدة.</p>
