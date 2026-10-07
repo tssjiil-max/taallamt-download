@@ -4,6 +4,7 @@ import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {createAutoGradingConfig,gradeHomeworkAnswer,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
 import {accessFailure,isTeacher,requireGuardianLink,requireStudentAccess,requireTeacher} from '../server/access.js';
 import {markThreadRead,sendMessage} from '../server/messages.js';
+import {handleGuardianMessage} from '../server/guardian-assistant.js';
 import {rosterStudent} from '../server/roster.js';
 import {studentViewHandler} from '../server/student-home.js';
 import {ensureFresh} from './learning-automation.js';
@@ -233,7 +234,10 @@ export default async function handler(req,res){
     if(action==='message_send'||action==='messages_read'){
       await requireGuardianLink(req,studentId,body);
       if(!rosterStudent(studentId))return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
-      return res.status(200).json({ok:true,...(action==='message_send'?await sendMessage(studentId,'guardian',body):await markThreadRead(studentId,'guardian'))});
+      if(action==='messages_read')return res.status(200).json({ok:true,...await markThreadRead(studentId,'guardian')});
+      const sent=await sendMessage(studentId,'guardian',body);
+      const assistant=await handleGuardianMessage(studentId,sent.message);
+      return res.status(200).json({ok:true,...sent,assistant});
     }
     // Only the student's own profile (photo, hobbies) can be changed with an invite link; everything else is a teacher action.
     if(action==='student_profile')role=await requireStudentAccess(req,studentId,body,{write:true});
