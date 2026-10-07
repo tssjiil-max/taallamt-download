@@ -95,7 +95,7 @@ const assistant=read('server/assistant.js');
 for(const file of ['student.tsx','teacher.tsx','kit.tsx','main.tsx'])assert.ok(!/sk-[A-Za-z0-9]{8}|AIza[A-Za-z0-9_-]{8}|api\.openai\.com|generativelanguage/.test(read(`src/app/${file}`)),`${file}: no provider key or provider address in the page`);
 assert.ok(assistant.includes("keyEnv:'OPENAI_API_KEY'")&&assistant.includes("keyEnv:'GEMINI_API_KEY'")&&assistant.includes('https://api.openai.com/v1/responses')&&assistant.includes(':generateContent')&&assistant.includes("'x-goog-api-key':key"),'official server-side APIs, keys from the environment');
 assert.ok(assistant.includes("throw new AssistantError('ASSISTANT_NOT_CONFIGURED',503")&&!/console\.(log|error|warn)/.test(assistant),'no key → «غير مفعّل»; nothing is logged');
-assert.ok(teacher.includes('شكابمبو — مساعد المعلم')&&teacher.includes("abort.current?.abort()")&&teacher.includes('غير مفعّل'),'assistant panel: title, stop button and the disabled state');
+assert.ok(teacher.includes('شكابمبو — مساعد المعلم')&&teacher.includes('نسخ الطلب وفتح')&&teacher.includes('اسأل عن هذا الدرس')&&!teacher.includes("action:'assistant_ask'"),'assistant panel: lesson-scoped copy and external chat without API requests');
 for(const label of ['اشرح درس هذا الأسبوع','بسّط الفكرة لطالب','اقترح نشاطًا','جهّز تدريب نسخ وإملاء','أنشئ أسئلة تقييم','اسأل سؤالًا عامًا'])assert.ok(assistant.includes(label),`quick action «${label}»`);
 assert.equal(vercel.functions?.['api/learning-automation.js']?.maxDuration,60,'the assistant request has room to finish');
 // Older teacher tools share the same identity and lose the oversized mascot.
