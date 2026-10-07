@@ -28,7 +28,7 @@ const checks=[
   ['teacher action forms and student automation remain loaded',index.includes('/teacher-action-forms.js')&&index.includes('/student-learning-automation.js')],
   ['student automation bridge is loaded after existing student automation',index.includes('/student-automation-bridge.js')&&index.indexOf('/student-automation-bridge.js')>index.indexOf('/student-learning-automation.js')],
   ['automation preview exposes deterministic homework ids and target ids',automationApi.includes('`auto-homework:${localDate}:${copy.pathKey||subject}`')&&automationApi.includes('targetIds:[targetId(subject,week)]')&&automationApi.includes('scheduledDate:localDate')],
-  ['Lughati copy, spelling and handwriting are three independent learning paths',automationApi.includes("pathKey:'copywork_lughati'")&&automationApi.includes("pathKey:'spelling_task'")&&automationApi.includes("pathKey:'handwriting_task'")],
+  ['Lughati copy, spelling and handwriting are three independent learning paths',automationApi.includes("learningPath:'copywork_lughati'")&&automationApi.includes("learningPath:'spelling_task'")&&automationApi.includes("learningPath:'handwriting_task'")],
   ['automation preview survives timetable read failure with verified fallback',automationApi.includes('fallbackSchedule')&&automationApi.includes('catch')&&automationApi.includes('scheduleSource')],
   ['Quran automation distinguishes memorization or review work',automationApi.includes('quranTaskType(daySpecific,item)')&&automationApi.includes("'quran_review'")&&automationApi.includes("'quran_memorization'")],
   ['student bridge reads both automation preview and student state',bridge.includes('/api/learning-automation?action=preview')&&bridge.includes('/api/student-state?studentId=')],
