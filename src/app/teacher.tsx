@@ -584,6 +584,8 @@ function TeacherChatPage({home,studentId,back,refresh}:{home:TeacherHome;student
   const sendSuggestion=async()=>{const value=suggestionText.trim();if(!value)return;await send(value,newRequestId());setEditingSuggestion(false)};
   return <div className="tkPage">
     <PageHead title={student.name} subtitle="محادثة ولي الأمر" onBack={back}/>
+    {remote.data?.assistantState?.needsTeacherReply&&<div className="tkAlert">هذه المحادثة تحتاج رد المعلم.</div>}
+    {suggested&&<section className="tkAgentSuggestion"><b>اقتراح المساعد</b>{editingSuggestion?<textarea rows={3} value={suggestionText} onChange={event=>setSuggestionText(event.target.value)} maxLength={remote.data?.maxLength||1000}/>:<p>{suggested}</p>}<div className="tkActions"><button className="tkAct primary" type="button" onClick={()=>void sendSuggestion()}>إرسال</button><button className="tkAct" type="button" onClick={()=>setEditingSuggestion(true)}>تعديل</button></div></section>}
     {remote.error&&!remote.data?<Failure error={remote.error} role="teacher" onRetry={()=>void remote.reload()}/>:!remote.data?<Loading/>
       :<Chat messages={remote.data.messages} canSend otherLabel="ولي الأمر" send={send} maxLength={remote.data.maxLength}/>}
     <p className="tkMeta">يصل ردّك إلى صفحة هذا الطالب فقط، ويظهر لولي أمره في «التواصل مع المعلم».</p>
