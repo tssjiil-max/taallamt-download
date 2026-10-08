@@ -12,7 +12,8 @@
     "react": "latest",
     "react-dom": "latest",
     "firebase": "latest",
-    "firebase-admin": "latest"
+    "firebase-admin": "latest",
+    "sharp": "latest"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
