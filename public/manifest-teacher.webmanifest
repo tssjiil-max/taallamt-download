@@ -13,7 +13,7 @@
     "minimal-ui"
   ],
   "orientation": "portrait-primary",
-  "background_color": "#f6f8fb",
+  "background_color": "#e0f4ff",
   "theme_color": "#155e9b",
   "categories": [
     "education",
@@ -21,21 +21,15 @@
   ],
   "icons": [
     {
-      "src": "/pwa/teacher-icon-192.png?v=20261008",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "/pwa/teacher-shakabumbo-group.webp?v=20261008b",
+      "sizes": "any",
+      "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "/pwa/teacher-icon-512.png?v=20261008",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/pwa/teacher-icon-maskable-512.png?v=20261008",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/pwa/teacher-shakabumbo-group.webp?v=20261008b",
+      "sizes": "any",
+      "type": "image/webp",
       "purpose": "maskable"
     }
   ],

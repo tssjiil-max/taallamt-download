@@ -65,10 +65,10 @@ function resize(img,target,scale=1){
   return {width:target,height:target,plte:img.plte,rows};
 }
 const source=parsePng(readFileSync(SOURCE));
-for(const prefix of ['teacher','student']){
+for(const prefix of ['student']){
   writeFileSync(`public/pwa/${prefix}-icon-192.png`,encode(resize(source,192,1)));
   writeFileSync(`public/pwa/${prefix}-icon-512.png`,encode(resize(source,512,1)));
   writeFileSync(`public/pwa/${prefix}-icon-maskable-512.png`,encode(resize(source,512,0.91)));
   writeFileSync(`public/pwa/${prefix}-apple-touch-icon.png`,encode(resize(source,180,1)));
 }
-console.log('PWA icons generated from permanent Shakabumbo source.');
+console.log('Student PWA icons generated. Teacher icon is a permanent tracked Shakabumbo group asset and is never overwritten by builds.');
