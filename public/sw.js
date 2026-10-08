@@ -1,4 +1,4 @@
-const SW_VERSION = 'taallamt-pwa-20261008-icons-c';
+const SW_VERSION = 'taallamt-pwa-20261009-teacher-code';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
