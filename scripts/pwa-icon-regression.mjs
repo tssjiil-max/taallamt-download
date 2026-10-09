@@ -33,10 +33,17 @@ for(const [name,path] of [['teacher','public/manifest-teacher.webmanifest'],['st
   assert.ok(manifest.icons.every(i=>i.src.startsWith('/pwa/'+name+'-icon-')));
 }
 
+const install=readFileSync('public/pwa-install.js','utf8');
+assert.ok(install.includes('taallamtInstallPage'),'manual save-to-home-screen action missing');
+const studentApi=readFileSync('api/student-state.js','utf8');
+assert.ok(studentApi.includes('studentId=')&&studentApi.includes('&invite=')&&studentApi.includes('source=pwa'),'dynamic student start_url must retain studentId and invite');
+const studentUi=readFileSync('src/app/student.tsx','utf8');
+assert.ok(studentUi.includes('حفظ الصفحة على الجوال'),'student save-to-home-screen button missing');
+
 const html=readFileSync('index.html','utf8');
 assert.ok(html.includes('/pwa/teacher-apple-touch-icon.png'));
 assert.ok(html.includes('/pwa/student-apple-touch-icon.png'));
 assert.ok(existsSync('public/pwa/teacher-shakabumbo-group.webp'));
-assert.ok(existsSync('public/pwa/shakabumbo-app-icon-source.png'));
+assert.ok(existsSync('public/pwa/student-shakabumbo-trophy.png'));
 
 console.log('PWA icon regression checks passed.');
