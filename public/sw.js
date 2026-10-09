@@ -1,4 +1,4 @@
-const SW_VERSION = 'taallamt-pwa-20261009-teacher-code';
+const SW_VERSION = 'taallamt-pwa-20261009-student-save-photo';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
