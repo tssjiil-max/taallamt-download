@@ -104,7 +104,7 @@ function starsSummary(ledger,events){
 export async function buildStudentHome(studentId,{profile=null,date=new Date()}={}){
   const student=rosterStudent(studentId);if(!student)throw new Error('STUDENT_NOT_FOUND');
   const db=adminDb(),base=workspaceRoot(),today=todayInfo(date),month=date.toISOString().slice(0,7),planWeek=planWeekForDate(date);
-  const [plan,assessments,quran,evidence,ledger,events,communications,messages]=await Promise.all([
+  const [plan,assessments,quran,evidence,ledger,events,communications,messages,announcementsSnap]=await Promise.all([
     readWeekPlan(db,planWeek),
     db.collection(`${base}/assessments`).where('studentId','==',studentId).get(),
     db.collection(`${base}/quranFollowups`).where('studentId','==',studentId).get(),
@@ -112,7 +112,8 @@ export async function buildStudentHome(studentId,{profile=null,date=new Date()}=
     db.doc(`${base}/rewardLedgers/${studentId}_${month}`).get(),
     db.collection(`${base}/rewardEvents`).where('studentId','==',studentId).get(),
     db.collection(`${base}/communications`).where('studentId','==',studentId).get(),
-    guardianSummary(db,studentId)
+    guardianSummary(db,studentId),
+    db.collection(`${base}/announcements`).where('status','==','published').get()
   ]);
   const since=new Date(date.getTime()-8*DAY_MS).toISOString();
   const recentEvidence=rows(evidence).filter(item=>String(item.assignedAt||'')>=since&&item.homeworkId);
@@ -134,6 +135,7 @@ export async function buildStudentHome(studentId,{profile=null,date=new Date()}=
     stars:starsSummary(ledger.exists?ledger.data():null,rows(events).filter(item=>String(item.month||'')===month||String(item.createdAt||'').startsWith(month))),
     quran:quranSummary(rows(quran),date),
     teacherName:TEACHER_NAME,messages,
+    announcements:rows(announcementsSnap).sort((a,b)=>String(b.updatedAt||b.date||'').localeCompare(String(a.updatedAt||a.date||''))).slice(0,5).map(item=>({id:item.id,title:String(item.title||''),body:String(item.body||''),date:String(item.date||''),updatedAt:String(item.updatedAt||'')})),
     notes:rows(communications).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,12).map(item=>({id:item.id,reason:String(item.reason||'ملاحظة'),summary:String(item.summary||''),createdAt:String(item.createdAt||'')}))
   };
 }
