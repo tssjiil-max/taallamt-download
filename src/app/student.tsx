@@ -23,7 +23,7 @@ type Home={
   stars:{count:number;goal:number;log:{id:string;stars:number;label:string;createdAt:string}[]};
   quran:{currentWeek:number;current:QuranWeek|null;counts:Record<Result,number>;assessedWeeks:number;pastWeeks:number;totalWeeks:number;upcoming:QuranWeek[];weeks:QuranWeek[]};
   notes:{id:string;reason:string;summary:string;createdAt:string}[];
-  announcements:{id:string;title:string;body:string;date:string;updatedAt:string}[];
+  announcements:{id:string;title:string;body:string;date:string;updatedAt:string;hasImage:boolean}[];
   teacherName:string;
   messages:{total:number;unread:number;canSend:boolean};
 };
@@ -123,6 +123,7 @@ function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(i
     {home.announcements?.length>0&&<section className="tkAlert info" aria-label="إعلانات الفصل" style={{marginBottom:'calc(var(--u)*10)'}}>
       <b>📣 إعلانات الفصل</b>
       {home.announcements.map(item=><div key={item.id} style={{marginTop:'calc(var(--u)*7)'}}>
+        {item.hasImage&&<img src={`/api/announcement-image?id=${encodeURIComponent(item.id)}&${accessQuery}`} alt="صورة الإعلان" style={{display:'block',width:'100%',maxHeight:'calc(var(--u)*260)',objectFit:'contain',borderRadius:'calc(var(--u)*12)',marginBottom:'calc(var(--u)*7)',background:'#f6f8fb'}}/>}
         <strong>{item.title}</strong>
         {item.body&&<p style={{margin:'3px 0 0'}}>{item.body}</p>}
         {item.date&&<small className="num">{item.date}</small>}
@@ -166,6 +167,7 @@ function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(i
       </Card>
     </div>
     <button className="tkRowBtn out" type="button" onClick={()=>go('chat')}><span className="tkRowIcon" aria-hidden="true"><IconMessage/></span><span className="tkGrow"><b>التواصل مع المعلم</b><small>{home.messages.unread?countLabel(home.messages.unread,'رسالة جديدة من المعلم','رسالتان جديدتان من المعلم','رسائل جديدة من المعلم','رسالة جديدة من المعلم'):'اكتب رسالة للمعلم واقرأ ردّه'}</small></span>{home.messages.unread>0&&<span className="tkUnread num" aria-label="رسائل غير مقروءة">{home.messages.unread}</span>}<IconChevron/></button>
+    <button className="tkRowBtn out" type="button" onClick={()=>{const fn=(window as any).taallamtInstallPage;if(typeof fn==='function')void fn();else alert('من قائمة المتصفح اختر إضافة إلى الشاشة الرئيسية')}}><span className="tkRowIcon" aria-hidden="true"><IconSpark/></span><span className="tkGrow"><b>حفظ الصفحة على الجوال</b><small>أضف صفحة الطالب إلى الشاشة الرئيسية بنفس الرابط</small></span><IconChevron/></button>
   </>;
 }
 
