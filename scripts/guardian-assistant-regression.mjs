@@ -100,7 +100,7 @@ const originalFetch=globalThis.fetch;
 globalThis.fetch=async()=>({ok:false,status:500,json:async()=>({error:{message:'simulated provider failure'}})});
 try{
   r=await send('هل يوجد نشاط خاص غدًا؟','agent_provider_0010');
-  assert.equal(r.status,200);assert.equal(r.body.assistant.classification,'teacher_required');assert.equal(r.body.assistant.assistantReplied,true);
+  assert.equal(r.status,200);assert.equal(r.body.assistant.classification,'needs_clarification');assert.equal(r.body.assistant.needsTeacherReply,false);assert.equal(r.body.assistant.assistantReplied,true);
 }finally{globalThis.fetch=originalFetch;delete process.env.OPENAI_API_KEY}
 
 r=await send('كيف أستخدم الصفحة؟','agent_usage_0011');
