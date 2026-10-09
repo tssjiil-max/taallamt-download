@@ -1,5 +1,5 @@
 import {randomBytes} from 'node:crypto';
-import {adminDb,adminStorageBucket,previewWriteGuard} from '../server/firebase-admin.js';
+import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {createAutoGradingConfig,gradeHomeworkAnswer,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
 import {accessFailure,isTeacher,requireGuardianLink,requireStudentAccess,requireTeacher} from '../server/access.js';
@@ -226,10 +226,11 @@ async function announcementImage(req,res){
     await requireStudentAccess(req,studentId,null);
     if(data.status!=='published')return res.status(404).json({ok:false,error:'ANNOUNCEMENT_NOT_FOUND'});
   }
-  const path=String(data.imagePath||'');
-  if(!path)return res.status(404).json({ok:false,error:'ANNOUNCEMENT_IMAGE_NOT_FOUND'});
-  const [bytes]=await adminStorageBucket().file(path).download();
-  res.setHeader('Content-Type',String(data.imageContentType||'image/jpeg'));
+  const dataUrl=String(data.imageDataUrl||'');
+  const match=dataUrl.match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+  if(!match)return res.status(404).json({ok:false,error:'ANNOUNCEMENT_IMAGE_NOT_FOUND'});
+  const bytes=Buffer.from(match[2],'base64');
+  res.setHeader('Content-Type',`image/${match[1]}`);
   res.setHeader('Cache-Control','private, no-store, max-age=0');
   return res.status(200).send(bytes);
 }
