@@ -119,7 +119,7 @@ function ruleAnswer(question,home){
     const parts=[item.lesson?`الدرس: ${item.lesson}`:'',item.skill?`المهارة: ${item.skill}`:'',item.page?`الصفحة: ${item.page}`:''].filter(Boolean);
     return {classification:'routine',reply:`${item.label}: ${parts.join('، ')}.`,confidence:.98,needsTeacherReply:false};
   }
-  return null;
+  return {classification:'needs_clarification',reply:'أقدر أساعدك في الخطة والواجبات والتقييم والنجوم والقرآن. اكتب سؤالك بشكل أوضح، واذكر المادة إذا كان السؤال عن درس أو واجب.',confidence:.95,needsTeacherReply:false};
 }
 function parseModelJson(raw){
   let value=String(raw||'').trim().replace(/^\`\`\`(?:json)?/i,'').replace(/\`\`\`$/,'').trim();
