@@ -136,6 +136,19 @@ function Teacher(){
  </main>
 }
 
+async function announcementImageData(file:File){
+  if(!file.type.startsWith('image/'))throw new Error('IMAGE_INVALID');
+  const url=URL.createObjectURL(file);
+  try{
+    const image=await new Promise<HTMLImageElement>((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=url});
+    const max=1600,scale=Math.min(1,max/Math.max(image.naturalWidth,image.naturalHeight)),width=Math.max(1,Math.round(image.naturalWidth*scale)),height=Math.max(1,Math.round(image.naturalHeight*scale));
+    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('IMAGE_CANVAS_FAILED');
+    ctx.drawImage(image,0,0,width,height);
+    return canvas.toDataURL('image/jpeg',.82);
+  }finally{URL.revokeObjectURL(url)}
+}
+
 function TeacherAnnouncements(){
   const [items,setItems]=React.useState<any[]>([]);
   const [form,setForm]=React.useState<any>(null);
@@ -150,18 +163,27 @@ function TeacherAnnouncements(){
     }catch{setMessage('تعذر تحميل الإعلانات. أعد فتح الصفحة.')}
   },[]);
   React.useEffect(()=>{void load()},[load]);
+  const chooseImage=async(file?:File)=>{
+    if(!file||!form)return;
+    setBusy(true);setMessage('');
+    try{const imageDataUrl=await announcementImageData(file);setForm({...form,imageDataUrl,imagePreview:imageDataUrl,removeImage:false})}
+    catch{setMessage('تعذر تجهيز الصورة. اختر صورة أخرى.')}
+    finally{setBusy(false)}
+  };
   const save=async(next:any)=>{
     if(!next?.title?.trim()||busy)return;
     setBusy(true);setMessage('');
     try{
-      const res=await fetch('/api/learning-automation',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'announcement_save',...next})});
+      const payload={action:'announcement_save',id:next.id,title:next.title,body:next.body,date:next.date,status:next.status,imageDataUrl:next.imageDataUrl||'',removeImage:Boolean(next.removeImage)};
+      const res=await fetch('/api/learning-automation',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
       const data=await res.json();
       if(!res.ok)throw new Error(data?.error||'SAVE_FAILED');
       await load();setForm(null);setMessage(next.status==='published'?'تم نشر الإعلان للطلاب.':'تم الحفظ.');
-    }catch{setMessage('تعذر حفظ الإعلان. تحقق من جلسة المعلم ثم حاول مرة أخرى.')}
+    }catch(error:any){setMessage(error?.message==='IMAGE_TOO_LARGE'?'الصورة كبيرة جدًا. اختر صورة أصغر.':'تعذر حفظ الإعلان. تحقق من جلسة المعلم ثم حاول مرة أخرى.')}
     finally{setBusy(false)}
   };
-  return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>الإعلانات</h1><p>إنشاء ومراجعة إعلانات الفصل</p></div></header><section className="settingsCard"><button className="primaryAction" onClick={()=>setForm({id:'a'+Date.now(),title:'',body:'',date:new Date().toISOString().slice(0,10),status:'draft'})}>+ إعلان جديد</button>{message&&<p role="status">{message}</p>}{form&&<div className="inlineForm"><label>عنوان الإعلان<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>نص الإعلان<textarea value={form.body} onChange={e=>setForm({...form,body:e.target.value})}/></label><label>تاريخ النشر<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></label><div className="formActions"><button disabled={busy} onClick={()=>void save({...form,status:'draft'})}>حفظ كمسودة</button><button disabled={busy} onClick={()=>void save({...form,status:'published'})}>نشر</button><button disabled={busy} onClick={()=>setForm(null)}>إلغاء</button></div></div>}<div className="announcementList">{items.filter((x:any)=>x.status!=='archived').map((a:any)=><article key={a.id}><div><b>{a.title}</b><p>{a.body||'بدون نص إضافي'}</p><small>{a.date} · {a.status==='published'?'منشور':'مسودة'}</small></div><div><button onClick={()=>setForm(a)}>تعديل</button><button disabled={busy} onClick={()=>void save({...a,status:'archived'})}>أرشفة</button></div></article>)}</div></section><TeacherNav/></main>
+  const edit=(a:any)=>setForm({...a,imagePreview:a.hasImage?`/api/announcement-image?id=${encodeURIComponent(a.id)}`:'',imageDataUrl:'',removeImage:false});
+  return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>الإعلانات</h1><p>إنشاء ومراجعة إعلانات الفصل</p></div></header><section className="settingsCard"><button className="primaryAction" onClick={()=>setForm({id:'a'+Date.now(),title:'',body:'',date:new Date().toISOString().slice(0,10),status:'draft',imagePreview:'',imageDataUrl:'',removeImage:false})}>+ إعلان جديد</button>{message&&<p role="status">{message}</p>}{form&&<div className="inlineForm"><label>عنوان الإعلان<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>نص الإعلان<textarea value={form.body} onChange={e=>setForm({...form,body:e.target.value})}/></label><label>تاريخ النشر<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></label><label>إضافة صورة للطالب<input type="file" accept="image/*" capture="environment" onChange={e=>void chooseImage(e.target.files?.[0])}/></label>{form.imagePreview&&<div style={{display:'grid',gap:8}}><img src={form.imagePreview} alt="معاينة صورة الإعلان" style={{width:'100%',maxHeight:360,objectFit:'contain',borderRadius:16,background:'#f5f7fa'}}/><button type="button" onClick={()=>setForm({...form,imagePreview:'',imageDataUrl:'',removeImage:true})}>حذف الصورة</button></div>}<div className="formActions"><button disabled={busy} onClick={()=>void save({...form,status:'draft'})}>حفظ كمسودة</button><button disabled={busy} onClick={()=>void save({...form,status:'published'})}>نشر</button><button disabled={busy} onClick={()=>setForm(null)}>إلغاء</button></div></div>}<div className="announcementList">{items.filter((x:any)=>x.status!=='archived').map((a:any)=><article key={a.id}><div>{a.hasImage&&<img src={`/api/announcement-image?id=${encodeURIComponent(a.id)}`} alt="" style={{width:88,height:88,objectFit:'contain',borderRadius:12,background:'#f5f7fa',float:'right',marginLeft:10}}/>}<b>{a.title}</b><p>{a.body||'بدون نص إضافي'}</p><small>{a.date} · {a.status==='published'?'منشور':'مسودة'}</small></div><div><button onClick={()=>edit(a)}>تعديل</button><button disabled={busy} onClick={()=>void save({...a,status:'archived'})}>أرشفة</button></div></article>)}</div></section><TeacherNav/></main>
 }
 
 function TeacherTasks(){const tasks=[['إدخال تقييم لغتي - الوحدة 2','تقييمات لم تكتمل','/teacher/students'],['مراجعة خطط علاجية (3 طلاب)','خطط علاجية','/teacher/library'],['إرسال واجبات الدراسات','واجبات وأعمال اليوم','/teacher/students']];return <main className="teacherSectionScreen" dir="rtl"><header className="sectionHeader"><button onClick={()=>go('/teacher')}>‹</button><div><h1>مهامي اليوم</h1><p>المهام الظاهرة حاليًا في لوحة المعلم</p></div></header><section className="settingsCard"><div className="taskFullList">{tasks.map((t,i)=><button key={t[0]} onClick={()=>go(t[2])}><span>{i+1}</span><div><b>{t[0]}</b><small>{t[1]}</small></div><UiIcon name="chevron" size={18}/></button>)}</div><p className="dataNote">لم تتم إضافة بيانات وهمية أو تغيير مخطط البيانات.</p></section><TeacherNav/></main>}
