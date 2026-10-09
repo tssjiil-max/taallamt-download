@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 
-const studentSource='public/pwa/shakabumbo-app-icon-source.png';
+const studentSource='public/pwa/student-shakabumbo-trophy.png';
 const teacherSource='public/pwa/teacher-shakabumbo-group.webp';
 
 async function makeIcon(source, output, target, contentScale, background) {
