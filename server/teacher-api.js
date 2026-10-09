@@ -1,6 +1,6 @@
 // Teacher read models and exceptional edits for the new teacher pages. Called only from api/learning-automation.js
 // after the teacher session has been verified there.
-import {adminDb,adminStorageBucket,previewWriteGuard} from './firebase-admin.js';
+import {adminDb,previewWriteGuard} from './firebase-admin.js';
 import {CLASS_ID} from './class-roster.js';
 import {riyadhDateString,weekNumberForDate,TERM_WEEKS} from './learning-content.js';
 import {SUBJECTS,SUBJECT_KEYS,buildPlan,clampWeek,nextSchoolDay,planDocId,planWeekForDate,readWeekPlan,subjectKeyOf,todayInfo,weekKeyFor,weekRange,workspaceRoot} from './plan.js';
@@ -75,7 +75,7 @@ export async function teacherRead(action,query={},date=new Date()){
   if(action==='teacher_home')return teacherHome(date);
   if(action==='announcements'){
     const snap=await adminDb().collection(`${workspaceRoot()}/announcements`).get();
-    const items=snap.docs.map(doc=>{const data=doc.data();return {id:doc.id,...data,hasImage:Boolean(data.imagePath),imagePath:undefined}}).sort((a,b)=>String(b.updatedAt||b.date||'').localeCompare(String(a.updatedAt||a.date||'')));
+    const items=snap.docs.map(doc=>{const data=doc.data();const {imageDataUrl,...safe}=data;return {id:doc.id,...safe,hasImage:Boolean(imageDataUrl)}}).sort((a,b)=>String(b.updatedAt||b.date||'').localeCompare(String(a.updatedAt||a.date||'')));
     return {ok:true,items};
   }
   if(action==='assess_view')return assessView(query,date);
@@ -184,26 +184,17 @@ export async function teacherWrite(action,body={},date=new Date()){
     if(!title)throw new Error('TITLE_REQUIRED');
     const status=['draft','published','archived'].includes(String(body.status))?String(body.status):'draft';
     const ref=adminDb().doc(`${workspaceRoot()}/announcements/${id}`),snap=await ref.get(),previous=snap.exists?snap.data():{};
-    let imagePath=String(previous?.imagePath||''),imageContentType=String(previous?.imageContentType||'');
-    if(body.removeImage===true&&imagePath){
-      try{await adminStorageBucket().file(imagePath).delete({ignoreNotFound:true})}catch{}
-      imagePath='';imageContentType='';
+    let imageDataUrl=String(previous?.imageDataUrl||'');
+    if(body.removeImage===true)imageDataUrl='';
+    const incoming=String(body.imageDataUrl||'');
+    if(incoming){
+      if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(incoming))throw new Error('IMAGE_INVALID');
+      if(incoming.length>850000)throw new Error('IMAGE_TOO_LARGE');
+      imageDataUrl=incoming;
     }
-    const dataUrl=String(body.imageDataUrl||'');
-    if(dataUrl){
-      const match=dataUrl.match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
-      if(!match)throw new Error('IMAGE_INVALID');
-      const bytes=Buffer.from(match[2],'base64');
-      if(bytes.length>2_000_000)throw new Error('IMAGE_TOO_LARGE');
-      const ext=match[1]==='jpeg'?'jpg':match[1],contentType=`image/${match[1]}`;
-      const nextPath=`taallamt/announcements/${id}/${Date.now()}.${ext}`;
-      await adminStorageBucket().file(nextPath).save(bytes,{resumable:false,metadata:{contentType,cacheControl:'private, no-store'}});
-      if(imagePath&&imagePath!==nextPath){try{await adminStorageBucket().file(imagePath).delete({ignoreNotFound:true})}catch{}}
-      imagePath=nextPath;imageContentType=contentType;
-    }
-    const record={id,title,body:String(body.body||'').trim().slice(0,2000),date:/^\d{4}-\d{2}-\d{2}$/.test(String(body.date||''))?String(body.date):riyadhDateString(date),status,imagePath,imageContentType,updatedAt:date.toISOString()};
+    const record={id,title,body:String(body.body||'').trim().slice(0,2000),date:/^\d{4}-\d{2}-\d{2}$/.test(String(body.date||''))?String(body.date):riyadhDateString(date),status,imageDataUrl,updatedAt:date.toISOString()};
     await ref.set(record,{merge:true});
-    return {saved:true,item:{...record,hasImage:Boolean(imagePath),imagePath:undefined}};
+    return {saved:true,item:{id:record.id,title:record.title,body:record.body,date:record.date,status:record.status,updatedAt:record.updatedAt,hasImage:Boolean(imageDataUrl)}};
   }
   return null;
 }
