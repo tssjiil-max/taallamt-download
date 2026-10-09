@@ -135,7 +135,7 @@ export async function buildStudentHome(studentId,{profile=null,date=new Date()}=
     stars:starsSummary(ledger.exists?ledger.data():null,rows(events).filter(item=>String(item.month||'')===month||String(item.createdAt||'').startsWith(month))),
     quran:quranSummary(rows(quran),date),
     teacherName:TEACHER_NAME,messages,
-    announcements:rows(announcementsSnap).sort((a,b)=>String(b.updatedAt||b.date||'').localeCompare(String(a.updatedAt||a.date||''))).slice(0,5).map(item=>({id:item.id,title:String(item.title||''),body:String(item.body||''),date:String(item.date||''),updatedAt:String(item.updatedAt||''),hasImage:Boolean(item.imagePath)})),
+    announcements:rows(announcementsSnap).sort((a,b)=>String(b.updatedAt||b.date||'').localeCompare(String(a.updatedAt||a.date||''))).slice(0,5).map(item=>({id:item.id,title:String(item.title||''),body:String(item.body||''),date:String(item.date||''),updatedAt:String(item.updatedAt||''),hasImage:Boolean(item.imageDataUrl)})),
     notes:rows(communications).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,12).map(item=>({id:item.id,reason:String(item.reason||'ملاحظة'),summary:String(item.summary||''),createdAt:String(item.createdAt||'')}))
   };
 }
