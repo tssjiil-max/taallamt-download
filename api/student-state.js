@@ -1,5 +1,5 @@
 import {randomBytes} from 'node:crypto';
-import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
+import {adminDb,adminStorageBucket,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {createAutoGradingConfig,gradeHomeworkAnswer,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
 import {accessFailure,isTeacher,requireGuardianLink,requireStudentAccess,requireTeacher} from '../server/access.js';
@@ -215,6 +215,25 @@ async function stagingSmoke(){
   return {ok:true,firebaseAdmin:true,write:true,read:readable,delete:deleted,autoGrade,productionProtected:process.env.VERCEL_ENV!=='production'};
 }
 
+async function announcementImage(req,res){
+  const id=String(req.query?.id||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,80);
+  if(!id)return res.status(400).json({ok:false,error:'ANNOUNCEMENT_ID_REQUIRED'});
+  const snap=await adminDb().doc(`${base()}/announcements/${id}`).get();
+  if(!snap.exists)return res.status(404).json({ok:false,error:'ANNOUNCEMENT_NOT_FOUND'});
+  const data=snap.data()||{};
+  if(!isTeacher(req)){
+    const studentId=String(req.query?.studentId||'');
+    await requireStudentAccess(req,studentId,null);
+    if(data.status!=='published')return res.status(404).json({ok:false,error:'ANNOUNCEMENT_NOT_FOUND'});
+  }
+  const path=String(data.imagePath||'');
+  if(!path)return res.status(404).json({ok:false,error:'ANNOUNCEMENT_IMAGE_NOT_FOUND'});
+  const [bytes]=await adminStorageBucket().file(path).download();
+  res.setHeader('Content-Type',String(data.imageContentType||'image/jpeg'));
+  res.setHeader('Cache-Control','private, no-store, max-age=0');
+  return res.status(200).send(bytes);
+}
+
 async function studentPwaManifest(req,res){
   const studentId=String(req.query?.studentId||'');
   const student=getStudent(studentId);
@@ -253,6 +272,7 @@ export default async function handler(req,res){
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke'){requireTeacher(req);return res.status(200).json(await stagingSmoke())}
+    if(req.method==='GET'&&String(req.query?.view||'')==='announcement-image')return await announcementImage(req,res);
     if(req.method==='GET'&&String(req.query?.view||'')==='pwa-manifest')return await studentPwaManifest(req,res);
     if(req.method==='GET'&&req.query?.view)return await studentViewHandler(req,res,{ensureFresh});
     const body=req.method==='GET'?{}:jsonBody(req);
