@@ -240,9 +240,9 @@ async function studentPwaManifest(req,res){
     prefer_related_applications:false,
     categories:['education'],
     icons:[
-      {src:'/pwa/student-icon-192.png?v=20261008',sizes:'192x192',type:'image/png',purpose:'any'},
-      {src:'/pwa/student-icon-512.png?v=20261008',sizes:'512x512',type:'image/png',purpose:'any'},
-      {src:'/pwa/student-icon-maskable-512.png?v=20261008',sizes:'512x512',type:'image/png',purpose:'maskable'}
+      {src:'/pwa/student-icon-192.png?v=20261009',sizes:'192x192',type:'image/png',purpose:'any'},
+      {src:'/pwa/student-icon-512.png?v=20261009',sizes:'512x512',type:'image/png',purpose:'any'},
+      {src:'/pwa/student-icon-maskable-512.png?v=20261009',sizes:'512x512',type:'image/png',purpose:'maskable'}
     ]
   };
   res.setHeader('Content-Type','application/manifest+json; charset=utf-8');
