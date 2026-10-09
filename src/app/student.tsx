@@ -123,7 +123,7 @@ function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(i
     {home.announcements?.length>0&&<section className="tkAlert info" aria-label="إعلانات الفصل" style={{marginBottom:'calc(var(--u)*10)'}}>
       <b>📣 إعلانات الفصل</b>
       {home.announcements.map(item=><div key={item.id} style={{marginTop:'calc(var(--u)*7)'}}>
-        {item.hasImage&&<img src={`/api/announcement-image?id=${encodeURIComponent(item.id)}&${accessQuery}`} alt="صورة الإعلان" style={{display:'block',width:'100%',maxHeight:'calc(var(--u)*260)',objectFit:'contain',borderRadius:'calc(var(--u)*12)',marginBottom:'calc(var(--u)*7)',background:'#f6f8fb'}}/>}
+        {item.hasImage&&<img src={`/api/student-state?view=announcement-image&id=${encodeURIComponent(item.id)}&${accessQuery}`} alt="صورة الإعلان" style={{display:'block',width:'100%',maxHeight:'calc(var(--u)*260)',objectFit:'contain',borderRadius:'calc(var(--u)*12)',marginBottom:'calc(var(--u)*7)',background:'#f6f8fb'}}/>}
         <strong>{item.title}</strong>
         {item.body&&<p style={{margin:'3px 0 0'}}>{item.body}</p>}
         {item.date&&<small className="num">{item.date}</small>}
