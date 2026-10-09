@@ -23,6 +23,7 @@ type Home={
   stars:{count:number;goal:number;log:{id:string;stars:number;label:string;createdAt:string}[]};
   quran:{currentWeek:number;current:QuranWeek|null;counts:Record<Result,number>;assessedWeeks:number;pastWeeks:number;totalWeeks:number;upcoming:QuranWeek[];weeks:QuranWeek[]};
   notes:{id:string;reason:string;summary:string;createdAt:string}[];
+  announcements:{id:string;title:string;body:string;date:string;updatedAt:string}[];
   teacherName:string;
   messages:{total:number;unread:number;canSend:boolean};
 };
@@ -119,6 +120,14 @@ function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(i
   const percent=Math.max(0,Math.min(100,Math.round(stars.count/Math.max(1,stars.goal)*100)));
   return <>
     <ProfileCard home={home} go={go} reload={reload} toast={toast} top/>
+    {home.announcements?.length>0&&<section className="tkAlert info" aria-label="إعلانات الفصل" style={{marginBottom:'calc(var(--u)*10)'}}>
+      <b>📣 إعلانات الفصل</b>
+      {home.announcements.map(item=><div key={item.id} style={{marginTop:'calc(var(--u)*7)'}}>
+        <strong>{item.title}</strong>
+        {item.body&&<p style={{margin:'3px 0 0'}}>{item.body}</p>}
+        {item.date&&<small className="num">{item.date}</small>}
+      </div>)}
+    </section>}
     <div className="tkCards tkHomeCards">
       <Card tone="plan" title="الخطة الأسبوعية" subtitle="ماذا سندرس هذا الأسبوع؟" dates={[hijriRange(plan.range),gregorianRange(plan.range)]} onOpen={()=>go('plan')}>
         <div className="tkCardBody">
