@@ -73,6 +73,11 @@ export async function teacherHome(date=new Date()){
 
 export async function teacherRead(action,query={},date=new Date()){
   if(action==='teacher_home')return teacherHome(date);
+  if(action==='announcements'){
+    const snap=await adminDb().collection(`${workspaceRoot()}/announcements`).get();
+    const items=snap.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>String(b.updatedAt||b.date||'').localeCompare(String(a.updatedAt||a.date||'')));
+    return {ok:true,items};
+  }
   if(action==='assess_view')return assessView(query,date);
   if(action==='plan_week'){
     const current=planWeekForDate(date),week=clampWeek(query.week||current),plan=await readWeekPlan(adminDb(),week);
@@ -173,5 +178,14 @@ export async function teacherWrite(action,body={},date=new Date()){
   if(action==='messages_mark_read')return markThreadRead(String(body.studentId||''),'teacher',date);
   if(action==='assistant_provider')return saveProvider(body);
   if(action==='guardian_assistant_settings')return saveGuardianAssistantSettings(body);
+  if(action==='announcement_save'){
+    const id=String(body.id||`a${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);
+    const title=String(body.title||'').trim().slice(0,160);
+    if(!title)throw new Error('TITLE_REQUIRED');
+    const status=['draft','published','archived'].includes(String(body.status))?String(body.status):'draft';
+    const record={id,title,body:String(body.body||'').trim().slice(0,2000),date:/^\d{4}-\d{2}-\d{2}$/.test(String(body.date||''))?String(body.date):riyadhDateString(date),status,updatedAt:date.toISOString()};
+    await adminDb().doc(`${workspaceRoot()}/announcements/${id}`).set(record,{merge:true});
+    return {saved:true,item:record};
+  }
   return null;
 }
