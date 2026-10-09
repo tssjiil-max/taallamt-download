@@ -141,11 +141,11 @@ async function announcementImageData(file:File){
   const url=URL.createObjectURL(file);
   try{
     const image=await new Promise<HTMLImageElement>((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=url});
-    const max=1600,scale=Math.min(1,max/Math.max(image.naturalWidth,image.naturalHeight)),width=Math.max(1,Math.round(image.naturalWidth*scale)),height=Math.max(1,Math.round(image.naturalHeight*scale));
+    const max=900,scale=Math.min(1,max/Math.max(image.naturalWidth,image.naturalHeight)),width=Math.max(1,Math.round(image.naturalWidth*scale)),height=Math.max(1,Math.round(image.naturalHeight*scale));
     const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
     const ctx=canvas.getContext('2d');if(!ctx)throw new Error('IMAGE_CANVAS_FAILED');
     ctx.drawImage(image,0,0,width,height);
-    return canvas.toDataURL('image/jpeg',.82);
+    return canvas.toDataURL('image/jpeg',.72);
   }finally{URL.revokeObjectURL(url)}
 }
 
