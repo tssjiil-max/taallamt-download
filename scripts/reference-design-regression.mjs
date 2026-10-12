@@ -18,12 +18,12 @@ assert.equal(vercel.rewrites.at(-1).source,'/(.*)');assert.equal(vercel.rewrites
 assert.ok(read('vite.config.ts').includes("legacy: 'legacy.html'"),'both pages are built');
 
 // Reference order: header, weekly plan, assessment, homework, stars, bottom bar.
-const order=['tone="plan"','tone="assessment"','tone="homework"','tone="stars"'].map(token=>student.indexOf(token));
-assert.ok(order.every(position=>position>0)&&order.every((position,i)=>i===0||position>order[i-1]),'student cards keep the reference order');
+const order=["['plan','الخطة الأسبوعية'","['homework','الواجبات'","['assessment','التقييم'","['stars','النجوم'"].map(token=>student.indexOf(token));
+assert.ok(order.every(position=>position>0)&&order.every((position,i)=>i===0||position>order[i-1]),'student home tabs: الخطة الأسبوعية — الواجبات — التقييم — النجوم (from the right)');
 const teacherOrder=['tone="plan"','tone="assessment"','tone="homework"','tone="stars"'].map(token=>teacher.indexOf(token));
 assert.ok(teacherOrder.every((position,i)=>position>0&&(i===0||position>teacherOrder[i-1])),'teacher cards use the same identity and order');
-const navLabels=[...student.matchAll(/\{key:'(home|weeks|stars|me)',label:'([^']+)'/g)].map(match=>match[2]);
-assert.deepEqual(navLabels,['الرئيسية','الفصول','النجوم','حسابي'],'student bar from the right: الرئيسية — الفصول — النجوم — حسابي');
+const navLabels=[...student.matchAll(/\{key:'(home|file|chat|settings)',label:'([^']+)'/g)].map(match=>match[2]);
+assert.deepEqual(navLabels,['الرئيسية','ملف الإنجاز','الرسائل','الإعدادات'],'student bar from the right: الرئيسية — ملف الإنجاز — الرسائل — الإعدادات');
 assert.ok(kit.includes("SUBJECT_ORDER:SubjectKey[]=['arabic','quran','islamic','spelling']"),'subjects from the right: لغتي — القرآن الكريم — الدراسات الإسلامية — الإملاء والخط');
 for(const tone of ['plan','assessment','homework','stars'])assert.ok(css.includes(`.tkCard.${tone}{`),`${tone} card colour`);
 assert.ok(css.includes('--blue-card')&&css.includes('--green-card')&&css.includes('--orange-card')&&css.includes('--purple-card'));
@@ -36,7 +36,7 @@ for(const text of ['عدد الطلاب','يحتاجون متابعة','تم ت�
 assert.ok(!teacher.includes('معًا نصنع جيلًا أفضل')&&!teacher.includes('كل خطوة في التعليم'),'the replaced teacher slogans never reappear');
 assert.ok(teacher.includes('hijriDate(now)')&&teacher.includes('gregorianDate(now)')&&kit.includes("timeZone:'Asia/Riyadh'")&&kit.includes('islamic-umalqura'),'dates follow Saudi time and update by themselves');
 assert.ok(kit.includes('className="tkPageDate"')&&kit.includes('hijriDate(now)')&&kit.includes('gregorianDate(now)'),'internal page heads carry the same Hijri/Gregorian Saudi date logic');
-assert.ok(student.includes('tkCards tkHomeCards')&&teacher.includes('tkCards tkHomeCards')&&css.includes('.tkHomeCards .tkCard.plan')&&css.includes('.tkHomeCards .tkCard.stars'),'only home card groups receive the requested extra vertical room');
+assert.ok(student.includes('className="tkTabs"')&&teacher.includes('tkCards tkHomeCards')&&css.includes('.tkHomeCards .tkCard.plan')&&css.includes('.tkHomeCards .tkCard.stars'),'only home card groups receive the requested extra vertical room');
 assert.ok(teacher.includes('summary.students')&&teacher.includes('summary.focused')&&teacher.includes('summary.assessedToday')&&teacher.includes('summary.messages'),'summary numbers come from the server');
 assert.ok(css.includes('.tkStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))'),'summary tiles: two per row on a phone');
 // Student profile card inside حسابي.
@@ -72,7 +72,7 @@ assert.ok(main.includes('<StudentApp/>')&&main.includes('<TeacherApp'));
 // Weekly plan: Hijri and Gregorian together, on both sites, on the card and in the details.
 assert.ok(kit.includes('export function PlanDates')&&kit.includes('hijriRange(plan.range)')&&kit.includes('gregorianRange(plan.range)')&&kit.includes("<th scope=\"col\">هجري</th><th scope=\"col\">ميلادي</th>"),'the plan block shows both calendars');
 for(const [name,source] of [['student',student],['teacher',teacher]]){
-  assert.ok(source.includes('dates={[hijriRange(plan.range),gregorianRange(plan.range)]}'),`${name}: the plan card carries both dates`);
+  assert.ok(source.includes('dates={[hijriRange(plan.range),gregorianRange(plan.range)]}')||(name==='student'&&source.includes('<span>{hijriRange(plan.range)}</span><span>{gregorianRange(plan.range)}</span>')),`${name}: the plan card carries both dates`);
   assert.ok(source.includes('<PlanDates plan='),`${name}: the plan page carries both dates`);
 }
 // Student rows: large names, pastel cards in turn, a written focus badge, 44px touch targets, file and assessment apart.
