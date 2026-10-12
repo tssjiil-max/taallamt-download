@@ -121,7 +121,6 @@ const SV=(props:React.SVGProps<SVGSVGElement>)=><svg viewBox="0 0 24 24" aria-hi
 const line={fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round' as const,strokeLinejoin:'round' as const};
 const BellIcon=()=><SV {...line}><path d="M6 17.5h12l-1.5-2V11a4.5 4.5 0 0 0-9 0v4.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></SV>;
 const UserIcon=()=><SV {...line} strokeWidth={2}><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.6-4 3.6-6 7.5-6s6.9 2 7.5 6"/></SV>;
-const PencilIcon=()=><SV {...line} strokeWidth={2}><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></SV>;
 const TabPlan=()=><SV {...line}><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" strokeWidth={2.6}/></SV>;
 const TabHomework=()=><SV {...line}><path d="M6.5 3.5h7l4.5 4.5v12a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M13.5 3.5V8H18M8.5 12.5h7M8.5 16h7"/></SV>;
 const TabAssess=()=><SV {...line}><path d="M5 20V12M12 20V5M19 20v-9"/><path d="M3 20.5h18"/></SV>;
@@ -147,26 +146,16 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
   const bell=()=>{const box=document.getElementById('tkNotices');if(box)box.scrollIntoView({behavior:'smooth',block:'start'});else go('chat')};
   return <>
     <header className="tkTop">
-      <button className="tkTopBtn" type="button" onClick={()=>go('me')} aria-label="حسابي"><UserIcon/></button>
+      <span className="tkTopSpacer" aria-hidden="true"/>
       <h1>تعلّمت</h1>
       <button className="tkTopBtn" type="button" onClick={bell} aria-label={alerts?`التنبيهات: ${alerts}`:'التنبيهات'}><BellIcon/>{alerts>0&&<i className="tkTopBadge num">{alerts}</i>}</button>
     </header>
     <section className="tkMe" aria-label="ملف الطالب">
-      <button className="tkMeEdit" type="button" onClick={()=>go('settings')} aria-label="تعديل الملف الشخصي"><PencilIcon/></button>
       <div className="tkMeText"><b>{student.name}</b><span>{gradeLine(student)}</span><span>{student.school}</span>
         <button className="tkMeStars" type="button" onClick={()=>setTab('stars')} aria-label={`${stars.count} نجمة`}><img src={SHAK.star} alt="" aria-hidden="true"/><b className="num">{stars.count}</b><span>نجمة</span></button></div>
       <button className={`tkMePhoto ${student.photo?'custom':''}`} type="button" onClick={photo.open} disabled={photo.busy} aria-label="تغيير صورتي"><img src={student.photo||SHAK.logo} alt=""/></button>
       {photo.field}
     </section>
-    {home.announcements?.length>0&&<section id="tkNotices" className="tkAlert info" aria-label="إعلانات الفصل" style={{marginBottom:'calc(var(--u)*10)'}}>
-      <b>📣 إعلانات الفصل</b>
-      {home.announcements.map(item=><div key={item.id} style={{marginTop:'calc(var(--u)*7)'}}>
-        {item.hasImage&&<img src={`/api/student-state?view=announcement-image&id=${encodeURIComponent(item.id)}&${accessQuery}`} alt="صورة الإعلان" style={{display:'block',width:'100%',maxHeight:'calc(var(--u)*260)',objectFit:'contain',borderRadius:'calc(var(--u)*12)',marginBottom:'calc(var(--u)*7)',background:'#f6f8fb'}}/>}
-        <strong>{item.title}</strong>
-        {item.body&&<p style={{margin:'3px 0 0'}}>{item.body}</p>}
-        {item.date&&<small className="num">{item.date}</small>}
-      </div>)}
-    </section>}
     <div className="tkTabs" role="tablist" aria-label="أقسام الصفحة الرئيسية">
       {([['plan','الخطة الأسبوعية',<TabPlan key="i"/>],['homework','الواجبات',<TabHomework key="i"/>],['assessment','التقييم',<TabAssess key="i"/>],['stars','النجوم',<TabStar key="i" on={tab==='stars'}/>]] as [HomeTab,string,React.ReactNode][]).map(([key,label,icon])=>
         <button key={key} type="button" role="tab" id={`tab-${key}`} aria-selected={tab===key} aria-controls="tkTabBody" className={`tkTab ${tab===key?'on':''}`} onClick={()=>setTab(key)}>{icon}<b>{label}</b></button>)}
@@ -222,6 +211,15 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
       <span className="tkAskPic"><img src={SHAK.logo} alt="" aria-hidden="true"/></span>
       <span className="tkAskText"><b>مساعدي الذكي</b><small>اشرح لي الواجب أو ساعدني في الحل</small></span><ChevronBack/>
     </button>
+    {home.announcements?.length>0&&<section id="tkNotices" className="tkAlert info" aria-label="إعلانات الفصل" style={{margin:'calc(var(--u)*10) calc(var(--u)*12) 0'}}>
+      <b>📣 إعلانات الفصل</b>
+      {home.announcements.map(item=><div key={item.id} style={{marginTop:'calc(var(--u)*7)'}}>
+        {item.hasImage&&<img src={`/api/student-state?view=announcement-image&id=${encodeURIComponent(item.id)}&${accessQuery}`} alt="صورة الإعلان" style={{display:'block',width:'100%',maxHeight:'calc(var(--u)*260)',objectFit:'contain',borderRadius:'calc(var(--u)*12)',marginBottom:'calc(var(--u)*7)',background:'#f6f8fb'}}/>}
+        <strong>{item.title}</strong>
+        {item.body&&<p style={{margin:'3px 0 0'}}>{item.body}</p>}
+        {item.date&&<small className="num">{item.date}</small>}
+      </div>)}
+    </section>}
     <button className="tkRowBtn out" type="button" onClick={()=>{const fn=(window as any).taallamtInstallPage;if(typeof fn==='function')void fn();else alert('من قائمة المتصفح اختر إضافة إلى الشاشة الرئيسية')}}><span className="tkRowIcon" aria-hidden="true"><IconSpark/></span><span className="tkGrow"><b>حفظ الصفحة على الجوال</b><small>أضف صفحة الطالب إلى الشاشة الرئيسية بنفس الرابط</small></span><IconChevron/></button>
   </>;
 }
@@ -476,6 +474,7 @@ function SettingsPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go
     <p className="tkMeta" style={{textAlign:'right'}}>{student.photo?'تظهر صورتك في رأس صفحتك وعند معلمك فقط.':'الصورة الحالية هي شكابمبو. اختر صورة من الجهاز لتظهر في رأس صفحتك.'}</p></section>
     <h2 className="tkH">ملفي</h2>
     <div className="tkList">
+      <button className="tkRow" type="button" onClick={()=>go('me')}><span className="tkRowIcon" aria-hidden="true"><UserIcon/></span><span className="tkGrow"><b>حسابي</b><small>بياناتي وإدارة ملفي</small></span></button>
       <button className="tkRow" type="button" onClick={()=>go('hobbies')}><span className="tkRowIcon green" aria-hidden="true"><IconHeart/></span><span className="tkGrow"><b>هواياتي</b><small>{student.hobbies.length?student.hobbies.join(' · '):'لم تختر هواياتك بعد'}</small></span><IconChevron/></button>
       <div className="tkRow"><span className="tkGrow"><b>الاسم والصف والمدرسة</b><small>{student.name} · {student.classShort} · {student.school}</small><small>يعدّلها المعلم فقط.</small></span></div>
     </div>
