@@ -115,11 +115,8 @@ export function StudentApp(){
 
 type Go=(route:string)=>void;
 type HomeTab='homework'|'plan'|'assessment'|'stars';
-type HwFilter='all'|'open'|'done';
-const HW_FILTERS:[HwFilter,string][]=[['all','الكل'],['open','لم يبدأ'],['done','مكتمل']];
 const SV=(props:React.SVGProps<SVGSVGElement>)=><svg viewBox="0 0 24 24" aria-hidden="true" {...props}/>;
 const line={fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round' as const,strokeLinejoin:'round' as const};
-const BellIcon=()=><SV {...line}><path d="M6 17.5h12l-1.5-2V11a4.5 4.5 0 0 0-9 0v4.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></SV>;
 const UserIcon=()=><SV {...line} strokeWidth={2}><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.6-4 3.6-6 7.5-6s6.9 2 7.5 6"/></SV>;
 const TabPlan=()=><SV {...line}><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" strokeWidth={2.6}/></SV>;
 const TabHomework=()=><SV {...line}><path d="M6.5 3.5h7l4.5 4.5v12a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M13.5 3.5V8H18M8.5 12.5h7M8.5 16h7"/></SV>;
@@ -138,18 +135,11 @@ function weekHomework(home:Home){
 }
 const gradeLine=(student:Home['student'])=>{const [grade,section]=String(student.classShort||'').split('/').map(part=>part.trim());return grade?`الصف ${grade} الابتدائي${section?` / ${section}`:''}`:student.classLabel};
 function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
-  const [tab,setTab]=React.useState<HomeTab>('homework'),[filter,setFilter]=React.useState<HwFilter>('all'),[menu,setMenu]=React.useState(false);
+  const [tab,setTab]=React.useState<HomeTab>('homework');
   const {plan,assessment,stars,student}=home,photo=usePhotoPicker(reload,toast);
-  const all=weekHomework(home),list=all.filter(item=>filter==='all'||(filter==='done')===item.done);
+  const list=weekHomework(home);
   const percent=Math.max(0,Math.min(100,Math.round(stars.count/Math.max(1,stars.goal)*100)));
-  const alerts=home.messages.unread+home.announcements.length;
-  const bell=()=>{const box=document.getElementById('tkNotices');if(box)box.scrollIntoView({behavior:'smooth',block:'start'});else go('chat')};
   return <>
-    <header className="tkTop">
-      <span className="tkTopSpacer" aria-hidden="true"/>
-      <h1>تعلّمت</h1>
-      <button className="tkTopBtn" type="button" onClick={bell} aria-label={alerts?`التنبيهات: ${alerts}`:'التنبيهات'}><BellIcon/>{alerts>0&&<i className="tkTopBadge num">{alerts}</i>}</button>
-    </header>
     <section className="tkMe" aria-label="ملف الطالب">
       <div className="tkMeText"><b>{student.name}</b><span>{gradeLine(student)}</span><span>{student.school}</span>
         <button className="tkMeStars" type="button" onClick={()=>setTab('stars')} aria-label={`${stars.count} نجمة`}><img src={SHAK.star} alt="" aria-hidden="true"/><b className="num">{stars.count}</b><span>نجمة</span></button></div>
@@ -162,21 +152,16 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
     </div>
     <section id="tkTabBody" role="tabpanel" aria-labelledby={`tab-${tab}`}>
       {tab==='homework'&&<>
-        <div className="tkSecHead"><h2>واجباتي هذا الأسبوع</h2>
-          <div className="tkFilter"><button type="button" aria-haspopup="listbox" aria-expanded={menu} onClick={()=>setMenu(open=>!open)}>{HW_FILTERS.find(([key])=>key===filter)?.[1]}<SV {...line} strokeWidth={3}><path d="m6 9 6 6 6-6"/></SV></button>
-            {menu&&<ul role="listbox" aria-label="تصفية الواجبات">{HW_FILTERS.map(([key,label])=><li key={key}><button type="button" role="option" aria-selected={filter===key} onClick={()=>{setFilter(key);setMenu(false)}}>{label}</button></li>)}</ul>}</div>
-        </div>
         <div className="tkHwList">
           {list.map(item=><button key={item.id} type="button" className={`tkHw ${item.done?'done':''}`} onClick={()=>go('homework')} aria-label={`${item.subjectLabel}: ${item.displayTitle||item.title} — ${item.done?'مكتمل':'لم يبدأ'}`}>
             <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={52}/></span>
             <span className="tkHwMain"><b>{item.subjectLabel}</b><span>{item.displayTitle||item.title}</span>{item.dueDate&&<small>التسليم: {formatDay(item.dueDate)}</small>}</span>
             <span className={`tkHwState ${item.done?'done':'fresh'}`}><i aria-hidden="true">{item.done?<SV fill="none" stroke="#fff" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></SV>:<SV fill="none" stroke="#fff" strokeWidth={3.4} strokeLinecap="round"><path d="M12 5v14M5 12h14"/></SV>}</i>{item.done?'مكتمل':'لم يبدأ'}</span>
           </button>)}
-          {!list.length&&<p className="tkPanelEmpty">{all.length?'لا توجد واجبات في هذا التصنيف.':home.today.schoolDay?'لا توجد واجبات هذا الأسبوع.':'لا يوجد واجب اليوم — إجازة.'}</p>}
+          {!list.length&&<p className="tkPanelEmpty">{home.today.schoolDay?'لا توجد واجبات هذا الأسبوع.':'لا يوجد واجب اليوم — إجازة.'}</p>}
         </div>
       </>}
       {tab==='plan'&&<>
-        <div className="tkSecHead"><h2>خطة هذا الأسبوع</h2><span className="tkWeekTag">الأسبوع <span className="num">{home.week.number}</span></span></div>
         <p className="tkPanelDates"><span>{hijriRange(plan.range)}</span><span>{gregorianRange(plan.range)}</span></p>
         <div className="tkHwList">
           {plan.holiday?<p className="tkPanelEmpty">إجازة هذا الأسبوع — لا توجد دروس جديدة.</p>
@@ -188,7 +173,6 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
         <button className="tkPanelCta" type="button" onClick={()=>go('plan')}>عرض الخطة كاملة بالتاريخين</button>
       </>}
       {tab==='assessment'&&<>
-        <div className="tkSecHead"><h2>آخر تقييم لمهاراتي</h2></div>
         <div className="tkHwList">
           {assessment.items.map(item=><button key={item.subjectKey} type="button" className="tkHw slim" onClick={()=>go('assessment')} aria-label={`${item.label}: ${item.status?RESULT_LABEL[item.status]:'لم يُقيّم بعد'}`}>
             <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={48}/></span>
@@ -197,7 +181,6 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
         <button className="tkPanelCta" type="button" onClick={()=>go('assessment')}>عرض التقييم كاملًا</button>
       </>}
       {tab==='stars'&&<>
-        <div className="tkSecHead"><h2>نجومي</h2></div>
         <div className="tkStarBox"><img src={SHAK.trophy} alt="" aria-hidden="true"/><div><p><b className="num">{stars.count}</b> من <span className="num">{stars.goal}</span> نجمة</p>
           <div className="tkGoldBar" role="progressbar" aria-valuemin={0} aria-valuemax={stars.goal} aria-valuenow={stars.count} aria-label="تقدم النجوم"><i style={{width:`${percent}%`}}/></div>
           <small>المكافأة القادمة عند <span className="num">{stars.goal}</span> نجمة</small></div></div>
