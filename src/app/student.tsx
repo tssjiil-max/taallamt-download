@@ -107,12 +107,36 @@ export function StudentApp(){
   else if(route==='chat')body=<ChatPage home={data} back={back} reload={()=>void home.reload(true)}/>;
   else if(route==='files')body=<FilesPage back={back}/>;
   else if(route==='settings')body=<SettingsPage home={data} back={back} go={go} reload={()=>void home.reload(true)} toast={showToast}/>;
-  else body=<HomeCards home={data} go={go} toggle={toggleHomework} busy={busy} reload={()=>void home.reload(true)} toast={showToast}/>;
+  else body=<StudentReferenceHome home={data} go={go} toggle={toggleHomework} busy={busy} reload={()=>void home.reload(true)} toast={showToast}/>;
 
   return <Screen nav={nav}>{body}{toast}</Screen>;
 }
 
 type Go=(route:string)=>void;
+function StudentReferenceHome({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(item:Homework)=>void;busy:string;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
+  const [selected,setSelected]=React.useState<'plan'|'homework'|'assessment'|'stars'>('homework');
+  const photo=usePhotoPicker(reload,toast);
+  const tabs=[{id:'plan',label:'الخطة الأسبوعية',icon:CARD_ICON.plan},{id:'homework',label:'الواجبات',icon:CARD_ICON.homework},{id:'assessment',label:'التقييم',icon:CARD_ICON.assessment},{id:'stars',label:'النجوم',icon:CARD_ICON.stars}] as const;
+  const tasks=[...home.homework.today,...home.homework.pending];
+  return <div className="studentReference" dir="rtl">
+    <header className="studentReferenceHeader"><button type="button" onClick={()=>go('chat')} aria-label="الرسائل"><IconMessage/>{home.messages.unread>0&&<span className="studentReferenceUnread">{home.messages.unread}</span>}</button><strong>تعلّمت</strong><button type="button" onClick={()=>go('me')} aria-label="ملفي"><NavUser/></button></header>
+    <section className="studentReferenceProfile" aria-label="ملف الطالب">
+      <button type="button" className="studentReferenceEdit" onClick={photo.open} disabled={photo.busy} aria-label="تغيير صورتي"><IconGear/></button>
+      <div className="studentReferenceDetails"><h1>{home.student.name}</h1><p>{home.student.classLabel}</p><p>{home.student.school}</p><span className="studentReferenceStar">★ <b>{home.stars.count} نجمة</b></span></div>
+      <button className="studentReferencePhoto" type="button" onClick={photo.open} disabled={photo.busy} aria-label="تغيير صورة الطالب"><img src={home.student.photo||SHAK.sourati} alt="صورة الطالب"/></button>{photo.field}
+    </section>
+    <div className="studentReferenceTabs" role="tablist" aria-label="أقسام صفحة الطالب">{tabs.map(item=><button key={item.id} type="button" role="tab" aria-selected={selected===item.id} className={selected===item.id?'active':''} onClick={()=>setSelected(item.id)}><img src={item.icon} alt=""/><span>{item.label}</span></button>)}</div>
+    <section className="studentReferenceContent" role="tabpanel" aria-label={tabs.find(item=>item.id===selected)?.label}>
+      {selected==='homework'&&<><div className="studentReferenceSectionTitle"><h2>واجباتي هذا الأسبوع</h2><span>{tasks.length} واجبات</span></div><div className="studentReferenceList">{tasks.length?tasks.map(item=><button type="button" className="studentReferenceTask" key={item.id} onClick={()=>go('homework')}><SubjectImg subject={item.subjectKey} size={42}/><span className="studentReferenceTaskText"><b>{item.subjectLabel}</b><span>{item.displayTitle||item.title}</span><small>{dueText(item)}</small></span><span className={item.done?'studentReferenceStatus done':'studentReferenceStatus'}>{item.done?'مكتمل':'عرض الواجب'}</span></button>):<Empty>لا توجد واجبات منشورة حاليًا.</Empty>}</div></>}
+      {selected==='plan'&&<><div className="studentReferenceSectionTitle"><h2>خطة هذا الأسبوع</h2><span>{home.week.label}</span></div><div className="studentReferenceList">{home.plan.holiday?<Empty>هذا الأسبوع إجازة.</Empty>:!home.plan.published?<Empty>الخطة الأسبوعية قيد النشر.</Empty>:home.plan.items.map(item=><button className="studentReferenceTask" type="button" key={item.subjectKey} onClick={()=>go(`subject/${item.subjectKey}`)}><SubjectImg subject={item.subjectKey} size={42}/><span className="studentReferenceTaskText"><b>{item.label}</b><span>{item.summary||'اطّلع على تفاصيل الدرس'}</span></span><IconChevron/></button>)}</div></>}
+      {selected==='assessment'&&<><div className="studentReferenceSectionTitle"><h2>تقييمي في المواد</h2></div><div className="studentReferenceList">{home.assessment.items.map(item=><button className="studentReferenceTask" type="button" key={item.subjectKey} onClick={()=>go('assessment')}><SubjectImg subject={item.subjectKey} size={42}/><span className="studentReferenceTaskText"><b>{item.label}</b><small>{item.skill||'لم تحدد مهارة بعد'}</small></span><Pill status={item.status}/></button>)}</div></>}
+      {selected==='stars'&&<><div className="studentReferenceStars"><span>★</span><strong>{home.stars.count}</strong><b>نجمة</b><small>واصل تألقك!</small></div><div className="studentReferenceSectionTitle"><h2>مصادر النجوم</h2></div><div className="studentReferenceList">{home.stars.log.length?home.stars.log.map(item=><div className="studentReferenceTask" key={item.id}><span className="studentReferenceGold">★</span><span className="studentReferenceTaskText"><b>{item.label}</b><small>{formatStamp(item.createdAt)}</small></span><b>+{item.stars}</b></div>):<Empty>لا توجد نجوم مسجلة بعد.</Empty>}</div></>}
+    </section>
+    <button type="button" className="studentReferenceAssistant" onClick={()=>toast('المساعد الذكي التعليمي لم يُفعّل بعد.')}><span className="studentReferenceRobot" aria-hidden="true">✦</span><span><b>مساعدي الذكي</b><small>اشرح لي الدرس أو ساعدني في الحل</small></span><IconChevron/></button>
+  </div>;
+}
+
+
 function HomeCards({home,go,toggle,busy,reload,toast}:{home:Home;go:Go;toggle:(item:Homework)=>void;busy:string;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
   const {plan,assessment,homework,stars}=home;
   const rows=[...homework.today.filter(item=>!item.done),...homework.today.filter(item=>item.done)].slice(0,2);
