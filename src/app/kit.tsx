@@ -201,11 +201,11 @@ export function Pill({status,label}:{status:Result|null;label?:string}){
 }
 export function Check({on,busy=false}:{on:boolean;busy?:boolean}){return <span className={`tkCheck ${on?'on':''} ${busy?'busy':''}`} aria-hidden="true"><IconCheck/></span>}
 
-export type NavItem={key:string;label:string;icon:React.ReactNode;activeIcon?:React.ReactNode;onClick?:()=>void;href?:string};
-export function BottomNav({items,active,label}:{items:NavItem[];active:string;label:string}){
-  return <nav className={`tkNav ${items.length===5?'five':''}`} aria-label={label}>{items.map(item=>item.href
+export type NavItem={key:string;label:string;icon:React.ReactNode;activeIcon?:React.ReactNode;onClick?:()=>void;href?:string;badge?:number};
+export function BottomNav({items,active,label,variant=''}:{items:NavItem[];active:string;label:string;variant?:string}){
+  return <nav className={`tkNav ${items.length===5?'five':''} ${variant}`.trim()} aria-label={label}>{items.map(item=>item.href
     ?<a key={item.key} href={item.href}>{item.icon}<span>{item.label}</span></a>
-    :<button key={item.key} type="button" className={active===item.key?'on':''} aria-current={active===item.key?'page':undefined} onClick={item.onClick}>{active===item.key&&item.activeIcon?item.activeIcon:item.icon}<span>{item.label}</span></button>)}</nav>;
+    :<button key={item.key} type="button" className={active===item.key?'on':''} aria-current={active===item.key?'page':undefined} onClick={item.onClick}>{active===item.key&&item.activeIcon?item.activeIcon:item.icon}{item.badge?<i className="tkNavBadge num" aria-label={`${item.badge} غير مقروءة`}>{item.badge}</i>:null}<span>{item.label}</span></button>)}</nav>;
 }
 
 export function PageHead({title,subtitle,icon,onBack}:{title:string;subtitle?:string;icon?:string;onBack:()=>void}){

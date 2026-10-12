@@ -71,11 +71,11 @@ export function StudentApp(){
   },[busy,home,showToast]);
 
   const tab=route==='achievements'?'file':route==='chat'?'chat':route==='settings'?'settings':'home';
-  const nav=<BottomNav label="تنقل الطالب" active={tab} items={[
-    {key:'home',label:'الرئيسية',icon:<NavHomeLine/>,activeIcon:<NavHome/>,onClick:()=>go('')},
-    {key:'file',label:'ملف الإنجاز',icon:<IconFolder/>,onClick:()=>go('achievements')},
-    {key:'chat',label:'الرسائل',icon:<IconMessage/>,onClick:()=>go('chat')},
-    {key:'settings',label:'الإعدادات',icon:<IconGear/>,onClick:()=>go('settings')}
+  const nav=<BottomNav label="تنقل الطالب" variant="stu" active={tab} items={[
+    {key:'home',label:'الرئيسية',icon:<FillHome/>,onClick:()=>go('')},
+    {key:'file',label:'ملف الإنجاز',icon:<FillFolder/>,onClick:()=>go('achievements')},
+    {key:'chat',label:'الرسائل',icon:<FillChat/>,badge:home.data?.messages.unread||0,onClick:()=>go('chat')},
+    {key:'settings',label:'الإعدادات',icon:<FillGear/>,onClick:()=>go('settings')}
   ]}/>;
 
   if(!STUDENT_ID)return <Screen nav={nav}>
@@ -116,33 +116,47 @@ export function StudentApp(){
 type Go=(route:string)=>void;
 type HomeTab='homework'|'plan'|'assessment'|'stars';
 type HwFilter='all'|'open'|'done';
-const HOME_TABS:[HomeTab,string,string][]=[['plan','الخطة الأسبوعية',CARD_ICON.plan],['homework','الواجبات',CARD_ICON.homework],['assessment','التقييم',CARD_ICON.assessment],['stars','النجوم',CARD_ICON.stars]];
-const HW_FILTERS:[HwFilter,string][]=[['all','الكل'],['open','لم يُنجز بعد'],['done','مكتمل']];
-const BellIcon=()=><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17.5h12l-1.5-2V11a4.5 4.5 0 0 0-9 0v4.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></svg>;
+const HW_FILTERS:[HwFilter,string][]=[['all','الكل'],['open','لم يبدأ'],['done','مكتمل']];
+const SV=(props:React.SVGProps<SVGSVGElement>)=><svg viewBox="0 0 24 24" aria-hidden="true" {...props}/>;
+const line={fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round' as const,strokeLinejoin:'round' as const};
+const BellIcon=()=><SV {...line}><path d="M6 17.5h12l-1.5-2V11a4.5 4.5 0 0 0-9 0v4.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></SV>;
+const UserIcon=()=><SV {...line} strokeWidth={2}><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c.6-4 3.6-6 7.5-6s6.9 2 7.5 6"/></SV>;
+const PencilIcon=()=><SV {...line} strokeWidth={2}><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></SV>;
+const TabPlan=()=><SV {...line}><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" strokeWidth={2.6}/></SV>;
+const TabHomework=()=><SV {...line}><path d="M6.5 3.5h7l4.5 4.5v12a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M13.5 3.5V8H18M8.5 12.5h7M8.5 16h7"/></SV>;
+const TabAssess=()=><SV {...line}><path d="M5 20V12M12 20V5M19 20v-9"/><path d="M3 20.5h18"/></SV>;
+const TabStar=({on}:{on:boolean})=><SV fill={on?'#ffd45a':'#f5b21e'} stroke={on?'#fff':'#e39b0b'} strokeWidth={1.4} strokeLinejoin="round"><path d="m12 3.3 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.5l5.9-.9Z"/></SV>;
+const FillHome=()=><SV fill="currentColor"><path d="M12.9 2.9a1.4 1.4 0 0 0-1.8 0L3.2 9.8c-.4.4-.7.9-.7 1.5v8.2c0 1.1.9 2 2 2h4.2c.5 0 .9-.4.9-.9v-4.3c0-.6.4-1 1-1h2c.6 0 1 .4 1 1v4.3c0 .5.4.9.9.9h4.2c1.1 0 2-.9 2-2v-8.2c0-.6-.3-1.1-.7-1.5Z"/></SV>;
+const FillFolder=()=><SV fill="currentColor"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v8.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5Z"/></SV>;
+const FillChat=()=><SV fill="currentColor"><path d="M12 3C6.8 3 3 6.4 3 10.8c0 2.4 1.2 4.5 3.1 5.9L5.5 20.5l3.8-1.9c.9.2 1.7.3 2.7.3 5.2 0 9-3.4 9-7.8S17.2 3 12 3Z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01" stroke="#fff" strokeWidth={2.4} strokeLinecap="round"/></SV>;
+const FillGear=()=><SV fill="currentColor"><path d="M10.5 2.5h3l.6 2.5c.5.2 1 .5 1.5.8l2.4-.8 1.5 2.6-1.9 1.7c.1.5.1 1 0 1.5l1.9 1.7-1.5 2.6-2.4-.8c-.5.3-1 .6-1.5.8l-.6 2.5h-3l-.6-2.5c-.5-.2-1-.5-1.5-.8l-2.4.8-1.5-2.6 1.9-1.7a5 5 0 0 1 0-1.5L4.6 7.6 6.1 5l2.4.8c.5-.3 1-.6 1.5-.8Z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></SV>;
+const ChevronBack=()=><SV {...line} strokeWidth={2.6}><path d="M15 5 8 12l7 7"/></SV>;
 // This week's homework, newest need first: what is still open and due soonest leads, finished work follows.
 function weekHomework(home:Home){
   const seen=new Set<string>(),list:Homework[]=[];
   for(const item of [...home.homework.today,...home.homework.pending])if(!seen.has(item.id)){seen.add(item.id);list.push(item)}
   return list.sort((a,b)=>Number(a.done)-Number(b.done)||String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999')));
 }
+const gradeLine=(student:Home['student'])=>{const [grade,section]=String(student.classShort||'').split('/').map(part=>part.trim());return grade?`الصف ${grade} الابتدائي${section?` / ${section}`:''}`:student.classLabel};
 function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
   const [tab,setTab]=React.useState<HomeTab>('homework'),[filter,setFilter]=React.useState<HwFilter>('all'),[menu,setMenu]=React.useState(false);
-  const {plan,assessment,stars,student}=home,now=useNow(),photo=usePhotoPicker(reload,toast);
+  const {plan,assessment,stars,student}=home,photo=usePhotoPicker(reload,toast);
   const all=weekHomework(home),list=all.filter(item=>filter==='all'||(filter==='done')===item.done);
   const percent=Math.max(0,Math.min(100,Math.round(stars.count/Math.max(1,stars.goal)*100)));
   const alerts=home.messages.unread+home.announcements.length;
   const bell=()=>{const box=document.getElementById('tkNotices');if(box)box.scrollIntoView({behavior:'smooth',block:'start'});else go('chat')};
   return <>
     <header className="tkTop">
-      <button className="tkTopBtn" type="button" onClick={()=>go('me')} aria-label="حسابي"><NavUser/></button>
+      <button className="tkTopBtn" type="button" onClick={()=>go('me')} aria-label="حسابي"><UserIcon/></button>
       <h1>تعلّمت</h1>
       <button className="tkTopBtn" type="button" onClick={bell} aria-label={alerts?`التنبيهات: ${alerts}`:'التنبيهات'}><BellIcon/>{alerts>0&&<i className="tkTopBadge num">{alerts}</i>}</button>
     </header>
     <section className="tkMe" aria-label="ملف الطالب">
-      <button className="tkMePhoto" type="button" onClick={photo.open} disabled={photo.busy} aria-label="تغيير صورتي"><img src={student.photo||SHAK.logo} alt=""/></button>
+      <button className="tkMeEdit" type="button" onClick={()=>go('settings')} aria-label="تعديل الملف الشخصي"><PencilIcon/></button>
+      <div className="tkMeText"><b>{student.name}</b><span>{gradeLine(student)}</span><span>{student.school}</span>
+        <button className="tkMeStars" type="button" onClick={()=>setTab('stars')} aria-label={`${stars.count} نجمة`}><img src={SHAK.star} alt="" aria-hidden="true"/><b className="num">{stars.count}</b><span>نجمة</span></button></div>
+      <button className={`tkMePhoto ${student.photo?'custom':''}`} type="button" onClick={photo.open} disabled={photo.busy} aria-label="تغيير صورتي"><img src={student.photo||SHAK.logo} alt=""/></button>
       {photo.field}
-      <div className="tkMeText"><b>{student.name}</b><span>{student.classShort} · {student.school}</span><span className="tkMeDate"><span dir="rtl">{hijriDate(now)}</span><span dir="rtl">{gregorianDate(now)}</span></span></div>
-      <button className="tkMeStars" type="button" onClick={()=>go('stars')} aria-label={`${stars.count} نجمة`}><img src={SHAK.star} alt="" aria-hidden="true"/><b className="num">{stars.count}</b><span>نجمة</span></button>
     </section>
     {home.announcements?.length>0&&<section id="tkNotices" className="tkAlert info" aria-label="إعلانات الفصل" style={{marginBottom:'calc(var(--u)*10)'}}>
       <b>📣 إعلانات الفصل</b>
@@ -153,49 +167,60 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
         {item.date&&<small className="num">{item.date}</small>}
       </div>)}
     </section>}
-    <div className="tkTabs" role="tablist" aria-label="أقسام الصفحة الرئيسية">{HOME_TABS.map(([key,label,icon])=><button key={key} type="button" role="tab" id={`tab-${key}`} aria-selected={tab===key} aria-controls="tkTabBody" className={`tkTab ${tab===key?'on':''}`} onClick={()=>setTab(key)}><span><img src={icon} alt="" aria-hidden="true"/></span><b>{label}</b></button>)}</div>
-    <section id="tkTabBody" role="tabpanel" aria-labelledby={`tab-${tab}`} className="tkPanel">
+    <div className="tkTabs" role="tablist" aria-label="أقسام الصفحة الرئيسية">
+      {([['plan','الخطة الأسبوعية',<TabPlan key="i"/>],['homework','الواجبات',<TabHomework key="i"/>],['assessment','التقييم',<TabAssess key="i"/>],['stars','النجوم',<TabStar key="i" on={tab==='stars'}/>]] as [HomeTab,string,React.ReactNode][]).map(([key,label,icon])=>
+        <button key={key} type="button" role="tab" id={`tab-${key}`} aria-selected={tab===key} aria-controls="tkTabBody" className={`tkTab ${tab===key?'on':''}`} onClick={()=>setTab(key)}>{icon}<b>{label}</b></button>)}
+    </div>
+    <section id="tkTabBody" role="tabpanel" aria-labelledby={`tab-${tab}`}>
       {tab==='homework'&&<>
-        <div className="tkPanelHead"><h2>واجباتي هذا الأسبوع</h2>
-          <div className="tkFilter"><button type="button" aria-haspopup="listbox" aria-expanded={menu} onClick={()=>setMenu(open=>!open)}>{HW_FILTERS.find(([key])=>key===filter)?.[1]}<span aria-hidden="true">⌄</span></button>
+        <div className="tkSecHead"><h2>واجباتي هذا الأسبوع</h2>
+          <div className="tkFilter"><button type="button" aria-haspopup="listbox" aria-expanded={menu} onClick={()=>setMenu(open=>!open)}>{HW_FILTERS.find(([key])=>key===filter)?.[1]}<SV {...line} strokeWidth={3}><path d="m6 9 6 6 6-6"/></SV></button>
             {menu&&<ul role="listbox" aria-label="تصفية الواجبات">{HW_FILTERS.map(([key,label])=><li key={key}><button type="button" role="option" aria-selected={filter===key} onClick={()=>{setFilter(key);setMenu(false)}}>{label}</button></li>)}</ul>}</div>
         </div>
-        {list.map(item=><button key={item.id} type="button" className={`tkHw ${item.done?'done':''}`} onClick={()=>go('homework')} aria-label={`${item.subjectLabel}: ${item.displayTitle||item.title} — ${item.done?'مكتمل':'لم يُنجز بعد'}`}>
-          <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={50}/></span>
-          <span className="tkHwMain"><b>{item.subjectLabel}</b><span>{item.displayTitle||item.title}</span>{item.dueDate&&<small>التسليم: {formatDay(item.dueDate)}</small>}</span>
-          <span className={`tkHwState ${item.done?'done':''}`}>{item.done?'مكتمل':'لم يُنجز بعد'}</span>
-        </button>)}
-        {!list.length&&<p className="tkPanelEmpty">{all.length?'لا توجد واجبات في هذا التصنيف.':home.today.schoolDay?'لا توجد واجبات هذا الأسبوع.':'لا يوجد واجب اليوم — إجازة.'}</p>}
-        <p className="tkPanelCount">{homeworkCountText(home)}</p>
+        <div className="tkHwList">
+          {list.map(item=><button key={item.id} type="button" className={`tkHw ${item.done?'done':''}`} onClick={()=>go('homework')} aria-label={`${item.subjectLabel}: ${item.displayTitle||item.title} — ${item.done?'مكتمل':'لم يبدأ'}`}>
+            <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={52}/></span>
+            <span className="tkHwMain"><b>{item.subjectLabel}</b><span>{item.displayTitle||item.title}</span>{item.dueDate&&<small>التسليم: {formatDay(item.dueDate)}</small>}</span>
+            <span className={`tkHwState ${item.done?'done':'fresh'}`}><i aria-hidden="true">{item.done?<SV fill="none" stroke="#fff" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></SV>:<SV fill="none" stroke="#fff" strokeWidth={3.4} strokeLinecap="round"><path d="M12 5v14M5 12h14"/></SV>}</i>{item.done?'مكتمل':'لم يبدأ'}</span>
+          </button>)}
+          {!list.length&&<p className="tkPanelEmpty">{all.length?'لا توجد واجبات في هذا التصنيف.':home.today.schoolDay?'لا توجد واجبات هذا الأسبوع.':'لا يوجد واجب اليوم — إجازة.'}</p>}
+        </div>
       </>}
       {tab==='plan'&&<>
-        <div className="tkPanelHead"><h2>خطة هذا الأسبوع</h2></div>
+        <div className="tkSecHead"><h2>خطة هذا الأسبوع</h2><span className="tkWeekTag">الأسبوع <span className="num">{home.week.number}</span></span></div>
         <p className="tkPanelDates"><span>{hijriRange(plan.range)}</span><span>{gregorianRange(plan.range)}</span></p>
-        {plan.holiday?<p className="tkPanelEmpty">إجازة هذا الأسبوع — لا توجد دروس جديدة.</p>
-        :!plan.published?<p className="tkPanelEmpty">خطة هذا الأسبوع قيد النشر، وستظهر هنا تلقائيًا.</p>
-        :plan.items.map(item=><button key={item.subjectKey} type="button" className="tkHw" onClick={()=>go(`subject/${item.subjectKey}`)} aria-label={`${item.label}: ${item.summary}`}>
-          <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={50}/></span>
-          <span className="tkHwMain"><b>{item.label}</b><span>{item.summary||'—'}</span></span><IconChevron/></button>)}
+        <div className="tkHwList">
+          {plan.holiday?<p className="tkPanelEmpty">إجازة هذا الأسبوع — لا توجد دروس جديدة.</p>
+          :!plan.published?<p className="tkPanelEmpty">خطة هذا الأسبوع قيد النشر، وستظهر هنا تلقائيًا.</p>
+          :plan.items.map(item=><button key={item.subjectKey} type="button" className="tkHw slim" onClick={()=>go(`subject/${item.subjectKey}`)} aria-label={`${item.label}: ${item.summary}`}>
+            <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={48}/></span>
+            <span className="tkHwMain"><b>{item.label}</b><span>{item.summary||'—'}</span></span><ChevronBack/></button>)}
+        </div>
         <button className="tkPanelCta" type="button" onClick={()=>go('plan')}>عرض الخطة كاملة بالتاريخين</button>
       </>}
       {tab==='assessment'&&<>
-        <div className="tkPanelHead"><h2>آخر تقييم لمهاراتي</h2></div>
-        {assessment.items.map(item=><button key={item.subjectKey} type="button" className="tkHw" onClick={()=>go('assessment')} aria-label={`${item.label}: ${item.status?RESULT_LABEL[item.status]:'لم يُقيّم بعد'}`}>
-          <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={50}/></span>
-          <span className="tkHwMain"><b>{item.label}</b><span>{item.skill||'—'}</span></span><Pill status={item.status}/></button>)}
+        <div className="tkSecHead"><h2>آخر تقييم لمهاراتي</h2></div>
+        <div className="tkHwList">
+          {assessment.items.map(item=><button key={item.subjectKey} type="button" className="tkHw slim" onClick={()=>go('assessment')} aria-label={`${item.label}: ${item.status?RESULT_LABEL[item.status]:'لم يُقيّم بعد'}`}>
+            <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={48}/></span>
+            <span className="tkHwMain"><b>{item.label}</b><span>{item.skill||'—'}</span></span><Pill status={item.status}/></button>)}
+        </div>
         <button className="tkPanelCta" type="button" onClick={()=>go('assessment')}>عرض التقييم كاملًا</button>
       </>}
       {tab==='stars'&&<>
-        <div className="tkPanelHead"><h2>نجومي</h2></div>
+        <div className="tkSecHead"><h2>نجومي</h2></div>
         <div className="tkStarBox"><img src={SHAK.trophy} alt="" aria-hidden="true"/><div><p><b className="num">{stars.count}</b> من <span className="num">{stars.goal}</span> نجمة</p>
-          <div className="tkBar" role="progressbar" aria-valuemin={0} aria-valuemax={stars.goal} aria-valuenow={stars.count} aria-label="تقدم النجوم"><i style={{width:`${percent}%`}}/></div>
+          <div className="tkGoldBar" role="progressbar" aria-valuemin={0} aria-valuemax={stars.goal} aria-valuenow={stars.count} aria-label="تقدم النجوم"><i style={{width:`${percent}%`}}/></div>
           <small>المكافأة القادمة عند <span className="num">{stars.goal}</span> نجمة</small></div></div>
-        <button className="tkPanelCta" type="button" onClick={()=>go('stars')}>عرض النجوم وسجلها</button>
+        <div className="tkHwList">
+          {stars.log.slice(0,8).map(row=><div key={row.id} className="tkStarRow"><img src={SHAK.star} alt="" aria-hidden="true"/><div><b>{row.label}</b><small>{formatStamp(row.createdAt)}</small></div><b className="tkStarPlus num">{row.stars>0?'+':''}{row.stars}</b></div>)}
+          {!stars.log.length&&<p className="tkPanelEmpty">لا توجد نجوم مسجلة بعد.</p>}
+        </div>
       </>}
     </section>
     <button className="tkAskCard" type="button" onClick={()=>go('chat')}>
-      <img src={SHAK.logo} alt="" aria-hidden="true"/>
-      <span><b>مساعدي</b><small>اسأل عن الخطة والواجبات والتقييم، وراسل المعلم</small></span><IconChevron/>
+      <span className="tkAskPic"><img src={SHAK.logo} alt="" aria-hidden="true"/></span>
+      <span className="tkAskText"><b>مساعدي الذكي</b><small>اشرح لي الواجب أو ساعدني في الحل</small></span><ChevronBack/>
     </button>
     <button className="tkRowBtn out" type="button" onClick={()=>{const fn=(window as any).taallamtInstallPage;if(typeof fn==='function')void fn();else alert('من قائمة المتصفح اختر إضافة إلى الشاشة الرئيسية')}}><span className="tkRowIcon" aria-hidden="true"><IconSpark/></span><span className="tkGrow"><b>حفظ الصفحة على الجوال</b><small>أضف صفحة الطالب إلى الشاشة الرئيسية بنفس الرابط</small></span><IconChevron/></button>
   </>;
