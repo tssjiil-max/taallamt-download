@@ -263,7 +263,7 @@ export default async function handler(req,res){
     // Everything below is a teacher tool: it needs the signed teacher session.
     requireTeacher(req,{write:req.method==='POST'});
     if(req.method==='GET'&&action==='learning_pilot')return res.status(200).json(await teacherPilotRead(req.query||{}));
-    if(req.method==='POST'&&['learning_content','learning_plan','learning_paper_result'].includes(action))return res.status(200).json({ok:true,...await teacherPilotWrite(action,body)});
+    if(req.method==='POST'&&['learning_content','learning_plan','learning_paper_result','learning_photo_review'].includes(action))return res.status(200).json({ok:true,...await teacherPilotWrite(action,body)});
     if(req.method==='GET'){
       if(action==='overview'){await ensureFresh();return res.status(200).json(await readClassOverview())}
       await ensureFresh();
