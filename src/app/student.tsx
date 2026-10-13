@@ -375,7 +375,7 @@ function assessedSkills(home:Home):Skill[]{
   return [...current,...older];
 }
 const HOBBY_OPTIONS=['القراءة','الرسم','التلوين','كرة القدم','السباحة','ركوب الدراجة','القصص','الحفظ','الألعاب التركيبية','الأشغال اليدوية','التقنية والروبوت','الزراعة','الجري','التصوير','الألعاب الذهنية'];
-const saveProfile=(body:Record<string,unknown>)=>api('/api/student-state',{method:'POST',body:{studentId:STUDENT_ID,action:'student_profile',invite:INVITE,...body}});
+const saveProfile=(body:Record<string,unknown>)=>api('/api/student-state',{method:'POST',body:{studentId:STUDENT_ID,action:'student_profile',invite:INVITE,...(pilotRequested&&STUDENT_ID==='__shakabumbo_demo__'?{pilot:true,demoSession:query.get('demoSession')}:{}),...body}});
 // The chosen picture is cropped to a small square in the browser before it is saved.
 function squarePhoto(file:File):Promise<string>{
   return new Promise((resolve,reject)=>{

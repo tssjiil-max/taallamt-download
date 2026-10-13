@@ -1,3 +1,4 @@
+import {studentProfilePatch} from './student-profile-patch.js';
 import {isFocused} from './quick-assess.js';
 import {TEACHER_BOOK_REFERENCE} from './teacher-book-reference.js';
 import {DEMO_STUDENT_ID,DEMO_STUDENT,DEMO_TARGET,DEMO_ANNOUNCEMENTS,demoHome} from './learning-pilot-demo.js';
@@ -52,7 +53,7 @@ function activityView(context,targetId,mode){
 export async function studentPilotRead(req,res){
   requirePilot();if(String(req.query?.pilot)!=='1')throw new AccessError('PILOT_NOT_AVAILABLE',404);
   const studentId=String(req.query.studentId||'');const role=await authorizeStudent(req,studentId,null);
-  if(req.query.view==='home'&&studentId===DEMO_STUDENT_ID)return res.status(200).json(demoHome());
+  if(req.query.view==='home'&&studentId===DEMO_STUDENT_ID){const p=await pilotProfile(studentId,req.query.demoSession).get(),home=demoHome();home.student={...home.student,photo:p.data()?.photoDataUrl||'',hobbies:p.data()?.hobbies||[]};return res.status(200).json(home);}
   if(req.query.view==='announcement-pilot'){
     if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,req.query.demoSession).get();return res.status(200).json({ok:true,...visibleAnnouncements(DEMO_ANNOUNCEMENTS,CLASS_ID,profile.data()?.announcementReads||{})})}
     const db=adminDb(),base=workspaceRoot();const [items,profile]=await Promise.all([db.collection(`${base}/announcements`).get(),db.doc(`${base}/studentProfiles/${studentId}`).get()]);
@@ -86,6 +87,11 @@ export async function studentPilotWrite(req,res,body){
   const studentId=String(body.studentId||'');await authorizeStudent(req,studentId,body,true);
   if(studentId!==DEMO_STUDENT_ID&&!rosterStudent(studentId))throw new AccessError('STUDENT_NOT_FOUND',404);
   const db=adminDb(),base=workspaceRoot(),profile=pilotProfile(studentId,body.demoSession);
+  if(body.action==='student_profile'){
+    if(studentId!==DEMO_STUDENT_ID||!body.demoSession)throw new AccessError('PILOT_NOT_AVAILABLE',404);
+    await profile.set(studentProfilePatch(studentId,body,now()),{merge:true});
+    return res.status(200).json({ok:true,saved:true});
+  }
   if(body.action==='announcement_read'&&studentId===DEMO_STUDENT_ID){const id=safeId(body.id);if(!DEMO_ANNOUNCEMENTS.some(a=>a.id===id))throw new AccessError('ANNOUNCEMENT_NOT_FOUND',404);await profile.set({announcementReads:{[id]:now()}},{merge:true});return res.status(200).json({ok:true,read:true})}
   if(body.action==='announcement_read'){
     const id=safeId(body.id),ref=db.doc(`${base}/announcements/${id}`);

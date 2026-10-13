@@ -1,3 +1,4 @@
+import {studentProfilePatch} from '../server/student-profile-patch.js';
 import {isVisibleAnnouncement} from '../server/announcement-policy.js';
 import {studentPilotRead,studentPilotWrite} from '../server/learning-pilot.js';
 import {randomBytes} from 'node:crypto';
@@ -174,19 +175,7 @@ async function saveHomework(studentId,body){
 }
 
 async function saveStudentProfile(studentId,body){
-  const photoDataUrl=String(body.photoDataUrl||'').trim();
-  if(photoDataUrl&&!/^data:image\/(png|jpeg|webp);base64,/.test(photoDataUrl))throw new Error('PHOTO_INVALID');
-  if(photoDataUrl.length>280000)throw new Error('PHOTO_TOO_LARGE');
-  const db=adminDb(),root=base();
-  const patch={studentId,updatedAt:now()};
-  if(photoDataUrl)patch.photoDataUrl=photoDataUrl;
-  else if(body.removePhoto===true)patch.photoDataUrl='';
-  if(body.hobbies!==undefined){
-    if(!Array.isArray(body.hobbies))throw new Error('HOBBIES_INVALID');
-    const hobbies=[...new Set(body.hobbies.map(x=>String(x||'').trim()).filter(Boolean))].slice(0,12);
-    if(hobbies.some(x=>x.length>40))throw new Error('HOBBIES_INVALID');
-    patch.hobbies=hobbies;
-  }
+  const db=adminDb(),root=base(),patch=studentProfilePatch(studentId,body,now());
   await db.doc(`${root}/studentProfiles/${studentId}`).set(patch,{merge:true});
   return {saved:true};
 }
@@ -275,6 +264,7 @@ export default async function handler(req,res){
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
     if(req.method==='GET'&&(['learning-pilot','learning-print','announcement-pilot'].includes(String(req.query?.view||''))||(req.query?.view==='home'&&req.query?.studentId==='__shakabumbo_demo__'&&req.query?.pilot==='1')))return await studentPilotRead(req,res);
+    if(req.method==='POST'&&jsonBody(req).action==='student_profile'&&jsonBody(req).studentId==='__shakabumbo_demo__'&&jsonBody(req).pilot===true)return await studentPilotWrite(req,res,jsonBody(req));
     if(req.method==='POST'&&['learning_attempt','announcement_read'].includes(String(jsonBody(req).action||'')))return await studentPilotWrite(req,res,jsonBody(req));
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke'){requireTeacher(req);return res.status(200).json(await stagingSmoke())}
     if(req.method==='GET'&&String(req.query?.view||'')==='announcement-image')return await announcementImage(req,res);
