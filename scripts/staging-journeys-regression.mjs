@@ -108,10 +108,25 @@ check('repeated wrong codes lock that client only; a short configured code is re
   finally{process.env.TEACHER_ACCESS_CODE=TEACHER_CODE}
 });
 
-check('without TEACHER_ACCESS_CODE the staging gate still verifies a code (never open)',async()=>{
-  const saved=process.env.TEACHER_ACCESS_CODE;delete process.env.TEACHER_ACCESS_CODE;
-  try{const gate=teacherGate();assert.equal(gate.configured,true);assert.equal(gate.source,'staging');assert.equal(gate.check('0000-0000-0000'),false);assert.equal(gate.check(''),false)}
-  finally{process.env.TEACHER_ACCESS_CODE=saved}
+check('the Shakabumbo preview requires its own code; other staging branches retain the secured fallback',async()=>{
+  const saved=process.env.TEACHER_ACCESS_CODE,branch=process.env.VERCEL_GIT_COMMIT_REF;
+  delete process.env.TEACHER_ACCESS_CODE;
+  try{
+    process.env.VERCEL_GIT_COMMIT_REF='preview/shakabumbo-pilot-20261013';
+    const isolated=teacherGate();
+    assert.equal(isolated.configured,false);
+    assert.equal(isolated.reason,'TEACHER_CODE_MISSING_FOR_PILOT');
+    process.env.VERCEL_GIT_COMMIT_REF='preview/other-testing-branch';
+    const fallback=teacherGate();
+    assert.equal(fallback.configured,true);
+    assert.equal(fallback.source,'staging');
+    assert.equal(fallback.check('0000-0000-0000'),false);
+    assert.equal(fallback.check(''),false);
+  }finally{
+    process.env.TEACHER_ACCESS_CODE=saved;
+    if(branch===undefined)delete process.env.VERCEL_GIT_COMMIT_REF;
+    else process.env.VERCEL_GIT_COMMIT_REF=branch;
+  }
 });
 
 check('the plan and the homework are published by the scheduled job alone (teacher site never opened)',async()=>{
