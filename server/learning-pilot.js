@@ -186,6 +186,20 @@ export async function teacherPilotWrite(action,body){
     if(!previous.exists)Object.assign(record,{id,title,skill:title,subject,weekNumber:learning.weekNumber,source:'teacher_original',classId:CLASS_ID});
     await ref.set(record,{merge:true});return {saved:true};
   }
+  if(action==='learning_photo_review'){
+    const id=safeId(body.id),ref=db.doc(`${base}/homeworkEvidence/${id}`);
+    const status=String(body.status||'');
+    if(!['reviewed','needs_revision'].includes(status))throw new AccessError('REVIEW_STATUS_INVALID',400);
+    const note=String(body.note||'').trim().slice(0,600);
+    if(status==='needs_revision'&&!note)throw new AccessError('REVIEW_NOTE_REQUIRED',400);
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists||snap.data().photoSource!=='learning-pilot-photo'||!rosterStudent(snap.data().studentId))throw new AccessError('PHOTO_NOT_FOUND',404);
+      if(!['pending_teacher_review','reviewed','needs_revision'].includes(snap.data().photoStatus))throw new AccessError('PHOTO_STATE_INVALID',409);
+      tx.set(ref,{photoStatus:status,photoReviewNote:note,photoReviewedAt:timestamp,photoReviewedBy:'teacher',photoRequiresTeacherReview:false},{merge:true});
+    });
+    return {saved:true,status,officialGradeChanged:false};
+  }
   if(action==='learning_paper_result'){
     const id=safeId(body.id),ref=db.doc(`${base}/homeworkEvidence/${id}`),paper=await ref.get();
     if(!paper.exists||paper.data().kind!=='learning-pilot-paper'||!rosterStudent(paper.data().studentId))throw new AccessError('PAPER_NOT_FOUND',404);
