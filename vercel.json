@@ -10,7 +10,9 @@
     }
   ],
   "functions": {
-    "api/learning-automation.js": { "maxDuration": 60 }
+    "api/learning-automation.js": {
+      "maxDuration": 60
+    }
   },
   "rewrites": [
     {
@@ -56,7 +58,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "preview/student-teacher-staging-20261006": true
+      "preview/student-teacher-staging-20261006": true,
+      "preview/shakabumbo-pilot-20261013": true
     }
   }
 }

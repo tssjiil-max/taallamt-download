@@ -1,3 +1,4 @@
+import {pilotRequested,TeacherLearningPilot} from './learning-pilot';
 // Teacher pages in the same identity as the student pages. The teacher's usual work is one screen: the quick assessment
 // ("أتقن بقية الطلاب" + individual results for the focused follow-up list). Plan and homework publish themselves.
 import React from 'react';
@@ -110,6 +111,7 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   else if(route.startsWith('student/'))body=<StudentFilePage home={data} studentId={route.split('/')[1]||''} section={route.split('/')[2]||''} back={back} go={go} refresh={refresh} toast={showToast} setHome={home.setData}/>;
   else if(route.startsWith('chat/'))body=<TeacherChatPage home={data} studentId={route.slice(5)} back={back} refresh={refresh}/>;
   else if(route==='library')body=<LibraryPage home={data} back={back} go={go} toast={showToast}/>;
+  else if(pilotRequested&&route==='assistant')body=<TeacherLearningPilot back={back}/>;
   else if(route==='assistant')body=<AssistantPage home={data} back={back} log={assistLog} setLog={setAssistLog}/>;
   else if(route==='more')body=<MorePage home={data} environment={environment} back={back} go={go} onSignedOut={onSignedOut}/>;
   else if(route==='followup')body=<FollowupPage home={data} back={back} go={go} refresh={refresh} toast={showToast}/>;

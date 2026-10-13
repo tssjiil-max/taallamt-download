@@ -1,3 +1,4 @@
+import {pilotRequested,StudentLearningPilot,StudentAnnouncementsPilot,usePilotAnnouncements} from './learning-pilot';
 // Student / guardian pages in the mandatory reference design: header, weekly plan, assessment, homework, stars and the
 // bottom bar (الرئيسية — الفصول — النجوم — حسابي). Every card and its detail page read the same server payload.
 import React from 'react';
@@ -31,7 +32,7 @@ type Home={
 const query=new URLSearchParams(location.search);
 const STUDENT_ID=query.get('studentId')||'';
 const INVITE=query.get('invite')||query.get('inviteToken')||'';
-const accessQuery=`studentId=${encodeURIComponent(STUDENT_ID)}${INVITE?`&invite=${encodeURIComponent(INVITE)}`:''}`;
+const accessQuery=`studentId=${encodeURIComponent(STUDENT_ID)}${INVITE?`&invite=${encodeURIComponent(INVITE)}`:''}${pilotRequested?'&pilot=1':''}`;
 
 function homeworkCountText(home:Home){
   const {countToday,doneToday}=home.homework;
@@ -44,6 +45,7 @@ const dueText=(item:Homework)=>item.dueDate?`يُسلَّم ${formatDay(item.due
 export function StudentApp(){
   const [route,go,back]=useHashRoute();
   const [toast,showToast]=useToast();
+  const announcements=usePilotAnnouncements();
   const home=useRemote<Home>(STUDENT_ID?`home:${STUDENT_ID}`:null,()=>api<Home>(`/api/student-state?view=home&${accessQuery}`));
   const [busy,setBusy]=React.useState<string>('');
   // Moving between pages picks up what changed on the other site, without reloading on every tap.
@@ -70,11 +72,12 @@ export function StudentApp(){
     }finally{setBusy('')}
   },[busy,home,showToast]);
 
-  const tab=route==='achievements'?'file':route==='chat'?'chat':route==='settings'?'settings':'home';
-  const nav=<BottomNav label="تنقل الطالب" variant="stu" active={tab} items={[
+  const tab=route==='achievements'?'file':route==='chat'?'chat':route==='settings'?'settings':route==='announcements'?'announcements':'home';
+  const nav=<BottomNav label="تنقل الطالب" variant={pilotRequested?"stu pilot":"stu"} active={tab} items={[
     {key:'home',label:'الرئيسية',icon:<FillHome/>,onClick:()=>go('')},
     {key:'file',label:'ملف الإنجاز',icon:<FillFolder/>,onClick:()=>go('achievements')},
     {key:'chat',label:'الرسائل',icon:<FillChat/>,badge:home.data?.messages.unread||0,onClick:()=>go('chat')},
+    ...(pilotRequested?[{key:'announcements',label:'الإعلانات',icon:<IconMessage/>,badge:announcements.data?.unread||0,onClick:()=>go('announcements')}]:[]),
     {key:'settings',label:'الإعدادات',icon:<FillGear/>,onClick:()=>go('settings')}
   ]}/>;
 
@@ -91,7 +94,9 @@ export function StudentApp(){
   if(!data){
     body=<><Header title={title} subtitle={subtitle} hero={boy} avatarLabel="حسابي" onAvatar={()=>go('me')}/>
       {home.error?<Failure error={home.error} role="student" onRetry={()=>void home.reload()}/>:<CardsSkeleton/>}</>;
-  }else if(route==='plan')body=<PlanPage home={data} back={back} go={go}/>;
+  }else if(pilotRequested&&route==='learning')body=<StudentLearningPilot back={back}/>;
+  else if(pilotRequested&&route==='announcements')body=<StudentAnnouncementsPilot back={back} resource={announcements}/>;
+  else if(route==='plan')body=<PlanPage home={data} back={back} go={go}/>;
   else if(route==='assessment')body=<AssessmentPage home={data} back={back} go={go}/>;
   else if(route==='homework')body=<HomeworkPage home={data} back={back} toggle={toggleHomework} busy={busy}/>;
   else if(route.startsWith('subject/'))body=<SubjectPage home={data} subjectKey={route.slice(8) as SubjectKey} back={back} toggle={toggleHomework} busy={busy}/>;
@@ -190,11 +195,11 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
         </div>
       </>}
     </section>
-    <button className="tkAskCard" type="button" onClick={()=>go('chat')}>
+    <button className="tkAskCard" type="button" onClick={()=>go(pilotRequested?'learning':'chat')}>
       <span className="tkAskPic"><img src={SHAK.logo} alt="" aria-hidden="true"/></span>
-      <span className="tkAskText"><b>مساعدي الذكي</b><small>اشرح لي الواجب أو ساعدني في الحل</small></span><ChevronBack/>
+      <span className="tkAskText"><b>{pilotRequested?'شكابمبو':'مساعدي الذكي'}</b><small>{pilotRequested?'تعلّم، تدرّب، وأكمل من حيث توقفت':'اشرح لي الواجب أو ساعدني في الحل'}</small></span><ChevronBack/>
     </button>
-    {home.announcements?.length>0&&<section id="tkNotices" className="tkAlert info" aria-label="إعلانات الفصل" style={{margin:'calc(var(--u)*10) calc(var(--u)*12) 0'}}>
+    {!pilotRequested&&home.announcements?.length>0&&<section id="tkNotices" className="tkAlert info" aria-label="إعلانات الفصل" style={{margin:'calc(var(--u)*10) calc(var(--u)*12) 0'}}>
       <b>📣 إعلانات الفصل</b>
       {home.announcements.map(item=><div key={item.id} style={{marginTop:'calc(var(--u)*7)'}}>
         {item.hasImage&&<img src={`/api/student-state?view=announcement-image&id=${encodeURIComponent(item.id)}&${accessQuery}`} alt="صورة الإعلان" style={{display:'block',width:'100%',maxHeight:'calc(var(--u)*260)',objectFit:'contain',borderRadius:'calc(var(--u)*12)',marginBottom:'calc(var(--u)*7)',background:'#f6f8fb'}}/>}

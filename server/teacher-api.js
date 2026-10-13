@@ -1,3 +1,4 @@
+import {requirePilot} from './learning-pilot.js';
 // Teacher read models and exceptional edits for the new teacher pages. Called only from api/learning-automation.js
 // after the teacher session has been verified there.
 import {adminDb,previewWriteGuard} from './firebase-admin.js';
@@ -179,6 +180,7 @@ export async function teacherWrite(action,body={},date=new Date()){
   if(action==='assistant_provider')return saveProvider(body);
   if(action==='guardian_assistant_settings')return saveGuardianAssistantSettings(body);
   if(action==='announcement_save'){
+    if(body.pilot===true)requirePilot();
     const id=String(body.id||`a${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);
     const title=String(body.title||'').trim().slice(0,160);
     if(!title)throw new Error('TITLE_REQUIRED');
@@ -192,7 +194,8 @@ export async function teacherWrite(action,body={},date=new Date()){
       if(incoming.length>850000)throw new Error('IMAGE_TOO_LARGE');
       imageDataUrl=incoming;
     }
-    const record={id,title,body:String(body.body||'').trim().slice(0,2000),date:/^\d{4}-\d{2}-\d{2}$/.test(String(body.date||''))?String(body.date):riyadhDateString(date),status,imageDataUrl,updatedAt:date.toISOString()};
+    const pilotFields=body.pilot===true?(()=>{requirePilot();if(body.classId&&body.classId!==CLASS_ID)throw new Error('CLASS_INVALID');if(body.expiresAt&&!Number.isFinite(Date.parse(body.expiresAt)))throw new Error('EXPIRY_INVALID');return {classId:CLASS_ID,pinned:body.pinned===true,expiresAt:body.expiresAt?new Date(body.expiresAt).toISOString():''}})():{};
+    const record={...pilotFields,id,title,body:String(body.body||'').trim().slice(0,2000),date:/^\d{4}-\d{2}-\d{2}$/.test(String(body.date||''))?String(body.date):riyadhDateString(date),status,imageDataUrl,updatedAt:date.toISOString()};
     await ref.set(record,{merge:true});
     return {saved:true,item:{id:record.id,title:record.title,body:record.body,date:record.date,status:record.status,updatedAt:record.updatedAt,hasImage:Boolean(imageDataUrl)}};
   }

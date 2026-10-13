@@ -600,3 +600,18 @@ a{color:inherit;text-decoration:none}
 .tkNavBadge{position:absolute;top:calc(var(--u)*2);right:calc(50% - calc(var(--u)*26));min-width:calc(var(--u)*18);height:calc(var(--u)*18);padding:0 calc(var(--u)*4);box-sizing:border-box;border-radius:calc(var(--u)*99);background:#c93a36;color:#fff;font-size:calc(var(--u)*11);font-weight:700;font-style:normal;display:grid;place-items:center;line-height:1}
 /* Screen and navigation are siblings: reserve the student nav height plus calc(var(--u)*14) clearance. */
 .tk:has(>.tkNav.stu)>.tkScreen{padding-bottom:calc(calc(var(--u)*78) + calc(var(--u)*14) + env(safe-area-inset-bottom,0px))}
+
+/* The optional preview experiment retains the existing palette and original artwork. */
+.tk:has(>.tkNav.pilot)>.tkScreen{padding-top:env(safe-area-inset-top,0px)}
+.tkNav.stu.pilot{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tkNav.stu.pilot button{font-size:calc(var(--u)*10.8);min-width:0;min-height:44px}
+.tkLearning .tkBox{margin-bottom:calc(var(--u)*12);padding:calc(var(--u)*14);line-height:1.9}
+.tkLearning h2{font-size:calc(var(--u)*18);margin-bottom:calc(var(--u)*8)}
+.tkLearningSteps{display:flex;flex-wrap:wrap;gap:calc(var(--u)*8);margin:calc(var(--u)*12) 0}
+.tkLearning .tkBtn{min-height:44px;white-space:normal;margin:calc(var(--u)*5) 0;padding:calc(var(--u)*8) calc(var(--u)*14)}
+.tkLearningText{white-space:pre-wrap;overflow-wrap:anywhere;margin:calc(var(--u)*12) 0}
+.tkLearning .tkField{margin:calc(var(--u)*12) 0;display:flex;flex-direction:column;gap:calc(var(--u)*6)}
+.tkLearning .tkField input,.tkLearning .tkField textarea,.tkLearning .tkField select{min-height:44px;padding:calc(var(--u)*10);border:1px solid #bcd9f5;border-radius:calc(var(--u)*12);background:#fff;max-width:100%;font:inherit;color:inherit}
+.tkLearning small{display:block;color:var(--ink3)}
+.tkAnnouncementOpen{width:100%;text-align:start;min-height:44px;display:flex;flex-direction:column;gap:calc(var(--u)*8);color:var(--ink)}
+.tkAnnouncementImage{display:block;width:100%;max-height:calc(var(--u)*300);object-fit:contain;margin:calc(var(--u)*12) 0}

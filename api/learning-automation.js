@@ -1,3 +1,4 @@
+import {teacherPilotRead,teacherPilotWrite} from '../server/learning-pilot.js';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {contentForWeek,COPYWORK_PAGES,quranForDay,riyadhDateString,riyadhWeekday,termPhase,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
@@ -260,6 +261,8 @@ export default async function handler(req,res){
     if(action==='preview')return res.status(200).json(await previewAutomation());
     // Everything below is a teacher tool: it needs the signed teacher session.
     requireTeacher(req,{write:req.method==='POST'});
+    if(req.method==='GET'&&action==='learning_pilot')return res.status(200).json(await teacherPilotRead(req.query||{}));
+    if(req.method==='POST'&&['learning_content','learning_plan','learning_paper_result'].includes(action))return res.status(200).json({ok:true,...await teacherPilotWrite(action,body)});
     if(req.method==='GET'){
       if(action==='overview'){await ensureFresh();return res.status(200).json(await readClassOverview())}
       await ensureFresh();
