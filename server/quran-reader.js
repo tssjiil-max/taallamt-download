@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import data from './quran-text.json' with {type:'json'};
+import audioTiming from './quran-audio-timing.json' with {type:'json'};
 const names={'البروج':85,'الطارق':86,'الأعلى':87,'الغاشية':88,'الفجر':89,'البلد':90,'الشمس':91,'الليل':92};
 const digits=value=>String(value||'').replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
 export function publishedQuran(plan){
@@ -18,7 +19,9 @@ export function publishedQuran(plan){
     if(start<1||end<start||end>source.length)continue;
     const verses=source.filter(v=>v.number>=start&&v.number<=end);
     const revision=createHash('sha256').update(JSON.stringify({week:plan.week,surah,start,end,text:verses})).digest('hex').slice(0,16);
-    segments.push({id:`quran-${revision}`,week:plan.week,surah,name,start,end,day:day.day,verses});
+    const timings=audioTiming.surahs[String(surah)]||[],first=timings.find(v=>v.ayah===start),last=timings.find(v=>v.ayah===end);
+    const audio=first&&last?{url:`https://cdn.mp3quran.net/audio/abdullah-basfar/r1/${String(surah).padStart(3,'0')}.mp3`,start:first.start,end:last.end,reciter:audioTiming.reciter,source:audioTiming.source}:null;
+    segments.push({audio,id:`quran-${revision}`,week:plan.week,surah,name,start,end,day:day.day,verses});
   }
   return segments;
 }
