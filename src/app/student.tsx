@@ -1,4 +1,4 @@
-import {HomeworkPhoto} from './homework-photo';
+import {HomeworkPhoto,SubmissionPortfolio} from './homework-photo';
 import {pilotRequested,StudentLearningPilot,StudentAnnouncementsPilot,usePilotAnnouncements} from './learning-pilot';
 // Student / guardian pages in the mandatory reference design: header, weekly plan, assessment, homework, stars and the
 // bottom bar (الرئيسية — الفصول — النجوم — حسابي). Every card and its detail page read the same server payload.
@@ -507,7 +507,7 @@ function AchievementsPage({home,back}:{home:Home;back:()=>void}){
   return <div className="tkPage">
     <PageHead title="إنجازاتي" subtitle="ما حققته حتى الآن" onBack={back}/>
     <div className="tkAchieve">{tiles.map(([label,value,tone])=><div key={label} className={tone}><b className="num">{value}</b><span>{label}</span></div>)}</div>
-    <h2 className="tkH">مهارات أتقنتها<small>{mastered.length}</small></h2>
+    {pilotRequested&&<SubmissionPortfolio/>}<h2 className="tkH">مهارات أتقنتها<small>{mastered.length}</small></h2>
     {mastered.length?<div className="tkList">{mastered.map((item,index)=><SkillRow key={`${item.subjectKey}-${item.week}-${index}`} item={item}/>)}</div>:<Empty>ستظهر هنا المهارات التي يسجّل المعلم إتقانك لها.</Empty>}
   </div>;
 }

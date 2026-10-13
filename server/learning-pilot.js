@@ -56,7 +56,8 @@ export async function studentPilotRead(req,res){
   requirePilot();if(String(req.query?.pilot)!=='1')throw new AccessError('PILOT_NOT_AVAILABLE',404);
   const studentId=String(req.query.studentId||'');const role=await authorizeStudent(req,studentId,null);
   if(req.query.view==='home'&&studentId===DEMO_STUDENT_ID){const p=await pilotProfile(studentId,req.query.demoSession).get(),home=demoHome();home.student={...home.student,photo:p.data()?.photoDataUrl||'',hobbies:p.data()?.hobbies||[]};return res.status(200).json(home);}
-  if(req.query.view==='homework-photo'){const id=safeId(req.query.homeworkId),ref=adminDb().doc(`${workspaceRoot()}/homeworkEvidence/${studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,req.query.demoSession)+'_'+id:id+'_'+studentId}`),snap=await ref.get();return res.status(200).json({ok:true,submission:snap.exists?{image:snap.data().image,status:snap.data().status,submittedAt:snap.data().submittedAt}:null});}
+  if(req.query.view==='learning-portfolio'){const context=await readContext(studentId,req.query.demoSession),snap=await adminDb().collection(`${workspaceRoot()}/homeworkEvidence`).where('studentId','==',studentId).get();const prefix=scopedProfileId(studentId,req.query.demoSession)+'_';return res.status(200).json({ok:true,student:context.student,skills:context.model.skills,stars:context.model.stars,submissions:rows(snap).filter(p=>p.photoSource==='learning-pilot-photo'&&(studentId!==DEMO_STUDENT_ID||p.id.startsWith(prefix))).sort((a,b)=>String(b.submittedAt).localeCompare(String(a.submittedAt))).slice(0,30).map(p=>({id:p.id,image:p.photoImage,homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt,status:p.photoStatus}))});}
+  if(req.query.view==='homework-photo'){const id=safeId(req.query.homeworkId),ref=adminDb().doc(`${workspaceRoot()}/homeworkEvidence/${studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,req.query.demoSession)+'_'+id:id+'_'+studentId}`),snap=await ref.get();return res.status(200).json({ok:true,submission:snap.exists?{image:snap.data().photoImage,status:snap.data().photoStatus,submittedAt:snap.data().photoSubmittedAt}:null});}
   if(req.query.view==='learning-quran'){
     const p=await pilotProfile(studentId,req.query.demoSession).get(),plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(adminDb(),weekNumberForDate());
     return res.status(200).json({ok:true,source:QURAN_SOURCE,segments:publishedQuran(plan),reviews:memoryOf(p.data()).quranReviews||[]});
@@ -102,7 +103,7 @@ export async function studentPilotWrite(req,res,body){
     const image=String(body.image||'');if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>280000)throw new AccessError('PHOTO_INVALID',400);
     const {default:sharp}=await import('sharp');const buffer=Buffer.from(image.split(',')[1],'base64');
     try{const metadata=await sharp(buffer,{limitInputPixels:4000000}).metadata();if(metadata.format!=='jpeg'||!metadata.width||!metadata.height)throw new Error('invalid');await sharp(buffer).stats()}catch{throw new AccessError('PHOTO_INVALID',400)}
-    await ref.set({kind:'learning-pilot-photo',studentId,homeworkId,image,status:'pending_teacher_review',score:null,submittedAt:now(),requiresTeacherReview:true},{merge:true});
+    await ref.set({photoSource:'learning-pilot-photo',studentId,homeworkId,photoImage:image,photoStatus:'pending_teacher_review',photoSubmittedAt:now(),photoRequiresTeacherReview:true},{merge:true});
     return res.status(200).json({ok:true,status:'pending_teacher_review',score:null});
   }
   if(body.action==='quran_review'){
@@ -144,10 +145,10 @@ export async function studentPilotWrite(req,res,body){
 }
 export async function teacherPilotRead(query){
   requirePilot();const db=adminDb(),base=workspaceRoot();
-  const [targets,profiles,assessments,plans,papers,photos]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-photo').get()]);
+  const [targets,profiles,assessments,plans,papers,photos]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get(),db.collection(`${base}/homeworkEvidence`).where('photoSource','==','learning-pilot-photo').get()]);
   const catalog=rows(targets),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
   const students=ROSTER.map(student=>{const profile=profilesRows.find(p=>p.id===student.id)||{};const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),next:model.next,skills:model.skills}}).filter(Boolean);
-  return {ok:true,photos:rows(photos).filter(p=>rosterStudent(p.studentId)),contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
+  return {ok:true,photos:rows(photos).filter(p=>rosterStudent(p.studentId)).map(p=>({...p,image:p.photoImage,submittedAt:p.photoSubmittedAt})),contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
 }
 export async function teacherPilotWrite(action,body){
   requirePilot();const db=adminDb(),base=workspaceRoot(),timestamp=now();
