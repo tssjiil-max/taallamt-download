@@ -56,6 +56,7 @@ export async function studentPilotRead(req,res){
   requirePilot();if(String(req.query?.pilot)!=='1')throw new AccessError('PILOT_NOT_AVAILABLE',404);
   const studentId=String(req.query.studentId||'');const role=await authorizeStudent(req,studentId,null);
   if(req.query.view==='home'&&studentId===DEMO_STUDENT_ID){const p=await pilotProfile(studentId,req.query.demoSession).get(),home=demoHome();home.student={...home.student,photo:p.data()?.photoDataUrl||'',hobbies:p.data()?.hobbies||[]};return res.status(200).json(home);}
+  if(req.query.view==='homework-photo'){const id=safeId(req.query.homeworkId),ref=adminDb().doc(`${workspaceRoot()}/homeworkEvidence/${studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,req.query.demoSession)+'_'+id:id+'_'+studentId}`),snap=await ref.get();return res.status(200).json({ok:true,submission:snap.exists?{image:snap.data().image,status:snap.data().status,submittedAt:snap.data().submittedAt}:null});}
   if(req.query.view==='learning-quran'){
     const p=await pilotProfile(studentId,req.query.demoSession).get(),plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(adminDb(),weekNumberForDate());
     return res.status(200).json({ok:true,source:QURAN_SOURCE,segments:publishedQuran(plan),reviews:memoryOf(p.data()).quranReviews||[]});
@@ -93,6 +94,17 @@ export async function studentPilotWrite(req,res,body){
   const studentId=String(body.studentId||'');await authorizeStudent(req,studentId,body,true);
   if(studentId!==DEMO_STUDENT_ID&&!rosterStudent(studentId))throw new AccessError('STUDENT_NOT_FOUND',404);
   const db=adminDb(),base=workspaceRoot(),profile=pilotProfile(studentId,body.demoSession);
+  if(body.action==='homework_photo'){
+    const homeworkId=safeId(body.homeworkId),demo=studentId===DEMO_STUDENT_ID;
+    const ref=db.doc(`${base}/homeworkEvidence/${demo?scopedProfileId(studentId,body.demoSession)+'_'+homeworkId:homeworkId+'_'+studentId}`);
+    if(demo){if(homeworkId!=='pilot-hw')throw new AccessError('HOMEWORK_NOT_ASSIGNED',403)}
+    else{const assigned=await db.doc(`${base}/homeworkEvidence/${homeworkId}_${studentId}`).get();if(!assigned.exists)throw new AccessError('HOMEWORK_NOT_ASSIGNED',403)}
+    const image=String(body.image||'');if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>280000)throw new AccessError('PHOTO_INVALID',400);
+    const {default:sharp}=await import('sharp');const buffer=Buffer.from(image.split(',')[1],'base64');
+    try{const metadata=await sharp(buffer,{limitInputPixels:4000000}).metadata();if(metadata.format!=='jpeg'||!metadata.width||!metadata.height)throw new Error('invalid');await sharp(buffer).stats()}catch{throw new AccessError('PHOTO_INVALID',400)}
+    await ref.set({kind:'learning-pilot-photo',studentId,homeworkId,image,status:'pending_teacher_review',score:null,submittedAt:now(),requiresTeacherReview:true},{merge:true});
+    return res.status(200).json({ok:true,status:'pending_teacher_review',score:null});
+  }
   if(body.action==='quran_review'){
     const plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(db,weekNumberForDate());
     if(!publishedQuran(plan).some(s=>s.id===body.segmentId))throw new AccessError('QURAN_SCOPE_DENIED',403);
@@ -132,10 +144,10 @@ export async function studentPilotWrite(req,res,body){
 }
 export async function teacherPilotRead(query){
   requirePilot();const db=adminDb(),base=workspaceRoot();
-  const [targets,profiles,assessments,plans,papers]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get()]);
+  const [targets,profiles,assessments,plans,papers,photos]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-photo').get()]);
   const catalog=rows(targets),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
   const students=ROSTER.map(student=>{const profile=profilesRows.find(p=>p.id===student.id)||{};const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),next:model.next,skills:model.skills}}).filter(Boolean);
-  return {ok:true,contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
+  return {ok:true,photos:rows(photos).filter(p=>rosterStudent(p.studentId)),contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
 }
 export async function teacherPilotWrite(action,body){
   requirePilot();const db=adminDb(),base=workspaceRoot(),timestamp=now();

@@ -1,3 +1,4 @@
+import {HomeworkPhoto} from './homework-photo';
 import {pilotRequested,StudentLearningPilot,StudentAnnouncementsPilot,usePilotAnnouncements} from './learning-pilot';
 // Student / guardian pages in the mandatory reference design: header, weekly plan, assessment, homework, stars and the
 // bottom bar (الرئيسية — الفصول — النجوم — حسابي). Every card and its detail page read the same server payload.
@@ -235,7 +236,7 @@ function HomeworkBox({item,toggle,busy}:{item:Homework;toggle:(item:Homework)=>v
       <Fact label="نُشر">{formatDay(item.publishedDate)}</Fact>
       {item.dueDate&&<Fact label="التسليم">{formatDay(item.dueDate)}</Fact>}
     </dl>
-    <div className="tkHwDone">
+    {pilotRequested&&<HomeworkPhoto homeworkId={item.id}/>}<div className="tkHwDone">
       <span>{item.done?(item.teacherApprovedAt?'أنجزته واعتمده المعلم':'أنجزته — بانتظار اطلاع المعلم'):'لم يُنجز بعد'}</span>
       <button className={`tkToggle ${item.done?'on':''}`} type="button" onClick={()=>toggle(item)} disabled={busy===item.id} aria-pressed={item.done}><Check on={item.done} busy={busy===item.id}/>{item.done?'تم الإنجاز':'أنجزت الواجب'}</button>
     </div>

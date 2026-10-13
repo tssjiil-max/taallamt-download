@@ -263,9 +263,9 @@ async function studentPwaManifest(req,res){
 export default async function handler(req,res){
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
-    if(req.method==='GET'&&(['learning-pilot','learning-print','announcement-pilot','learning-quran'].includes(String(req.query?.view||''))||(req.query?.view==='home'&&req.query?.studentId==='__shakabumbo_demo__'&&req.query?.pilot==='1')))return await studentPilotRead(req,res);
+    if(req.method==='GET'&&(['learning-pilot','learning-print','announcement-pilot','learning-quran','homework-photo'].includes(String(req.query?.view||''))||(req.query?.view==='home'&&req.query?.studentId==='__shakabumbo_demo__'&&req.query?.pilot==='1')))return await studentPilotRead(req,res);
     if(req.method==='POST'&&jsonBody(req).action==='student_profile'&&jsonBody(req).studentId==='__shakabumbo_demo__'&&jsonBody(req).pilot===true)return await studentPilotWrite(req,res,jsonBody(req));
-    if(req.method==='POST'&&['learning_attempt','announcement_read','quran_review'].includes(String(jsonBody(req).action||'')))return await studentPilotWrite(req,res,jsonBody(req));
+    if(req.method==='POST'&&['learning_attempt','announcement_read','quran_review','homework_photo'].includes(String(jsonBody(req).action||'')))return await studentPilotWrite(req,res,jsonBody(req));
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke'){requireTeacher(req);return res.status(200).json(await stagingSmoke())}
     if(req.method==='GET'&&String(req.query?.view||'')==='announcement-image')return await announcementImage(req,res);
     if(req.method==='GET'&&String(req.query?.view||'')==='pwa-manifest')return await studentPwaManifest(req,res);
