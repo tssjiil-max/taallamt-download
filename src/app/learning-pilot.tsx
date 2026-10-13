@@ -128,17 +128,17 @@ function StudentPortfolioEvidence(){
     section('التقييمات',(resource.data?.assessments||[]).flatMap(x=>x.academic.map(y=>y.title+' — '+y.result)));
     section('الإنجازات',(resource.data?.achievements||[]).map(x=>x.title));
     section('خطتي للتقدم',(resource.data?.plans||[]).map(x=>x.title+' — '+x.status));
-    section('شواهد الواجبات',[]);
+    const photoTitle=doc.createElement('h2');photoTitle.textContent='شواهد الواجبات المصورة';doc.body.appendChild(photoTitle);
     for(const item of submissions){
       const article=doc.createElement('article');
-      const label=doc.createElement('h2');label.textContent='شاهد واجب';article.appendChild(label);
+      const label=doc.createElement('h2');label.textContent=item.title||'شاهد واجب';article.appendChild(label);
       const date=doc.createElement('small');date.textContent=item.submittedAt?new Date(item.submittedAt).toLocaleDateString('ar-SA'):'';article.appendChild(date);
       const picture=doc.createElement('img');picture.src=item.image||'';picture.alt='صورة الواجب المرسل';article.appendChild(picture);doc.body.appendChild(article);
     }
     const pictures=Array.from(doc.images);
     Promise.all(pictures.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve}))).then(()=>{popup.focus();popup.print()});
   };
-  return <section className="tkBox"><h2>شواهد ملف إنجازي</h2><p>صور واجباتي المحفوظة، دون تغيير الدرجات الرسمية.</p>
+  return <section className="tkBox"><h2>شواهد ملف إنجازي</h2><p>ملفي الشخصي يضم المهارات والتقييمات والإنجازات والخطط وشواهد الواجبات، دون تغيير الدرجات الرسمية.</p>
     <button type="button" className="tkBtn ghost" onClick={()=>setVisible(value=>!value)}>{visible?'إخفاء الشواهد':'عرض شواهدي'}</button>
     {visible&&(resource.error?<p role="alert">تعذر تحميل الشواهد.</p>:!resource.data?<Loading/>:submissions.length?<><p>{submissions.length} شاهد مصور</p>{submissions.map(item=><article className="tkBox" key={item.id}><small>{item.submittedAt?new Date(item.submittedAt).toLocaleDateString('ar-SA'):''}</small><img src={item.image} alt="شاهد واجب الطالب" style={{maxWidth:'100%',height:'auto'}} loading="lazy"/></article>)}<button type="button" className="tkBtn" onClick={print}>طباعة الشواهد / حفظ PDF</button></>:<Empty>لا توجد صور واجبات محفوظة بعد.</Empty>)}
   </section>;
