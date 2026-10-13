@@ -32,7 +32,7 @@ type Home={
 const query=new URLSearchParams(location.search);
 const STUDENT_ID=query.get('studentId')||'';
 const INVITE=query.get('invite')||query.get('inviteToken')||'';
-const accessQuery=`studentId=${encodeURIComponent(STUDENT_ID)}${INVITE?`&invite=${encodeURIComponent(INVITE)}`:''}${pilotRequested?'&pilot=1':''}`;
+const accessQuery=`studentId=${encodeURIComponent(STUDENT_ID)}${INVITE?`&invite=${encodeURIComponent(INVITE)}`:''}${pilotRequested?'&pilot=1':''}${pilotRequested&&STUDENT_ID==='__shakabumbo_demo__'?`&demoSession=${encodeURIComponent(query.get('demoSession')||'')}`:''}`;
 
 function homeworkCountText(home:Home){
   const {countToday,doneToday}=home.homework;
