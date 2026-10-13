@@ -60,15 +60,17 @@ export async function studentPilotRead(req,res){
     const context=await readContext(studentId,req.query.demoSession);
     const db=adminDb(),base=workspaceRoot();
     const demo=studentId===DEMO_STUDENT_ID;
-    const [photoSnap,eventSnap,homeworkSnap]=await Promise.all([
+    const [photoSnap,eventSnap]=await Promise.all([
       db.collection(`${base}/homeworkEvidence`).where('studentId','==',studentId).get(),
-      demo?Promise.resolve(null):db.collection(`${base}/portfolioEvents`).where('studentId','==',studentId).get(),
-      demo?Promise.resolve(null):db.collection(`${base}/homework`).get()
+      demo?Promise.resolve(null):db.collection(`${base}/portfolioEvents`).where('studentId','==',studentId).get()
     ]);
     const prefix=scopedProfileId(studentId,req.query.demoSession)+'_';
-    const homeworkTitles=new Map(homeworkSnap?rows(homeworkSnap).map(p=>[p.id,String(p.title||p.subject||'واجب')]):[]);
-    const submissions=rows(photoSnap).filter(p=>p.photoSource==='learning-pilot-photo'&&(studentId!==DEMO_STUDENT_ID||p.id.startsWith(prefix)))
-      .sort((a,b)=>String(b.photoSubmittedAt||b.submittedAt||'').localeCompare(String(a.photoSubmittedAt||a.submittedAt||''))).slice(0,40)
+    const ownedPhotos=rows(photoSnap).filter(p=>p.photoSource==='learning-pilot-photo'&&(studentId!==DEMO_STUDENT_ID||p.id.startsWith(prefix)))
+      .sort((a,b)=>String(b.photoSubmittedAt||b.submittedAt||'').localeCompare(String(a.photoSubmittedAt||a.submittedAt||''))).slice(0,40);
+    const homeworkIds=[...new Set(ownedPhotos.map(p=>p.homeworkId).filter(id=>typeof id==='string'&&/^[A-Za-z0-9:_-]{1,100}$/.test(id)))];
+    const homeworkDocs=demo?[]:await Promise.all(homeworkIds.map(id=>db.doc(`${base}/homework/${id}`).get()));
+    const homeworkTitles=new Map(homeworkDocs.filter(doc=>doc.exists).map(doc=>[doc.id,String(doc.data().title||doc.data().subject||'واجب')]));
+    const submissions=ownedPhotos
       .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted'}));
     const achievements=(eventSnap?rows(eventSnap):[]).filter(p=>p.type==='achievement'||p.type==='positive_behavior'||p.type==='improvement')
       .sort((a,b)=>String(b.occurredAt||'').localeCompare(String(a.occurredAt||''))).slice(0,40)
