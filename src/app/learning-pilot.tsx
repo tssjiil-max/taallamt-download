@@ -138,8 +138,25 @@ function StudentPortfolioEvidence(){
     const pictures=Array.from(doc.images);
     Promise.all(pictures.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve}))).then(()=>{popup.focus();popup.print()});
   };
+  const shareFile=async()=>{
+    if(!resource.data)return;
+    const doc=document.implementation.createHTMLDocument('ملف إنجاز الطالب');
+    doc.documentElement.lang='ar';doc.documentElement.dir='rtl';
+    const style=doc.createElement('style');style.textContent='@page{size:A4;margin:15mm}body{font-family:Tahoma,Arial,sans-serif;direction:rtl;line-height:1.8}h2{color:#17608b;border-bottom:1px solid #ccc}img{max-width:100%;max-height:220mm;object-fit:contain}article{break-inside:avoid}';doc.head.appendChild(style);
+    const add=(tag:string,value:string)=>{const el=doc.createElement(tag);el.textContent=value;doc.body.appendChild(el)};
+    add('h1','ملف إنجاز الطالب');add('p',resource.data.student?.name||resource.data.student?.firstName||'الطالب');
+    add('h2','المهارات');for(const x of resource.data.skills||[])add('p',x.title+' — '+x.state);
+    add('h2','التقييمات');for(const a of resource.data.assessments||[])for(const x of a.academic)add('p',x.title+' — '+x.result);
+    add('h2','الإنجازات');for(const x of resource.data.achievements||[])add('p',x.title);
+    add('h2','خطتي للتقدم');for(const x of resource.data.plans||[])add('p',x.title);
+    add('h2','شواهد الواجبات');for(const x of submissions){const article=doc.createElement('article');const title=doc.createElement('p');title.textContent=x.title||'شاهد واجب';article.appendChild(title);const img=doc.createElement('img');img.src=x.image||'';article.appendChild(img);doc.body.appendChild(article)}
+    const file=new File(['<!doctype html>'+doc.documentElement.outerHTML],'ملف-إنجاز-الطالب.html',{type:'text/html;charset=utf-8'});
+    if(navigator.canShare?.({files:[file]})){try{await navigator.share({title:'ملف إنجاز الطالب',files:[file]});return}catch(e){if((e as Error).name==='AbortError')return}}
+    const url=URL.createObjectURL(file),link=document.createElement('a');link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    window.alert('تم تحميل نسخة الملف. للحصول على PDF اختر طباعة / حفظ PDF ثم شارك الملف من جوالك.');
+  };
   return <section className="tkBox"><h2>شواهد ملف إنجازي</h2><p>ملفي الشخصي يضم المهارات والتقييمات والإنجازات والخطط وشواهد الواجبات، دون تغيير الدرجات الرسمية.</p>
     <button type="button" className="tkBtn ghost" onClick={()=>setVisible(value=>!value)}>{visible?'إخفاء الشواهد':'عرض شواهدي'}</button>
-    {visible&&(resource.error?<p role="alert">تعذر تحميل الشواهد.</p>:!resource.data?<Loading/>:submissions.length?<><p>{submissions.length} شاهد مصور</p>{submissions.map(item=><article className="tkBox" key={item.id}><small>{item.submittedAt?new Date(item.submittedAt).toLocaleDateString('ar-SA'):''}</small><img src={item.image} alt="شاهد واجب الطالب" style={{maxWidth:'100%',height:'auto'}} loading="lazy"/></article>)}<button type="button" className="tkBtn" onClick={print}>طباعة الشواهد / حفظ PDF</button></>:<Empty>لا توجد صور واجبات محفوظة بعد.</Empty>)}
+    {visible&&(resource.error?<p role="alert">تعذر تحميل الشواهد.</p>:!resource.data?<Loading/>:submissions.length?<><p>{submissions.length} شاهد مصور</p>{submissions.map(item=><article className="tkBox" key={item.id}><small>{item.submittedAt?new Date(item.submittedAt).toLocaleDateString('ar-SA'):''}</small><img src={item.image} alt="شاهد واجب الطالب" style={{maxWidth:'100%',height:'auto'}} loading="lazy"/></article>)}<button type="button" className="tkBtn" onClick={print}>طباعة الشواهد / حفظ PDF</button><button type="button" className="tkBtn ghost" onClick={()=>void shareFile()}>مشاركة نسخة ملف الإنجاز</button></>:<Empty>لا توجد صور واجبات محفوظة بعد.</Empty>)}
   </section>;
 }
