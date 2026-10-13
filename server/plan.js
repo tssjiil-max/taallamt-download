@@ -1,3 +1,4 @@
+import {pilotSpellingDays} from './pilot-schedule.js';
 // Weekly plan read model shared by the teacher and the student pages, so both always show the same plan.
 // Content comes from the verified curriculum distribution (server/learning-content.js) and the published weeklyPlans records.
 import {WORKSPACE_ID} from './class-roster.js';
@@ -73,7 +74,7 @@ export function buildPlan(week,docs=[]){
       unit:override?.unit||base.unit,lesson:override?.lesson||base.lesson,skill:override?.skill||base.skill,holiday:base.holiday,
       page:Number(doc?.page)||null,exercise:String(doc?.exercise||''),
       copywork:doc?.copywork||base.copywork,spellingTask:doc?.spellingTask||base.spellingTask,handwritingTask:doc?.handwritingTask||base.handwritingTask,
-      days:Array.isArray(doc?.days)?doc.days:[],
+      days:subject==='spelling'?pilotSpellingDays(Array.isArray(doc?.days)?doc.days:[]):Array.isArray(doc?.days)?doc.days:[],
       note:String(override?.note||''),edited:Boolean(override),editedAt:String(override?.editedAt||''),
       published:Boolean(doc),publishedAt:String(doc?.publishedAt||doc?.updatedAt||''),source:String(doc?.source||'')
     };

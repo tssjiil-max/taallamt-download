@@ -1,3 +1,4 @@
+import {pilotDaySubjects} from '../server/pilot-schedule.js';
 import {teacherPilotRead,teacherPilotWrite} from '../server/learning-pilot.js';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
@@ -83,7 +84,7 @@ export async function publishWeeklyPlan(week){
 }
 
 function fallbackSubjects(weekday,reason='TIMETABLE_EMPTY'){
-  return {subjects:[...(fallbackSchedule[weekday]||[])],timetableCount:0,source:'verified_distribution_schedule_fallback',reason};
+  return {subjects:pilotDaySubjects(fallbackSchedule[weekday]||[],weekday),timetableCount:0,source:'verified_distribution_schedule_fallback',reason};
 }
 async function scheduledSubjectsForDay(weekday){
   try{
@@ -91,7 +92,7 @@ async function scheduledSubjectsForDay(weekday){
     const all=rows(snap).filter(item=>(!item.classId||item.classId===CLASS_ID)&&Number(item.weekday)===weekday),subjects=[];
     for(const item of all){const normalized=normalizeSubject(item.subject);if(normalized&&!subjects.includes(normalized))subjects.push(normalized)}
     if(snap.size===0)return fallbackSubjects(weekday);
-    return {subjects,timetableCount:snap.size,source:'timetable'};
+    return {subjects:pilotDaySubjects(subjects,weekday),timetableCount:snap.size,source:'timetable'};
   }catch(error){
     return {...fallbackSubjects(weekday,'TIMETABLE_READ_UNAVAILABLE'),error:error instanceof Error?error.message:String(error)};
   }

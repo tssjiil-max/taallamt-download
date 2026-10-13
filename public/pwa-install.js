@@ -2,6 +2,7 @@
   if(!('serviceWorker' in navigator))return;
   var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
   var role=location.pathname.replace(/\/+$/,'').startsWith('/student')?'student':'teacher';
+  var pilotStudent=role==='student'&&new URLSearchParams(location.search).get('pilot')==='1';
   var key='taallamt_install_prompt_'+role;
   var deferred=null,box=null;
   function seen(){return document.cookie.split(';').some(function(x){return x.trim().indexOf(key+'=1')===0})}
@@ -11,7 +12,7 @@
   function instructions(){
     if(standalone){alert('الصفحة محفوظة بالفعل على الشاشة الرئيسية.');return}
     if(isIOS())alert('في Safari: اضغط زر المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية».');
-    else alert('من قائمة المتصفح اختر «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق».');
+    else alert('إذا كان المتصفح يدعم الإضافة، افتح قائمته واختر «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق». إذا لم يظهر الخيار، افتح الرابط في Chrome أو متصفح يدعم الإضافة.');
   }
   async function installNow(){
     if(standalone){instructions();return}
@@ -23,7 +24,7 @@
   }
   window.taallamtInstallPage=installNow;
   function show(){
-    if(!deferred||box||seen()||standalone)return;
+    if(pilotStudent||!deferred||box||seen()||standalone)return;
     box=document.createElement('div');
     box.setAttribute('dir','rtl');
     box.setAttribute('role','dialog');

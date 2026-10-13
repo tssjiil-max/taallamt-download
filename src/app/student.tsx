@@ -170,7 +170,7 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
         <p className="tkPanelDates"><span>{hijriRange(plan.range)}</span><span>{gregorianRange(plan.range)}</span></p>
         <div className="tkHwList">
           {plan.holiday?<p className="tkPanelEmpty">إجازة هذا الأسبوع — لا توجد دروس جديدة.</p>
-          :!plan.published?<p className="tkPanelEmpty">خطة هذا الأسبوع قيد النشر، وستظهر هنا تلقائيًا.</p>
+          :!plan.published&&!plan.fromDistribution?<p className="tkPanelEmpty">خطة هذا الأسبوع قيد النشر، وستظهر هنا تلقائيًا.</p>
           :plan.items.map(item=><button key={item.subjectKey} type="button" className="tkHw slim" onClick={()=>go(`subject/${item.subjectKey}`)} aria-label={`${item.label}: ${item.summary}`}>
             <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={48}/></span>
             <span className="tkHwMain"><b>{item.label}</b><span>{item.summary||'—'}</span></span><ChevronBack/></button>)}
@@ -217,8 +217,9 @@ function PlanPage({home,back,go}:{home:Home;back:()=>void;go:Go}){
   return <div className="tkPage">
     <PageHead title="الخطة الأسبوعية" subtitle={`${home.week.label} · بالتاريخ الهجري والميلادي`} icon={CARD_ICON.plan} onBack={back}/>
     <PlanDates plan={plan}/>
+    {!plan.items.length&&<Empty>لم تُضف دروس لهذا الأسبوع بعد.</Empty>}
     {plan.items.map(item=><PlanSubject key={item.subjectKey} item={item} start={plan.range.start}/>)}
-    <p className="tkMeta">{planStamp(plan)}</p>
+    <p className="tkMeta">{plan.items.length?planStamp(plan):'الخطة غير مكتملة — بانتظار إضافة الدروس'}</p>
     <div className="tkActions" style={{marginTop:'calc(var(--u)*8)'}}><button className="tkBtn ghost" type="button" onClick={()=>go('weeks')}>الأسابيع السابقة</button></div>
   </div>;
 }
