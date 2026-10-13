@@ -56,7 +56,27 @@ export async function studentPilotRead(req,res){
   requirePilot();if(String(req.query?.pilot)!=='1')throw new AccessError('PILOT_NOT_AVAILABLE',404);
   const studentId=String(req.query.studentId||'');const role=await authorizeStudent(req,studentId,null);
   if(req.query.view==='home'&&studentId===DEMO_STUDENT_ID){const p=await pilotProfile(studentId,req.query.demoSession).get(),home=demoHome();home.student={...home.student,photo:p.data()?.photoDataUrl||'',hobbies:p.data()?.hobbies||[]};return res.status(200).json(home);}
-  if(req.query.view==='learning-portfolio'){const context=await readContext(studentId,req.query.demoSession),snap=await adminDb().collection(`${workspaceRoot()}/homeworkEvidence`).where('studentId','==',studentId).get();const prefix=scopedProfileId(studentId,req.query.demoSession)+'_';return res.status(200).json({ok:true,student:context.student,skills:context.model.skills,stars:context.model.stars,submissions:rows(snap).filter(p=>p.photoSource==='learning-pilot-photo'&&(studentId!==DEMO_STUDENT_ID||p.id.startsWith(prefix))).sort((a,b)=>String(b.submittedAt).localeCompare(String(a.submittedAt))).slice(0,30).map(p=>({id:p.id,image:p.photoImage,homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt,status:p.photoStatus}))});}
+  if(req.query.view==='learning-portfolio'){
+    const context=await readContext(studentId,req.query.demoSession);
+    const db=adminDb(),base=workspaceRoot();
+    const demo=studentId===DEMO_STUDENT_ID;
+    const [photoSnap,eventSnap,homeworkSnap]=await Promise.all([
+      db.collection(`${base}/homeworkEvidence`).where('studentId','==',studentId).get(),
+      demo?Promise.resolve(null):db.collection(`${base}/portfolioEvents`).where('studentId','==',studentId).get(),
+      demo?Promise.resolve(null):db.collection(`${base}/homework`).get()
+    ]);
+    const prefix=scopedProfileId(studentId,req.query.demoSession)+'_';
+    const homeworkTitles=new Map(homeworkSnap?rows(homeworkSnap).map(p=>[p.id,String(p.title||p.subject||'واجب')]):[]);
+    const submissions=rows(photoSnap).filter(p=>p.photoSource==='learning-pilot-photo'&&(studentId!==DEMO_STUDENT_ID||p.id.startsWith(prefix)))
+      .sort((a,b)=>String(b.photoSubmittedAt||b.submittedAt||'').localeCompare(String(a.photoSubmittedAt||a.submittedAt||''))).slice(0,40)
+      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted'}));
+    const achievements=(eventSnap?rows(eventSnap):[]).filter(p=>p.type==='achievement'||p.type==='positive_behavior'||p.type==='improvement')
+      .sort((a,b)=>String(b.occurredAt||'').localeCompare(String(a.occurredAt||''))).slice(0,40)
+      .map(p=>({id:p.id,title:String(p.summary||'إنجاز موثق').slice(0,220),date:p.occurredAt||''}));
+    const assessments=context.assessments.map(p=>({id:p.id,date:p.enteredAt||p.createdAt||p.updatedAt||'',academic:(Array.isArray(p.academic)?p.academic:[]).map(a=>({title:String(a.title||a.skillName||a.skill||a.code||'مهارة'),result:a.result||''}))})).slice(0,30);
+    const plans=context.plans.map(p=>({id:p.id,title:String(p.goal||'خطة للتقدم'),status:p.status||'',date:p.dueDate||''}));
+    return res.status(200).json({ok:true,student:{id:context.student.id,name:context.student.name||context.student.fullName||context.student.firstName||''},skills:context.model.skills,stars:context.model.stars,assessments,achievements,plans,submissions});
+  }
   if(req.query.view==='homework-photo'){const id=safeId(req.query.homeworkId),ref=adminDb().doc(`${workspaceRoot()}/homeworkEvidence/${studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,req.query.demoSession)+'_'+id:id+'_'+studentId}`),snap=await ref.get();return res.status(200).json({ok:true,submission:snap.exists?{image:snap.data().photoImage,status:snap.data().photoStatus,submittedAt:snap.data().photoSubmittedAt}:null});}
   if(req.query.view==='learning-quran'){
     const p=await pilotProfile(studentId,req.query.demoSession).get(),plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(adminDb(),weekNumberForDate());
