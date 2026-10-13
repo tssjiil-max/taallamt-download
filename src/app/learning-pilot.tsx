@@ -108,7 +108,7 @@ function QuranAudio({segment}:{segment:QuranSegment}){
 }
 
 
-type PortfolioEvidenceData={student:{firstName?:string;name?:string};submissions:{id:string;image?:string;submittedAt?:string;homeworkId?:string;status?:string}[]};
+type PortfolioEvidenceData={student:{firstName?:string;name?:string};skills:Skill[];assessments:{id:string;academic:{title:string;result:string}[]}[];achievements:{id:string;title:string;date?:string}[];plans:{id:string;title:string;status:string}[];submissions:{id:string;image?:string;title?:string;submittedAt?:string;homeworkId?:string;status?:string}[]};
 function StudentPortfolioEvidence(){
   const [visible,setVisible]=React.useState(false);
   const resource=useRemote<PortfolioEvidenceData>(visible?`student-portfolio:${access.studentId}`:null,()=>api(`/api/student-state?view=learning-portfolio&${accessQuery}`));
@@ -121,7 +121,7 @@ function StudentPortfolioEvidence(){
     const meta=doc.createElement('meta');meta.setAttribute('charset','utf-8');doc.head.appendChild(meta);
     const title=doc.createElement('title');title.textContent='شواهد ملف إنجاز الطالب';doc.head.appendChild(title);
     const style=doc.createElement('style');style.textContent='@page{size:A4;margin:14mm}body{font-family:Tahoma,Arial,sans-serif;color:#202b38;direction:rtl}h1{text-align:center}article{break-inside:avoid;border-bottom:1px solid #ccc;padding:14px 0}img{max-width:100%;max-height:210mm;object-fit:contain;display:block;margin:12px auto}small{display:block}';doc.head.appendChild(style);
-    const heading=doc.createElement('h1');heading.textContent='ملف إنجاز الطالب — شواهد الواجبات';doc.body.appendChild(heading);
+    const heading=doc.createElement('h1');heading.textContent='ملف إنجاز الطالب';doc.body.appendChild(heading);
     const student=doc.createElement('p');student.textContent='الطالب: '+(resource.data?.student?.name||resource.data?.student?.firstName||'');doc.body.appendChild(student);
     for(const item of submissions){
       const article=doc.createElement('article');
