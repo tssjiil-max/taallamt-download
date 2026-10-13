@@ -1,3 +1,4 @@
+import {isPilotSchedule} from '../server/pilot-schedule.js';
 // End-to-end journeys through the real API handlers against an in-memory Firestore stand-in:
 // automation -> both sites, quick assessment + focused list + undo, Quran follow-up, homework, stars, permissions.
 import assert from 'node:assert/strict';
@@ -333,14 +334,15 @@ check('everything is still there after a fresh read (persistence)',async()=>{
   assert.equal((await T('assess_view',{subjectKey:'arabic'})).body.counts.assessed,ROSTER.length);
 });
 
-check('spelling homework follows the week\'s spelling skill (Thursday), without repeating the Lughati task',async()=>{
-  setNow('2026-10-08T02:05:00Z');                                              // Thursday 05:05 Asia/Riyadh
+check('spelling homework follows the week\'s spelling skill (configured weekday), without repeating the Lughati task',async()=>{
+  const lessonDate=isPilotSchedule()?'2026-10-07':'2026-10-08';
+  setNow(`${lessonDate}T02:05:00Z`);                                              // Thursday 05:05 Asia/Riyadh
   await call(cronDaily);
-  const hw=doc('homework/auto-homework:2026-10-08:spelling'),hand=doc('homework/auto-homework:2026-10-08:handwriting');
-  assert.ok(hw);assert.equal(hw.skill,'تنوين الفتح');assert.equal(hw.page,14);assert.equal(hw.learningPath,'spelling_task');assert.ok(hw.task.includes('تنوين الفتح'));assert.equal(hw.dueDate,'2026-10-11','due on the next school day');
+  const hw=doc(`homework/auto-homework:${lessonDate}:spelling`),hand=doc(`homework/auto-homework:${lessonDate}:handwriting`);
+  assert.ok(hw);assert.equal(hw.skill,'تنوين الفتح');assert.equal(hw.page,14);assert.equal(hw.learningPath,'spelling_task');assert.ok(hw.task.includes('تنوين الفتح'));assert.equal(hw.dueDate,isPilotSchedule()?'2026-10-08':'2026-10-11','due on the next school day');
   assert.ok(hand);assert.equal(hand.lesson,'الاعتذار');assert.equal(hand.page,13);assert.equal(hand.learningPath,'handwriting_task');assert.ok(hand.task.includes('فن الخط'));
-  assert.equal(doc('homework/auto-homework:2026-10-08:arabic'),undefined);
-  assert.equal(doc('automationRuns/2026-10-08').firstSource,'cron-daily');
+  assert.equal(doc(`homework/auto-homework:${lessonDate}:arabic`),undefined);
+  assert.equal(doc(`automationRuns/${lessonDate}`).firstSource,'cron-daily');
   const response=JSON.stringify((await call(cronDaily)).body);
   assert.ok(!response.includes('s2-4-')&&!response.includes('studentId'),'the scheduled job answers with counts only');
 });
