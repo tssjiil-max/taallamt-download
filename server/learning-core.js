@@ -16,11 +16,17 @@ export function gradeAnswer(question,answer){
   return (question.answers||[]).some(value=>normalize(value)===normalize(answer));
 }
 export function publicActivity(question){return question?{id:question.id,prompt:question.prompt,hint:question.hint||''}:null}
+export function learningWeek(now){const date=new Date(new Date(now).getTime()+3*60*60*1000);date.setUTCDate(date.getUTCDate()-date.getUTCDay());return date.toISOString().slice(0,10)}
 export function recordAttempt(memory={},attempt,now){
   const previous=Array.isArray(memory.attempts)?memory.attempts:[];
   if(previous.some(row=>row.id===attempt.id))return memory;
   const row={id:text(attempt.id,100),targetId:text(attempt.targetId,100),questionId:text(attempt.questionId,80),correct:attempt.correct===true,mode:['diagnostic','practice','test','review'].includes(attempt.mode)?attempt.mode:'practice',strategy:text(attempt.strategy||'example',80),errorType:attempt.correct?'':text(attempt.errorType||'needs_review',80),at:now};
-  return {...memory,version:1,attempts:[...previous,row].slice(-200),resume:{targetId:row.targetId,mode:row.mode,at:now},updatedAt:now};
+  const attempts=[...previous,row],week=learningWeek(now),awards=memory.learningStars||[],recent=attempts.filter(a=>a.targetId===row.targetId).slice(-3);
+  const improved=row.correct&&recent.length===3&&!recent[0].correct&&recent.slice(1).every(a=>a.correct)&&new Set(recent.map(a=>a.questionId)).size===3;
+  const verified=row.correct&&recent.length===3&&recent.every(a=>a.correct&&['test','diagnostic','review'].includes(a.mode))&&new Set(recent.map(a=>a.questionId)).size===3;
+  const eligible=(improved||verified)&&awards.filter(a=>a.week===week).length<3&&!awards.some(a=>a.week===week&&a.targetId===row.targetId);
+  const learningStars=eligible?[...awards,{id:row.id,targetId:row.targetId,week,at:now,reason:improved?'تحسنت بعد التدريب وأجبت عن مثالين مختلفين بشكل صحيح':'أجبت عن ثلاثة أسئلة مختلفة بشكل صحيح'}].slice(-156):awards;
+  return {...memory,learningStars,version:1,attempts:attempts.slice(-200),resume:{targetId:row.targetId,mode:row.mode,at:now},updatedAt:now};
 }
 export function selectActivity(target,memory={}){
   const questions=target.learning?.questions||[];
@@ -53,5 +59,6 @@ export function buildLearningModel({studentId,targets=[],assessments=[],memory={
   const chosenTarget=chosen?targetMap.get(chosen.targetId):null,failed=chosen?(memory.attempts||[]).filter(a=>a.targetId===chosen.targetId).slice(-3).filter(a=>!a.correct).length:0;
   const strategy=failed>=2?Object.keys(chosenTarget?.learning.alternatives||{}).find(key=>key!==chosenTarget.learning.strategy)||chosenTarget?.learning.strategy:chosenTarget?.learning.strategy;
   const next=chosen?{strategy,targetId:chosen.targetId,mode:chosen.reviewDue?'review':chosen.state==='unknown'?'diagnostic':'practice',reason:chosen.reason}:null;
-  return {studentId,skills,next,resume:memory.resume&&targetMap.has(memory.resume.targetId)?memory.resume:null,generatedAt:now};
+  const supportPlans=skills.flatMap(skill=>{const recent=(memory.attempts||[]).filter(a=>a.targetId===skill.targetId).slice(-3),failures=recent.filter(a=>!a.correct).length;if(failures<2||skill.state!=='needs_practice')return [];return [{targetId:skill.targetId,title:skill.title,status:failures>=3?'teacher_review':'training',reason:'تكرر الخطأ في '+skill.title,steps:['راجع الشرح مع المثال.','تدرّب على مثال مختلف مع التلميح.','اختبر المهارة بأسئلة جديدة.'],maxAttempts:3,needsTeacher:failures>=3}];});
+  return {studentId,supportPlans,stars:(memory.learningStars||[]).filter(a=>a.week===learningWeek(now)),skills,next,resume:memory.resume&&targetMap.has(memory.resume.targetId)?memory.resume:null,generatedAt:now};
 }
