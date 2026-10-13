@@ -38,6 +38,7 @@ export function StudentLearningPilot({back}:{back:()=>void}){
       </section>}
       <section className="tkBox"><h2>نجومي من شكابمبو هذا الأسبوع ⭐ {data.model.stars?.length||0} / 3</h2>{data.model.stars?.map(star=><p key={star.id}>أعطيتك نجمة ⭐ — {star.reason}</p>)}<small>نجوم التدريب مستقلة عن نجوم المعلم وتقييمه الرسمي.</small></section><StudentQuranPilot/>
       <h2 className="tkH">خطتي للتقدم</h2>{data.model.supportPlans?.map(plan=><section className="tkBox" key={plan.targetId}><b>نتقدم في {plan.title}</b>{plan.steps.map((text,i)=><p key={i}>{text}</p>)}<p>{plan.needsTeacher?'نحتاج مساعدة معلمك لتحديد الخطوة المناسبة.':'تدريب قصير، حتى ثلاث محاولات ثم نراجع تقدمك.'}</p><button className="tkBtn ghost" onClick={()=>{setTarget(plan.targetId);setStep(0)}}>ابدأ خطتي</button></section>)}{data.plans.length?data.plans.map(plan=><section className="tkBox" key={plan.id}><b>{plan.goal}</b><p>{plan.instructions}</p><small>{planLabel(plan.status)} {plan.dueDate&&`· المتابعة: ${plan.dueDate}`}</small>{plan.activities?.map((text,i)=><p key={i}>{text}</p>)}{plan.files?.map(file=><a className="tkBtn ghost" key={file.id} href={`/api/library-files?action=download&id=${encodeURIComponent(file.id)}&${accessQuery}`} target="_blank" rel="noopener">{file.title}</a>)}{plan.links?.map(link=><a className="tkBtn ghost" key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</a>)}</section>):<Empty>ستظهر خطتك هنا بعد اعتماد المعلم.</Empty>}
+      <StudentPortfolioEvidence />
       <h2 className="tkH">إنجازاتي ومهاراتي</h2>{data.model.skills.length?data.model.skills.map(skill=><button className="tkRowBtn" key={skill.targetId} onClick={()=>{setTarget(skill.targetId);setStep(0);setFeedback('')}}><span><b>{skill.title}</b><small>{stateLabel(skill.state)}{skill.reviewDue?' · حان وقت المراجعة':''}</small>{skill.score!==null&&<small>إجابات التدريب الصحيحة: {skill.score}% من {skill.scoredAttempts} محاولة حديثة</small>}</span></button>):<Empty>لا توجد تدريبات معتمدة متاحة بعد.</Empty>}
     </>}
   </div>;
@@ -104,4 +105,35 @@ function QuranAudio({segment}:{segment:QuranSegment}){
   const play=async()=>{const el=ref.current;if(!el)return;try{setError('');document.querySelectorAll('audio').forEach(other=>{if(other!==el)other.pause()});if(el.currentTime<audio.start||el.currentTime>=audio.end)el.currentTime=audio.start;await el.play();}catch{setError('تعذر تشغيل التلاوة. تحقق من الاتصال ثم حاول مرة أخرى.')}};
   const boundary=()=>{const el=ref.current;if(!el)return;if(el.currentTime>=audio.end){el.pause();el.currentTime=audio.start;if(repeat)void play()}else if(el.currentTime<audio.start)el.currentTime=audio.start};
   return <div><audio ref={ref} preload="none" src={audio.url} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onTimeUpdate={boundary} onSeeking={boundary} onLoadedMetadata={()=>{if(ref.current)ref.current.currentTime=audio.start}} onError={()=>{setPlaying(false);setError('تعذر تحميل التلاوة. حاول لاحقًا.')}}/><button className="tkBtn ghost" onClick={()=>playing?ref.current?.pause():void play()}>{playing?'إيقاف التلاوة':'استمع للمقطع المقرر'}</button> <button className="tkBtn ghost" aria-pressed={repeat} onClick={()=>setRepeat(v=>!v)}>{repeat?'إيقاف التكرار':'كرر المقطع'}</button>{error&&<p role="alert">{error}</p>}<small>صوت {audio.reciter} — الآيات {segment.start}–{segment.end}. الاستماع لا يعني إتقان الحفظ.</small></div>;
+}
+
+
+type PortfolioEvidenceData={student:{firstName?:string;name?:string};submissions:{id:string;image?:string;submittedAt?:string;homeworkId?:string;status?:string}[]};
+function StudentPortfolioEvidence(){
+  const [visible,setVisible]=React.useState(false);
+  const resource=useRemote<PortfolioEvidenceData>(visible?`student-portfolio:${access.studentId}`:null,()=>api(`/api/student-state?view=learning-portfolio&${accessQuery}`));
+  const submissions=(resource.data?.submissions||[]).filter(item=>/^data:image\/(?:png|jpeg|webp);base64,/i.test(item.image||''));
+  const print=()=>{
+    const popup=window.open('','_blank');
+    if(!popup){window.alert('اسمح بفتح نافذة الطباعة من المتصفح.');return}
+    const doc=popup.document;
+    doc.documentElement.lang='ar';doc.documentElement.dir='rtl';
+    const meta=doc.createElement('meta');meta.setAttribute('charset','utf-8');doc.head.appendChild(meta);
+    const title=doc.createElement('title');title.textContent='شواهد ملف إنجاز الطالب';doc.head.appendChild(title);
+    const style=doc.createElement('style');style.textContent='@page{size:A4;margin:14mm}body{font-family:Tahoma,Arial,sans-serif;color:#202b38;direction:rtl}h1{text-align:center}article{break-inside:avoid;border-bottom:1px solid #ccc;padding:14px 0}img{max-width:100%;max-height:210mm;object-fit:contain;display:block;margin:12px auto}small{display:block}';doc.head.appendChild(style);
+    const heading=doc.createElement('h1');heading.textContent='ملف إنجاز الطالب — شواهد الواجبات';doc.body.appendChild(heading);
+    const student=doc.createElement('p');student.textContent='الطالب: '+(resource.data?.student?.name||resource.data?.student?.firstName||'');doc.body.appendChild(student);
+    for(const item of submissions){
+      const article=doc.createElement('article');
+      const label=doc.createElement('h2');label.textContent='شاهد واجب';article.appendChild(label);
+      const date=doc.createElement('small');date.textContent=item.submittedAt?new Date(item.submittedAt).toLocaleDateString('ar-SA'):'';article.appendChild(date);
+      const picture=doc.createElement('img');picture.src=item.image||'';picture.alt='صورة الواجب المرسل';article.appendChild(picture);doc.body.appendChild(article);
+    }
+    const pictures=Array.from(doc.images);
+    Promise.all(pictures.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve}))).then(()=>{popup.focus();popup.print()});
+  };
+  return <section className="tkBox"><h2>شواهد ملف إنجازي</h2><p>صور واجباتي المحفوظة، دون تغيير الدرجات الرسمية.</p>
+    <button type="button" className="tkBtn ghost" onClick={()=>setVisible(value=>!value)}>{visible?'إخفاء الشواهد':'عرض شواهدي'}</button>
+    {visible&&(resource.error?<p role="alert">تعذر تحميل الشواهد.</p>:!resource.data?<Loading/>:submissions.length?<><p>{submissions.length} شاهد مصور</p>{submissions.map(item=><article className="tkBox" key={item.id}><small>{item.submittedAt?new Date(item.submittedAt).toLocaleDateString('ar-SA'):''}</small><img src={item.image} alt="شاهد واجب الطالب" style={{maxWidth:'100%',height:'auto'}} loading="lazy"/></article>)}<button type="button" className="tkBtn" onClick={print}>طباعة الشواهد / حفظ PDF</button></>:<Empty>لا توجد صور واجبات محفوظة بعد.</Empty>)}
+  </section>;
 }
