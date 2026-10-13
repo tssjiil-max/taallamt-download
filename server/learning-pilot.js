@@ -1,13 +1,15 @@
+import {publishedQuran,QURAN_SOURCE} from './quran-reader.js';
+import {CONTENT_TEMPLATES} from './teacher-content-bank.js';
 import {studentProfilePatch} from './student-profile-patch.js';
 import {isFocused} from './quick-assess.js';
 import {TEACHER_BOOK_REFERENCE} from './teacher-book-reference.js';
-import {DEMO_STUDENT_ID,DEMO_STUDENT,DEMO_TARGET,DEMO_ANNOUNCEMENTS,demoHome} from './learning-pilot-demo.js';
+import {DEMO_STUDENT_ID,DEMO_STUDENT,DEMO_TARGET,DEMO_TARGETS,DEMO_PLAN,DEMO_ANNOUNCEMENTS,demoHome} from './learning-pilot-demo.js';
 import {randomUUID} from 'node:crypto';
 import {adminDb} from './firebase-admin.js';
 import {CLASS_ID} from './class-roster.js';
 import {requireStudentAccess,AccessError} from './access.js';
-import {rosterStudent} from './roster.js';
-import {workspaceRoot} from './plan.js';
+import {rosterStudent,ROSTER} from './roster.js';
+import {workspaceRoot,readWeekPlan} from './plan.js';
 import {weekNumberForDate} from './learning-content.js';
 import {buildLearningModel,validateContent,selectActivity,publicActivity,gradeAnswer,recordAttempt} from './learning-core.js';
 import {visibleAnnouncements,isVisibleAnnouncement} from './announcement-policy.js';
@@ -28,7 +30,7 @@ const onlyStudent=(plan,studentId)=>plan.studentId===studentId;
 async function readContext(studentId,demoSession=''){
   const student=studentId===DEMO_STUDENT_ID?DEMO_STUDENT:rosterStudent(studentId);if(!student)throw new AccessError('STUDENT_NOT_FOUND',404);
   const db=adminDb(),base=workspaceRoot();
-  if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,demoSession).get(),memory=memoryOf(profile.data());return {student:DEMO_STUDENT,memory,catalog:[DEMO_TARGET],model:buildLearningModel({studentId,targets:[DEMO_TARGET],memory,now:now()}),assessments:[],plans:[]}}
+  if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,demoSession).get(),memory=memoryOf(profile.data());return {student:DEMO_STUDENT,memory,catalog:DEMO_TARGETS,model:buildLearningModel({studentId,targets:DEMO_TARGETS,memory,now:now()}),assessments:[],plans:[DEMO_PLAN]}}
   const [profile,targets,assessments,plans]=await Promise.all([db.doc(`${base}/studentProfiles/${studentId}`).get(),db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/assessments`).where('studentId','==',studentId).get(),db.collection(`${base}/remediationPlans`).where('studentId','==',studentId).get()]);
   const memory=memoryOf(profile.exists?profile.data():{}),catalog=rows(targets),timestamp=now();
   const model=buildLearningModel({studentId,targets:catalog,assessments:rows(assessments),memory,now:timestamp,weekNumber:weekNumberForDate()});
@@ -48,12 +50,16 @@ function activityView(context,targetId,mode){
   if(prerequisites.some(id=>!context.model.skills.some(s=>s.targetId===id&&['mastered','practice_mastered'].includes(s.state))))return null;
   const activity=selectActivity(target,context.memory);
   const strategy=context.model.next?.targetId===id?context.model.next.strategy||target.learning.strategy:target.learning.strategy;
-  return {targetId:id,title:target.skill||target.title,subject:target.subject,explanation:target.learning.alternatives?.[strategy]||target.learning.explanation,reference:target.learning.reference,strategy,mode:mode||context.model.next?.mode||'practice',question:publicActivity(activity)};
+  return {targetId:id,title:target.skill||target.title,subject:target.subject,explanation:target.learning.alternatives?.[strategy]||target.learning.explanation,reference:target.learning.reference,strategy,mode:mode||context.model.next?.mode||'practice',question:publicActivity(activity),teacherReview:target.subject==='handwriting'};
 }
 export async function studentPilotRead(req,res){
   requirePilot();if(String(req.query?.pilot)!=='1')throw new AccessError('PILOT_NOT_AVAILABLE',404);
   const studentId=String(req.query.studentId||'');const role=await authorizeStudent(req,studentId,null);
   if(req.query.view==='home'&&studentId===DEMO_STUDENT_ID){const p=await pilotProfile(studentId,req.query.demoSession).get(),home=demoHome();home.student={...home.student,photo:p.data()?.photoDataUrl||'',hobbies:p.data()?.hobbies||[]};return res.status(200).json(home);}
+  if(req.query.view==='learning-quran'){
+    const p=await pilotProfile(studentId,req.query.demoSession).get(),plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(adminDb(),weekNumberForDate());
+    return res.status(200).json({ok:true,source:QURAN_SOURCE,segments:publishedQuran(plan),reviews:memoryOf(p.data()).quranReviews||[]});
+  }
   if(req.query.view==='announcement-pilot'){
     if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,req.query.demoSession).get();return res.status(200).json({ok:true,...visibleAnnouncements(DEMO_ANNOUNCEMENTS,CLASS_ID,profile.data()?.announcementReads||{})})}
     const db=adminDb(),base=workspaceRoot();const [items,profile]=await Promise.all([db.collection(`${base}/announcements`).get(),db.doc(`${base}/studentProfiles/${studentId}`).get()]);
@@ -87,6 +93,12 @@ export async function studentPilotWrite(req,res,body){
   const studentId=String(body.studentId||'');await authorizeStudent(req,studentId,body,true);
   if(studentId!==DEMO_STUDENT_ID&&!rosterStudent(studentId))throw new AccessError('STUDENT_NOT_FOUND',404);
   const db=adminDb(),base=workspaceRoot(),profile=pilotProfile(studentId,body.demoSession);
+  if(body.action==='quran_review'){
+    const plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(db,weekNumberForDate());
+    if(!publishedQuran(plan).some(s=>s.id===body.segmentId))throw new AccessError('QURAN_SCOPE_DENIED',403);
+    await db.runTransaction(async tx=>{const p=await tx.get(profile),memory=memoryOf(p.data()),reviews=memory.quranReviews||[];tx.set(profile,{learningPilotMemory:{...memory,quranReviews:[...reviews.filter(r=>r.id!==body.segmentId),{id:body.segmentId,at:now(),kind:'self_reported_review'}].slice(-40)}},{merge:true})});
+    return res.status(200).json({ok:true,reviewed:true,masteryChanged:false});
+  }
   if(body.action==='student_profile'){
     if(studentId!==DEMO_STUDENT_ID||!body.demoSession)throw new AccessError('PILOT_NOT_AVAILABLE',404);
     await profile.set(studentProfilePatch(studentId,body,now()),{merge:true});
@@ -99,6 +111,7 @@ export async function studentPilotWrite(req,res,body){
     return res.status(200).json({ok:true,read:true});
   }
   const context=await readContext(studentId,body.demoSession),targetId=safeId(body.targetId),attemptId=safeId(body.attemptId),target=context.catalog.find(t=>t.id===targetId);
+  if(target?.subject==='handwriting')throw new AccessError('TEACHER_REVIEW_REQUIRED',400);
   if(!activityView(context,targetId))throw new AccessError('CONTENT_NOT_AVAILABLE',404);
   const attemptRef=db.doc(`${profile.path}/pilotAttempts/${attemptId}`);
   const result=await db.runTransaction(async tx=>{
@@ -121,8 +134,8 @@ export async function teacherPilotRead(query){
   requirePilot();const db=adminDb(),base=workspaceRoot();
   const [targets,profiles,assessments,plans,papers]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get()]);
   const catalog=rows(targets),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
-  const students=profilesRows.map(profile=>{const student=rosterStudent(profile.id);if(!student)return null;const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),next:model.next,skills:model.skills}}).filter(Boolean);
-  return {ok:true,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
+  const students=ROSTER.map(student=>{const profile=profilesRows.find(p=>p.id===student.id)||{};const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),next:model.next,skills:model.skills}}).filter(Boolean);
+  return {ok:true,contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
 }
 export async function teacherPilotWrite(action,body){
   requirePilot();const db=adminDb(),base=workspaceRoot(),timestamp=now();
