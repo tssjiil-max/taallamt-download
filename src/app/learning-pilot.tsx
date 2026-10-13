@@ -123,6 +123,12 @@ function StudentPortfolioEvidence(){
     const style=doc.createElement('style');style.textContent='@page{size:A4;margin:14mm}body{font-family:Tahoma,Arial,sans-serif;color:#202b38;direction:rtl}h1{text-align:center}article{break-inside:avoid;border-bottom:1px solid #ccc;padding:14px 0}img{max-width:100%;max-height:210mm;object-fit:contain;display:block;margin:12px auto}small{display:block}';doc.head.appendChild(style);
     const heading=doc.createElement('h1');heading.textContent='ملف إنجاز الطالب';doc.body.appendChild(heading);
     const student=doc.createElement('p');student.textContent='الطالب: '+(resource.data?.student?.name||resource.data?.student?.firstName||'');doc.body.appendChild(student);
+    const section=(title:string,lines:string[])=>{const head=doc.createElement('h2');head.textContent=title;doc.body.appendChild(head);if(!lines.length)lines=['لا توجد بيانات موثقة بعد'];for(const line of lines){const p=doc.createElement('p');p.textContent=line;doc.body.appendChild(p)}};
+    section('المهارات والتقدم',(resource.data?.skills||[]).map(x=>x.title+' — '+x.state));
+    section('التقييمات',(resource.data?.assessments||[]).flatMap(x=>x.academic.map(y=>y.title+' — '+y.result)));
+    section('الإنجازات',(resource.data?.achievements||[]).map(x=>x.title));
+    section('خطتي للتقدم',(resource.data?.plans||[]).map(x=>x.title+' — '+x.status));
+    section('شواهد الواجبات',[]);
     for(const item of submissions){
       const article=doc.createElement('article');
       const label=doc.createElement('h2');label.textContent='شاهد واجب';article.appendChild(label);
