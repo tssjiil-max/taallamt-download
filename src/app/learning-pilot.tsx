@@ -176,7 +176,7 @@ function PhotoReviewForm({photo,disabled,onSave}:{photo:{photoStatus?:string;pho
   return <div className="tkBox"><label className="tkField">ملاحظة المعلم<textarea value={note} onChange={event=>setNote(event.target.value)} maxLength={600} placeholder="ملاحظة تربوية على صورة الواجب"/></label><div className="tkLearningSteps"><button type="button" className="tkBtn" disabled={disabled} onClick={()=>onSave('reviewed',note)}>اعتماد المراجعة</button><button type="button" className="tkBtn ghost" disabled={disabled||!note.trim()} onClick={()=>onSave('needs_revision',note)}>إعادته للتصحيح</button></div><small>قرار المراجعة لا يغير الدرجة الرسمية للطالب.</small></div>;
 }
 
-function PhotoAcademicReview({photo,targets,disabled,onSave}:{photo:{photoAssessment?:{estimatedScore:number;correct:number;total:number;eligibleForStar:boolean;starGranted?:boolean;verified:boolean}};image:string;targets:TeacherData['targets'];disabled:boolean;onSave:(targetId:string,answers:string[])=>void}){
+function PhotoAcademicReview({photo,targets,disabled,onSave}:{photo:{photoAssessment?:{estimatedScore:number;correct:number;total:number;eligibleForStar:boolean;starGranted?:boolean;verified:boolean};image:string};targets:TeacherData['targets'];disabled:boolean;onSave:(targetId:string,answers:string[])=>void}){
  const [targetId,setTargetId]=React.useState('');
  const [answers,setAnswers]=React.useState('');
  const [verified,setVerified]=React.useState(false);
