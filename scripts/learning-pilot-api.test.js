@@ -1,9 +1,9 @@
 import {beforeEach,afterEach,test,expect,vi} from 'vitest';
-const state=vi.hoisted(()=>({docs:new Map(),reads:0}));
+const state=vi.hoisted(()=>({docs:new Map(),reads:0,beforeRead:null}));
 const clone=value=>value===undefined?undefined:structuredClone(value);
 vi.mock('../server/firebase-admin.js',()=>{
-  const snapshot=(path)=>({id:path.split('/').at(-1),exists:state.docs.has(path),data:()=>clone(state.docs.get(path))});
-  const doc=path=>({path,get:async()=>{state.reads++;return snapshot(path)},set:async(value,options)=>{state.docs.set(path,options?.merge?{...state.docs.get(path),...clone(value)}:clone(value))}});
+  const snapshot=(path)=>{const value=clone(state.docs.get(path));return {id:path.split('/').at(-1),exists:state.docs.has(path),data:()=>clone(value)}};
+  const doc=path=>({path,get:async()=>{state.reads++;state.beforeRead?.(path);return snapshot(path)},set:async(value,options)=>{state.docs.set(path,options?.merge?{...state.docs.get(path),...clone(value)}:clone(value))}});
   const collection=(path,filters=[])=>({where:(key,op,value)=>collection(path,[...filters,[key,value]]),get:async()=>{state.reads++;return {docs:[...state.docs.keys()].filter(key=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')&&filters.every(([field,value])=>state.docs.get(key)[field]===value)).map(snapshot)}}});
   const db={doc,collection,runTransaction:async fn=>fn({get:ref=>ref.get(),set:(ref,value,opts)=>ref.set(value,opts)})};
   return {adminDb:()=>db,previewWriteGuard:()=>{},adminStorageBucket:()=>{throw new Error('Storage must not be used by these tests')}};
@@ -13,7 +13,7 @@ import {DEMO_STUDENT_ID,DEMO_TARGET} from '../server/learning-pilot-demo.js';
 import studentState from '../api/student-state.js';
 const root='workspaces/second-4-staging';
 const env={...process.env};
-beforeEach(()=>{state.docs.clear();state.reads=0;process.env.VERCEL_ENV='preview';process.env.VERCEL_GIT_COMMIT_REF='preview/shakabumbo-pilot-20261013';process.env.TAALLAMT_SESSION_SECRET='test-only-session-secret';process.env.TEACHER_ACCESS_CODE='test-only-access-code'});
+beforeEach(()=>{state.docs.clear();state.reads=0;state.beforeRead=null;process.env.VERCEL_ENV='preview';process.env.VERCEL_GIT_COMMIT_REF='preview/shakabumbo-pilot-20261013';process.env.TAALLAMT_SESSION_SECRET='test-only-session-secret';process.env.TEACHER_ACCESS_CODE='test-only-access-code'});
 afterEach(()=>{process.env={...env}});
 const res=()=>({code:200,body:null,headers:{},status(code){this.code=code;return this},json(value){this.body=value;return this},send(value){this.body=value;return this},setHeader(key,value){this.headers[key]=value}});
 const req=(studentId=DEMO_STUDENT_ID,extra={})=>({query:{view:'learning-pilot',studentId,pilot:'1',...extra},headers:{}});
@@ -99,9 +99,37 @@ test('an already reviewed paper-photo answer cannot be overwritten and lose its 
   await studentPilotRead(req(DEMO_STUDENT_ID,{demoSession}),view);
   const activity=view.body.activity;
   const {createHash}=await import('node:crypto');
-  const id='activity-'+createHash('sha256').update([DEMO_STUDENT_ID+':'+demoSession,activity.targetId,activity.question.id].join(':')).digest('hex').slice(0,40);
+  const id='activity-'+createHash('sha256').update([DEMO_STUDENT_ID+'_'+demoSession,activity.targetId,activity.question.id].join(':')).digest('hex').slice(0,40);
   const path=`${root}/homeworkEvidence/${id}`;
   state.docs.set(path,{studentId:DEMO_STUDENT_ID,photoSource:'learning-pilot-photo',photoAssessment:{verified:true,estimatedScore:100,starGranted:true}});
   await expect(studentPilotWrite({headers:{}},res(),{action:'learning_activity_photo',pilot:true,studentId:DEMO_STUDENT_ID,demoSession,targetId:activity.targetId,questionId:activity.question.id,image:'data:image/jpeg;base64,YQ=='})).rejects.toMatchObject({code:'PHOTO_ALREADY_ASSESSED'});
   expect(state.docs.get(path).photoAssessment.starGranted).toBe(true);
+});
+
+test('unreadable teacher transcription remains editable and cannot earn a star',async()=>{
+ const path=`${root}/homeworkEvidence/unreadable-review`;
+ state.docs.set(path,{studentId:'s2-4-02',photoSource:'learning-pilot-photo',photoImage:'same'});
+ state.docs.set(`${root}/curriculumTargets/weighted`,{subject:'spelling',learning:{status:'approved',reference:'معتمد',questions:[{id:'q1',answers:['أ'],points:2},{id:'q2',answers:['ب'],points:3}]}});
+ const first=await teacherPilotWrite('learning_photo_assess',{id:'unreadable-review',targetId:'weighted',answers:['أ',null],transcriptionVerified:true});
+ expect(first.estimatedScore).toBe(null);expect(first.starGranted).toBe(false);expect(state.docs.get(path).photoAssessment.verified).toBe(false);
+ const fixed=await teacherPilotWrite('learning_photo_assess',{id:'unreadable-review',targetId:'weighted',answers:['أ','ب'],transcriptionVerified:true});
+ expect(fixed.estimatedScore).toBe(100);expect(state.docs.get(path).photoAssessment.verified).toBe(true);
+});
+test('assessment rejects a source or task changed after upload',async()=>{
+ const {visualRevision}=await import('../server/visual-photo.js');
+ const target={subject:'spelling',learning:{status:'approved',reference:'معتمد',questions:[{id:'q',answers:['صديقٍ']}]}};
+ const path=`${root}/homeworkEvidence/source-review`;
+ state.docs.set(path,{studentId:'s2-4-02',photoSource:'learning-pilot-photo',targetId:'linked',questionId:'q',photoSourceRevision:visualRevision(target)});
+ state.docs.set(`${root}/curriculumTargets/linked`,{...target,learning:{...target.learning,reference:'إصدار جديد'}});
+ await expect(teacherPilotWrite('learning_photo_assess',{id:'source-review',targetId:'linked',answers:['صديقٍ'],transcriptionVerified:true})).rejects.toMatchObject({code:'CONTENT_CHANGED'});
+ expect(state.docs.get(path).photoAssessment).toBeUndefined();
+});
+
+test('concurrent re-binding cannot save an assessment from the old target',async()=>{
+ const path=`${root}/homeworkEvidence/binding-race`;
+ state.docs.set(path,{studentId:'s2-4-02',photoSource:'learning-pilot-photo',photoImage:'same'});
+ state.docs.set(`${root}/curriculumTargets/source-a`,{subject:'spelling',learning:{status:'approved',reference:'معتمد',questions:[{id:'q1',answers:['أ']},{id:'q2',answers:['ب']},{id:'q3',answers:['ج']}]}});
+ let count=0;state.beforeRead=p=>{if(p===path&&++count===2)state.docs.set(path,{...state.docs.get(path),targetId:'source-b',photoSourceRevision:'new-binding'})};
+ await expect(teacherPilotWrite('learning_photo_assess',{id:'binding-race',targetId:'source-a',answers:['أ','ب','ج'],transcriptionVerified:true})).rejects.toMatchObject({code:'CONTENT_CHANGED'});
+ expect(state.docs.get(path).photoAssessment).toBeUndefined();expect(state.docs.get(`${root}/studentProfiles/s2-4-02`)).toBeUndefined();
 });

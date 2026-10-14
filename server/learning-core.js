@@ -4,7 +4,7 @@ const stamp=value=>Number.isFinite(Date.parse(value))?Date.parse(value):0;
 const text=(value,max=2000)=>String(value??'').trim().slice(0,max);
 export function validateContent(input){
   const status=input?.status==='approved'?'approved':'draft';
-  const questions=(Array.isArray(input?.questions)?input.questions:[]).slice(0,40).map((q,i)=>({id:text(q.id||`q${i+1}`,80),prompt:text(q.prompt,600),answers:(Array.isArray(q.answers)?q.answers:[]).map(x=>text(x,300)).filter(Boolean).slice(0,8),hint:text(q.hint,500),errorType:text(q.errorType||'needs_review',80),ignoreDiacritics:q.ignoreDiacritics===true}));
+  const questions=(Array.isArray(input?.questions)?input.questions:[]).slice(0,40).map((q,i)=>({id:text(q.id||`q${i+1}`,80),prompt:text(q.prompt,600),answers:(Array.isArray(q.answers)?q.answers:[]).map(x=>text(x,300)).filter(Boolean).slice(0,8),hint:text(q.hint,500),errorType:text(q.errorType||'needs_review',80),ignoreDiacritics:q.ignoreDiacritics===true&&q.diacritics!==true,diacritics:q.diacritics===true,...(typeof q.points==='number'&&Number.isFinite(q.points)&&q.points>0&&q.points<=100?{points:q.points}:{}),partialAnswers:(Array.isArray(q.partialAnswers)?q.partialAnswers:[]).filter(p=>typeof p.answer==='string'&&typeof p.points==='number'&&p.points>0&&p.points<(q.points||1)).map(p=>({answer:text(p.answer,300),points:p.points}))}));
   if(new Set(questions.map(q=>q.id)).size!==questions.length)throw new Error('QUESTION_ID_INVALID');
   const reference=text(input?.reference,500),explanation=text(input?.explanation,5000);
   if(status==='approved'&&(!reference||!explanation||questions.length<3||questions.some(q=>!q.prompt||!q.answers.length)))throw new Error('CONTENT_APPROVAL_INVALID');

@@ -1,3 +1,4 @@
+import {processVisualPhoto,visualRevision,validateRegions} from './visual-photo.js';
 import {publishedQuran,QURAN_SOURCE} from './quran-reader.js';
 import {evaluateVerifiedPhotoAnswers} from './photo-review-score.js';
 import {CONTENT_TEMPLATES} from './teacher-content-bank.js';
@@ -78,7 +79,7 @@ export async function studentPilotRead(req,res){
     const homeworkDocs=demo?[]:await Promise.all(homeworkIds.map(id=>db.doc(`${base}/homework/${id}`).get()));
     const homeworkTitles=new Map(homeworkDocs.filter(doc=>doc.exists).map(doc=>[doc.id,String(doc.data().title||doc.data().subject||'واجب')]));
     const submissions=ownedPhotos
-      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted',photoQuality:p.photoQuality||null,assessment:p.photoAssessment||null,reviewNote:String(p.photoReviewNote||'').slice(0,600)}));
+      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted',photoQuality:p.photoQuality||null,visualReport:p.visualReport?{status:p.visualReport.status,readings:p.visualReport.readings.map(r=>({questionId:r.questionId,text:r.text,confidence:r.confidence,status:r.status,reason:r.reason})),reasons:p.visualReport.reasons}:null,assessment:p.photoAssessment||null,reviewNote:String(p.photoReviewNote||'').slice(0,600)}));
     const achievements=(eventSnap?rows(eventSnap):[]).filter(p=>p.type==='achievement'||p.type==='positive_behavior'||p.type==='improvement')
       .sort((a,b)=>String(b.occurredAt||'').localeCompare(String(a.occurredAt||''))).slice(0,40)
       .map(p=>({id:p.id,title:String(p.summary||'إنجاز موثق').slice(0,220),date:p.occurredAt||''}));
@@ -130,6 +131,11 @@ export async function studentPilotWrite(req,res,body){
     const activity=activityView(context,targetId);
     if(!activity||activity.question?.id!==questionId)throw new AccessError('ACTIVITY_CHANGED',409);
     if(isUnverifiedReading(context.catalog.find(t=>t.id===targetId)))throw new AccessError('CONTENT_NOT_AVAILABLE',404);
+    const baseId=studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,body.demoSession):studentId;
+    const id='activity-'+createHash('sha256').update([baseId,targetId,questionId].join(':')).digest('hex').slice(0,40);
+    const ref=db.doc(`${base}/homeworkEvidence/${id}`),existing=await ref.get();
+    if(existing.exists&&existing.data()?.studentId!==studentId)throw new AccessError('PHOTO_ACCESS_DENIED',403);
+    if(existing.exists&&existing.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
     const image=String(body.image||'');
     if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>280000)throw new AccessError('PHOTO_INVALID',400);
     const {default:sharp}=await import('sharp');
@@ -144,26 +150,25 @@ export async function studentPilotWrite(req,res,body){
       if(stats.channels.slice(0,3).every(c=>c.mean>238))warnings.push('خفّف انعكاس الإضاءة على الورقة.');
       quality={status:warnings.length?'needs_clearer_photo':'captured',warnings,width:meta.width,height:meta.height};
     }catch{throw new AccessError('PHOTO_INVALID',400)}
-    const baseId=studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,body.demoSession):studentId;
-    const id='activity-'+createHash('sha256').update([baseId,targetId,questionId].join(':')).digest('hex').slice(0,40);
-    const ref=db.doc(`${base}/homeworkEvidence/${id}`),existing=await ref.get();
-    if(existing.exists&&existing.data()?.studentId!==studentId)throw new AccessError('PHOTO_ACCESS_DENIED',403);
-    if(existing.exists&&existing.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
-    await ref.set({id,studentId,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,
+    const target=context.catalog.find(t=>t.id===targetId);
+    const visualReport=await processVisualPhoto(image);
+    await db.runTransaction(async tx=>{const current=await tx.get(ref);if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);tx.set(ref,{id,studentId,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,visualReport,photoSourceRevision:visualRevision(target),
       photoSource:'learning-pilot-photo',photoImage:image,photoQuality:quality,photoStatus:'pending_teacher_review',
-      photoSubmittedAt:now(),photoRequiresTeacherReview:true,photoAssessment:null,photoReviewNote:''},{merge:true});
-    return res.status(200).json({ok:true,status:'pending_teacher_review',photoQuality:quality,academicScore:null,starGranted:false});
+      photoSubmittedAt:now(),photoRequiresTeacherReview:true,photoAssessment:null,photoReviewNote:''},{merge:true})});
+    return res.status(200).json({ok:true,status:'pending_teacher_review',photoQuality:quality,academicScore:null,starGranted:false,visualStatus:visualReport.status});
   }
   if(body.action==='homework_photo'){
     const homeworkId=safeId(body.homeworkId),demo=studentId===DEMO_STUDENT_ID;
     const ref=db.doc(`${base}/homeworkEvidence/${demo?scopedProfileId(studentId,body.demoSession)+'_'+homeworkId:homeworkId+'_'+studentId}`);
     if(demo){if(homeworkId!=='pilot-hw')throw new AccessError('HOMEWORK_NOT_ASSIGNED',403)}
     else{const assigned=await db.doc(`${base}/homeworkEvidence/${homeworkId}_${studentId}`).get();if(!assigned.exists)throw new AccessError('HOMEWORK_NOT_ASSIGNED',403)}
+    const previous=await ref.get();if(previous.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
     const image=String(body.image||'');if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>280000)throw new AccessError('PHOTO_INVALID',400);
     const {default:sharp}=await import('sharp');const buffer=Buffer.from(image.split(',')[1],'base64');
     let photoQuality;
     try{const imageReader=sharp(buffer,{limitInputPixels:4000000});const metadata=await imageReader.metadata();if(metadata.format!=='jpeg'||!metadata.width||!metadata.height)throw new Error('invalid');const stats=await imageReader.stats();const pixels=metadata.width*metadata.height;const warnings=[];if(Math.min(metadata.width,metadata.height)<650)warnings.push('دقة الصورة منخفضة؛ قرّب التصوير وثبّت الجوال.');if(stats.channels.slice(0,3).every(c=>c.mean<75))warnings.push('الصورة داكنة؛ استخدم إضاءة أقوى.');if(stats.channels.slice(0,3).every(c=>c.mean>238))warnings.push('الصورة شديدة الإضاءة؛ تجنب انعكاس الضوء.');photoQuality={status:warnings.length?'needs_clearer_photo':'captured',warnings,width:metadata.width,height:metadata.height,pixels,academicScore:null,academicReview:'بانتظار التحقق من الإجابات'};}catch{throw new AccessError('PHOTO_INVALID',400)}
-    await ref.set({photoQuality,photoSource:'learning-pilot-photo',studentId,homeworkId,photoImage:image,photoStatus:'pending_teacher_review',photoSubmittedAt:now(),photoRequiresTeacherReview:true},{merge:true});
+    const visualReport=await processVisualPhoto(image);
+    await db.runTransaction(async tx=>{const current=await tx.get(ref);if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);tx.set(ref,{photoQuality,visualReport,photoAssessment:null,photoReviewNote:'',photoSource:'learning-pilot-photo',studentId,homeworkId,photoImage:image,photoStatus:'pending_teacher_review',photoSubmittedAt:now(),photoRequiresTeacherReview:true},{merge:true})});
     return res.status(200).json({ok:true,status:'pending_teacher_review',score:null,photoQuality});
   }
   if(body.action==='quran_review'){
@@ -226,6 +231,25 @@ export async function teacherPilotWrite(action,body){
     if(!previous.exists)Object.assign(record,{id,title,skill:title,subject,weekNumber:learning.weekNumber,source:'teacher_original',classId:CLASS_ID});
     await ref.set(record,{merge:true});return {saved:true};
   }
+  if(action==='learning_photo_read'){
+    const id=safeId(body.id),ref=db.doc(`${base}/homeworkEvidence/${id}`),submission=await ref.get();
+    const row=submission.data();
+    if(!submission.exists||row.photoSource!=='learning-pilot-photo'||!rosterStudent(row.studentId))throw new AccessError('PHOTO_NOT_FOUND',404);
+    if(row.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
+    let regions;try{regions=validateRegions(body.regions)}catch{throw new AccessError('REGIONS_INVALID',400)}
+    const targetId=safeId(row.targetId||body.targetId),targetSnap=await db.doc(`${base}/curriculumTargets/${targetId}`).get(),target=targetSnap.data();
+    if(!targetSnap.exists||target.learning?.status!=='approved'||isUnverifiedReading({...target,id:targetId}))throw new AccessError('CONTENT_NOT_AVAILABLE',404);
+    const allowed=new Set((row.questionId?target.learning.questions.filter(q=>q.id===row.questionId):target.learning.questions).map(q=>q.id));
+    if(regions.some(r=>!allowed.has(r.questionId)))throw new AccessError('REGIONS_INVALID',400);
+    const revision=visualRevision(target);
+    if(row.photoSourceRevision&&row.photoSourceRevision!==revision)throw new AccessError('CONTENT_CHANGED',409);
+    const report=await processVisualPhoto(row.photoImage,{regions});
+    await db.runTransaction(async tx=>{const current=await tx.get(ref),source=await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`));
+      if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
+      if(current.data()?.photoImage!==row.photoImage||current.data()?.targetId!==row.targetId||current.data()?.questionId!==row.questionId||current.data()?.photoSourceRevision!==row.photoSourceRevision||visualRevision(source.data())!==revision)throw new AccessError('CONTENT_CHANGED',409);
+      tx.set(ref,{visualReport:report,targetId,photoSourceRevision:revision},{merge:true});});
+    return {saved:true,status:report.status,academicScore:null,starGranted:false};
+  }
   if(action==='learning_photo_assess'){
     const id=safeId(body.id),targetId=safeId(body.targetId);
     if(body.transcriptionVerified!==true)throw new AccessError('TRANSCRIPTION_REVIEW_REQUIRED',400);
@@ -234,8 +258,11 @@ export async function teacherPilotWrite(action,body){
     if(!submission.exists||submission.data().photoSource!=='learning-pilot-photo'||!rosterStudent(submission.data().studentId))throw new AccessError('PHOTO_NOT_FOUND',404);
     const target=targetSnap.data();
     if(!targetSnap.exists||target.learning?.status!=='approved'||isUnverifiedReading({...target,id:targetId}))throw new AccessError('CONTENT_NOT_AVAILABLE',404);
+    if(submission.data().targetId&&submission.data().targetId!==targetId)throw new AccessError('CONTENT_CHANGED',409);
+    if(submission.data().photoSourceRevision&&submission.data().photoSourceRevision!==visualRevision(target))throw new AccessError('CONTENT_CHANGED',409);
+    const questions=submission.data().questionId?target.learning.questions.filter(q=>q.id===submission.data().questionId):target.learning.questions;
     let estimate;
-    try{estimate=evaluateVerifiedPhotoAnswers(target.learning.questions,body.answers)}catch{throw new AccessError('ANSWERS_INVALID',400)}
+    try{estimate=evaluateVerifiedPhotoAnswers(questions,body.answers)}catch{throw new AccessError('ANSWERS_INVALID',400)}
     const ref=db.doc(`${base}/homeworkEvidence/${id}`);
     const profileRef=db.doc(`${base}/studentProfiles/${submission.data().studentId}`);
     let starGranted=false;
@@ -243,11 +270,13 @@ export async function teacherPilotWrite(action,body){
       const current=await tx.get(ref);
       const profile=await tx.get(profileRef);
       if(!current.exists||current.data().studentId!==submission.data().studentId)throw new AccessError('PHOTO_NOT_FOUND',404);
+      const source=await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`));
+      if(current.data().photoImage!==submission.data().photoImage||current.data().targetId!==submission.data().targetId||current.data().questionId!==submission.data().questionId||current.data().photoSourceRevision!==submission.data().photoSourceRevision||visualRevision(source.data())!==visualRevision(target))throw new AccessError('CONTENT_CHANGED',409);
       if(current.data().photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
       const memory=memoryOf(profile.data()),awards=memory.learningStars||[],week=learningWeek(timestamp);
-      starGranted=estimate.eligibleForStar&&new Set(target.learning.questions.map(q=>q.id)).size>=3&&awards.filter(a=>a.week===week).length<3&&!awards.some(a=>a.week===week&&a.targetId===targetId);
+      starGranted=estimate.eligibleForStar&&new Set(questions.map(q=>q.id)).size>=3&&awards.filter(a=>a.week===week).length<3&&!awards.some(a=>a.week===week&&a.targetId===targetId);
       if(starGranted)tx.set(profileRef,{learningPilotMemory:{...memory,learningStars:[...awards,{id:`photo:${id}`,targetId,week,at:timestamp,reason:'أجبت عن أسئلة مهارة معتمدة بعد التحقق من الإجابات'}].slice(-156),updatedAt:timestamp}},{merge:true});
-      tx.set(ref,{photoAssessment:{...estimate,verified:true,estimated:true,targetId,answers:body.answers,sourceRevision:target.learning.approvedAt||target.learning.reference,assessedAt:timestamp,starGranted},photoStatus:'reviewed',photoReviewedBy:'teacher',photoReviewedAt:timestamp,photoStarEligible:estimate.eligibleForStar},{merge:true});
+      tx.set(ref,{photoAssessment:{...estimate,verified:estimate.estimatedScore!==null,estimated:true,targetId,answers:body.answers,sourceRevision:target.learning.approvedAt||target.learning.reference,assessedAt:timestamp,starGranted},photoStatus:estimate.estimatedScore===null?'pending_teacher_review':'reviewed',photoReviewedBy:'teacher',photoReviewedAt:timestamp,photoStarEligible:estimate.eligibleForStar},{merge:true});
     });
     return {saved:true,...estimate,starGranted,officialGradeChanged:false};
   }
