@@ -81,3 +81,14 @@ test('photo estimated score requires verified transcription and an approved matc
   expect(profile.learningPilotMemory.learningStars).toHaveLength(1);
   expect([...state.docs.keys()].filter(k=>k.includes('/assessments/'))).toHaveLength(0);
 });
+
+test('paper-answer photo requires own current approved question and a valid JPEG; never grants a mark on upload',async()=>{
+  const read=res();
+  await studentPilotRead(req(DEMO_STUDENT_ID,{demoSession:'paper-photo-student'}),read);
+  const activity=read.body.activity;
+  expect(activity).toBeTruthy();
+  await expect(studentPilotWrite({headers:{}},res(),{action:'learning_activity_photo',pilot:true,studentId:DEMO_STUDENT_ID,demoSession:'paper-photo-student',targetId:activity.targetId,questionId:'not-assigned',image:'data:image/jpeg;base64,YQ=='})).rejects.toMatchObject({code:'ACTIVITY_CHANGED'});
+  await expect(studentPilotWrite({headers:{}},res(),{action:'learning_activity_photo',pilot:true,studentId:DEMO_STUDENT_ID,demoSession:'paper-photo-student',targetId:activity.targetId,questionId:activity.question.id,image:'https://example.com/answer.jpg'})).rejects.toMatchObject({code:'PHOTO_INVALID'});
+  expect([...state.docs.keys()].filter(key=>key.includes('/homeworkEvidence/'))).toHaveLength(0);
+  expect([...state.docs.keys()].filter(key=>key.includes('/assessments/'))).toHaveLength(0);
+});
