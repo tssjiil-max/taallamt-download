@@ -174,6 +174,30 @@ export async function teacherPilotRead(query){
 }
 export async function teacherPilotWrite(action,body){
   requirePilot();const db=adminDb(),base=workspaceRoot(),timestamp=now();
+  if(action==='learning_approve_reading'){
+    // Only original reading-comprehension templates with checked answers.
+    // Do not approve book handwriting, Quran, or unrelated existing targets.
+    const selected=CONTENT_TEMPLATES.filter(t=>t.subject==='arabic');
+    if(selected.length!==8)throw new AccessError('CONTENT_REVIEW_INCOMPLETE',409);
+    const writes=[];
+    for(const item of selected){
+      const learning=validateContent({...item.learning,status:'approved'});
+      if(learning.questions.length!==3||learning.questions.some(q=>!q.answers.length))
+        throw new AccessError('CONTENT_REVIEW_INCOMPLETE',409);
+      const existing=await db.collection(`${base}/curriculumTargets`).where('subject','==','arabic').get();
+      const match=rows(existing).find(t=>t.skill===item.title&&t.learning?.status==='approved');
+      if(match)continue;
+      const ref=db.doc(`${base}/curriculumTargets/${safeId(item.id)}`);
+      const previous=await ref.get();
+      if(previous.exists&&previous.data().learning?.status==='approved')continue;
+      if(previous.exists&&previous.data().source!=='teacher_original')throw new AccessError('CONTENT_CONFLICT',409);
+      writes.push({ref,item,learning});
+    }
+    for(const {ref,item,learning} of writes){
+      await ref.set({id:item.id,title:item.title,skill:item.title,subject:'arabic',weekNumber:learning.weekNumber,source:'teacher_original',classId:CLASS_ID,learning:{...learning,approvedAt:timestamp},updatedAt:timestamp},{merge:true});
+    }
+    return {saved:true,approved:writes.length,scope:'original_reading_only'};
+  }
   if(action==='learning_content'){
     const id=safeId(body.id),learning=validateContent(body.learning),subject=String(body.subject||'');
     if(!['arabic','spelling','handwriting'].includes(subject))throw new AccessError('SUBJECT_INVALID',400);
