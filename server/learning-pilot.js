@@ -12,7 +12,7 @@ import {requireStudentAccess,AccessError} from './access.js';
 import {rosterStudent,ROSTER} from './roster.js';
 import {workspaceRoot,readWeekPlan} from './plan.js';
 import {weekNumberForDate} from './learning-content.js';
-import {buildLearningModel,validateContent,selectActivity,publicActivity,gradeAnswer,recordAttempt} from './learning-core.js';
+import {buildLearningModel,validateContent,selectActivity,publicActivity,gradeAnswer,recordAttempt,learningWeek} from './learning-core.js';
 import {visibleAnnouncements,isVisibleAnnouncement} from './announcement-policy.js';
 
 export const PILOT_BRANCH='preview/shakabumbo-pilot-20261013';
@@ -207,13 +207,19 @@ export async function teacherPilotWrite(action,body){
     let estimate;
     try{estimate=evaluateVerifiedPhotoAnswers(target.learning.questions,body.answers)}catch{throw new AccessError('ANSWERS_INVALID',400)}
     const ref=db.doc(`${base}/homeworkEvidence/${id}`);
+    const profileRef=db.doc(`${base}/studentProfiles/${submission.data().studentId}`);
+    let starGranted=false;
     await db.runTransaction(async tx=>{
       const current=await tx.get(ref);
+      const profile=await tx.get(profileRef);
       if(!current.exists||current.data().studentId!==submission.data().studentId)throw new AccessError('PHOTO_NOT_FOUND',404);
       if(current.data().photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
-      tx.set(ref,{photoAssessment:{...estimate,verified:true,estimated:true,targetId,answers:body.answers,sourceRevision:target.learning.approvedAt||target.learning.reference,assessedAt:timestamp},photoStatus:'reviewed',photoReviewedBy:'teacher',photoReviewedAt:timestamp,photoStarEligible:estimate.eligibleForStar},{merge:true});
+      const memory=memoryOf(profile.data()),awards=memory.learningStars||[],week=learningWeek(timestamp);
+      starGranted=estimate.eligibleForStar&&new Set(target.learning.questions.map(q=>q.id)).size>=3&&awards.filter(a=>a.week===week).length<3&&!awards.some(a=>a.week===week&&a.targetId===targetId);
+      if(starGranted)tx.set(profileRef,{learningPilotMemory:{...memory,learningStars:[...awards,{id:`photo:${id}`,targetId,week,at:timestamp,reason:'أجبت عن أسئلة مهارة معتمدة بعد التحقق من الإجابات'}].slice(-156),updatedAt:timestamp}},{merge:true});
+      tx.set(ref,{photoAssessment:{...estimate,verified:true,estimated:true,targetId,answers:body.answers,sourceRevision:target.learning.approvedAt||target.learning.reference,assessedAt:timestamp,starGranted},photoStatus:'reviewed',photoReviewedBy:'teacher',photoReviewedAt:timestamp,photoStarEligible:estimate.eligibleForStar},{merge:true});
     });
-    return {saved:true,...estimate,starGranted:false,officialGradeChanged:false};
+    return {saved:true,...estimate,starGranted,officialGradeChanged:false};
   }
   if(action==='learning_photo_review'){
     const id=safeId(body.id),ref=db.doc(`${base}/homeworkEvidence/${id}`);
