@@ -1,3 +1,4 @@
+import {isPilotSchedule} from '../server/pilot-schedule.js';
 // End-to-end journeys through the real API handlers against an in-memory Firestore stand-in:
 // automation -> both sites, quick assessment + focused list + undo, Quran follow-up, homework, stars, permissions.
 import assert from 'node:assert/strict';
@@ -107,10 +108,25 @@ check('repeated wrong codes lock that client only; a short configured code is re
   finally{process.env.TEACHER_ACCESS_CODE=TEACHER_CODE}
 });
 
-check('without TEACHER_ACCESS_CODE the staging gate still verifies a code (never open)',async()=>{
-  const saved=process.env.TEACHER_ACCESS_CODE;delete process.env.TEACHER_ACCESS_CODE;
-  try{const gate=teacherGate();assert.equal(gate.configured,true);assert.equal(gate.source,'staging');assert.equal(gate.check('0000-0000-0000'),false);assert.equal(gate.check(''),false)}
-  finally{process.env.TEACHER_ACCESS_CODE=saved}
+check('the Shakabumbo preview requires its own code; other staging branches retain the secured fallback',async()=>{
+  const saved=process.env.TEACHER_ACCESS_CODE,branch=process.env.VERCEL_GIT_COMMIT_REF;
+  delete process.env.TEACHER_ACCESS_CODE;
+  try{
+    process.env.VERCEL_GIT_COMMIT_REF='preview/shakabumbo-pilot-20261013';
+    const isolated=teacherGate();
+    assert.equal(isolated.configured,false);
+    assert.equal(isolated.reason,'TEACHER_CODE_MISSING_FOR_PILOT');
+    process.env.VERCEL_GIT_COMMIT_REF='preview/other-testing-branch';
+    const fallback=teacherGate();
+    assert.equal(fallback.configured,true);
+    assert.equal(fallback.source,'staging');
+    assert.equal(fallback.check('0000-0000-0000'),false);
+    assert.equal(fallback.check(''),false);
+  }finally{
+    process.env.TEACHER_ACCESS_CODE=saved;
+    if(branch===undefined)delete process.env.VERCEL_GIT_COMMIT_REF;
+    else process.env.VERCEL_GIT_COMMIT_REF=branch;
+  }
 });
 
 check('the plan and the homework are published by the scheduled job alone (teacher site never opened)',async()=>{
@@ -333,14 +349,15 @@ check('everything is still there after a fresh read (persistence)',async()=>{
   assert.equal((await T('assess_view',{subjectKey:'arabic'})).body.counts.assessed,ROSTER.length);
 });
 
-check('spelling homework follows the week\'s spelling skill (Thursday), without repeating the Lughati task',async()=>{
-  setNow('2026-10-08T02:05:00Z');                                              // Thursday 05:05 Asia/Riyadh
+check('spelling homework follows the week\'s spelling skill (configured weekday), without repeating the Lughati task',async()=>{
+  const lessonDate=isPilotSchedule()?'2026-10-07':'2026-10-08';
+  setNow(`${lessonDate}T02:05:00Z`);                                              // Thursday 05:05 Asia/Riyadh
   await call(cronDaily);
-  const hw=doc('homework/auto-homework:2026-10-08:spelling'),hand=doc('homework/auto-homework:2026-10-08:handwriting');
-  assert.ok(hw);assert.equal(hw.skill,'تنوين الفتح');assert.equal(hw.page,14);assert.equal(hw.learningPath,'spelling_task');assert.ok(hw.task.includes('تنوين الفتح'));assert.equal(hw.dueDate,'2026-10-11','due on the next school day');
+  const hw=doc(`homework/auto-homework:${lessonDate}:spelling`),hand=doc(`homework/auto-homework:${lessonDate}:handwriting`);
+  assert.ok(hw);assert.equal(hw.skill,'تنوين الفتح');assert.equal(hw.page,14);assert.equal(hw.learningPath,'spelling_task');assert.ok(hw.task.includes('تنوين الفتح'));assert.equal(hw.dueDate,isPilotSchedule()?'2026-10-08':'2026-10-11','due on the next school day');
   assert.ok(hand);assert.equal(hand.lesson,'الاعتذار');assert.equal(hand.page,13);assert.equal(hand.learningPath,'handwriting_task');assert.ok(hand.task.includes('فن الخط'));
-  assert.equal(doc('homework/auto-homework:2026-10-08:arabic'),undefined);
-  assert.equal(doc('automationRuns/2026-10-08').firstSource,'cron-daily');
+  assert.equal(doc(`homework/auto-homework:${lessonDate}:arabic`),undefined);
+  assert.equal(doc(`automationRuns/${lessonDate}`).firstSource,'cron-daily');
   const response=JSON.stringify((await call(cronDaily)).body);
   assert.ok(!response.includes('s2-4-')&&!response.includes('studentId'),'the scheduled job answers with counts only');
 });

@@ -4,23 +4,24 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/build-pwa-icons.mjs && node scripts/pwa-icon-regression.mjs && node scripts/build-app-css.mjs && node scripts/teacher-dashboard-layout-regression.mjs && node scripts/student-name-regression.mjs && node scripts/student-page-regression.mjs && node scripts/student-redesign-stable-regression.mjs && node scripts/student-vector-assets-regression.mjs && node scripts/learning-automation-regression.mjs && node scripts/quran-followup-regression.mjs && node scripts/homework-autograde-regression.mjs && node scripts/guardian-link-stability-regression.mjs && node scripts/student-read-budget-regression.mjs && node scripts/student-parent-visual-safe-regression.mjs && node scripts/student-teacher-type-scale-regression.mjs && node scripts/lughati-single-source-regression.mjs && node scripts/teacher-student-link-regression.mjs && node scripts/reference-design-regression.mjs && node scripts/staging-journeys-regression.mjs && node scripts/guardian-assistant-regression.mjs && tsc && vite build",
-    "test": "vitest run",
+    "build": "node scripts/build-pwa-icons.mjs && node scripts/pwa-icon-regression.mjs && node scripts/build-app-css.mjs && node scripts/teacher-dashboard-layout-regression.mjs && node scripts/student-name-regression.mjs && node scripts/student-page-regression.mjs && node scripts/student-redesign-stable-regression.mjs && node scripts/student-vector-assets-regression.mjs && node scripts/learning-automation-regression.mjs && node scripts/quran-followup-regression.mjs && node scripts/homework-autograde-regression.mjs && node scripts/guardian-link-stability-regression.mjs && node scripts/student-read-budget-regression.mjs && node scripts/student-parent-visual-safe-regression.mjs && node scripts/student-teacher-type-scale-regression.mjs && node scripts/lughati-single-source-regression.mjs && node scripts/teacher-student-link-regression.mjs && node scripts/reference-design-regression.mjs && node scripts/staging-journeys-regression.mjs && node scripts/guardian-assistant-regression.mjs && npx vitest run scripts/learning-pilot-api.test.js && tsc && vite build",
+    "test": "vitest run && node --test scripts/learning-core-regression.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "latest",
-    "react-dom": "latest",
     "firebase": "latest",
     "firebase-admin": "latest",
-    "sharp": "latest"
+    "react": "latest",
+    "react-dom": "latest",
+    "sharp": "latest",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
-    "vitest": "latest",
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
   }
 }

@@ -599,3 +599,20 @@ a{color:inherit;text-decoration:none}
 .tkNavBadge{position:absolute;top:2u;right:calc(50% - 26u);min-width:18u;height:18u;padding:0 4u;box-sizing:border-box;border-radius:99u;background:#c93a36;color:#fff;font-size:11u;font-weight:700;font-style:normal;display:grid;place-items:center;line-height:1}
 /* Screen and navigation are siblings: reserve the student nav height plus 14u clearance. */
 .tk:has(>.tkNav.stu)>.tkScreen{padding-bottom:calc(78u + 14u + env(safe-area-inset-bottom,0px))}
+
+/* The optional preview experiment retains the existing palette and original artwork. */
+.tk:has(>.tkNav.pilot)>.tkScreen{padding-top:env(safe-area-inset-top,0px)}
+.tkNav.stu.pilot{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tkNav.stu.pilot button{font-size:10.8u;min-width:0;min-height:44px}
+.tkLearning .tkBox{margin-bottom:12u;padding:14u;line-height:1.9}
+.tkLearning h2{font-size:18u;margin-bottom:8u}
+.tkLearningSteps{display:flex;flex-wrap:wrap;gap:8u;margin:12u 0}
+.tkLearning .tkBtn{min-height:44px;white-space:normal;margin:5u 0;padding:8u 14u}
+.tkLearningText{white-space:pre-wrap;overflow-wrap:anywhere;margin:12u 0}
+.tkLearning .tkField{margin:12u 0;display:flex;flex-direction:column;gap:6u}
+.tkLearning .tkField input,.tkLearning .tkField textarea,.tkLearning .tkField select{min-height:44px;padding:10u;border:1px solid #bcd9f5;border-radius:12u;background:#fff;max-width:100%;font:inherit;color:inherit}
+.tkLearning small{display:block;color:var(--ink3)}
+.tkAnnouncementOpen{width:100%;text-align:start;min-height:44px;display:flex;flex-direction:column;gap:8u;color:var(--ink)}
+.tkAnnouncementImage{display:block;width:100%;max-height:300u;object-fit:contain;margin:12u 0}
+
+@font-face{font-family:TaallamtQuran;src:url('/learning-font/NotoNaskhArabic-Regular.ttf') format('truetype');font-display:swap}.tkLearning .tkQuranText{font-family:TaallamtQuran,serif;font-size:calc(var(--u)*22);line-height:2.7;direction:rtl;text-align:right;overflow-wrap:break-word}.tkLearning details summary{cursor:pointer;padding:12px 0;min-height:44px}.tkLearning .tkQuranText p{padding:6px 0}

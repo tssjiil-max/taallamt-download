@@ -33,7 +33,7 @@ const checks=[
   ['bulk master saves a quick assessment per followup student',teacherStudents.includes('bulkMasterFollowup')],
   ['student state exposes curriculum targets',studentState.includes('curriculum:curriculumRows')],
   ['student state exposes published weekly plan',studentState.includes('weeklyPlan:weeklyPlanRows')],
-  ['student profile persists hobbies without a new collection',studentState.includes('patch.hobbies=hobbies')],
+  ['student profile persists hobbies without a new collection',studentState.includes('studentProfilePatch(studentId,body,now())')&&readFileSync('server/student-profile-patch.js','utf8').includes('patch.hobbies=hobbies')],
   ['subject panel explains when teacher has not published subject work',patch.includes('لم ينشر المعلم مهارة أو واجبًا لهذه المادة لهذا الأسبوع بعد')],
   ['subject panel resolves weekly targets and homework from teacher state',patch.includes('subjectPublishedPlan')&&patch.includes('subjectHomework')],
   ['skills panel resolves curriculum target names',patch.includes('targetTitleMap')&&patch.includes('needs_practice')],

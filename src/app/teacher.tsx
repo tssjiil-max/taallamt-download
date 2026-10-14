@@ -1,3 +1,4 @@
+import {pilotRequested,TeacherLearningPilot} from './learning-pilot';
 // Teacher pages in the same identity as the student pages. The teacher's usual work is one screen: the quick assessment
 // ("أتقن بقية الطلاب" + individual results for the focused follow-up list). Plan and homework publish themselves.
 import React from 'react';
@@ -40,7 +41,7 @@ const SOURCE_LABEL:Record<string,string>={'cron-daily':'التشغيل المج�
 
 export function TeacherApp({initialRoute=''}:{initialRoute?:string}){
   const session=useRemote<Session>('session',()=>api<Session>(`${AUTOMATION}?action=session`));
-  React.useEffect(()=>{if(initialRoute&&!location.hash)history.replaceState(null,'',`/teacher#${initialRoute}`)},[initialRoute]);
+  React.useEffect(()=>{if(!location.hash){const requested=new URLSearchParams(location.search).get('screen');const next=requested==='assistant'?'assistant':initialRoute;if(next)location.replace(`/teacher${location.search}#${next}`)}},[initialRoute]);
   if(session.error)return <Screen><TeacherTop/><Failure error={session.error} role="teacher" onRetry={()=>void session.reload()}/></Screen>;
   if(!session.data)return <Screen><TeacherTop/><CardsSkeleton/></Screen>;
   if(!session.data.teacher)return <Login session={session.data} onDone={()=>void session.reload()}/>;
@@ -92,7 +93,7 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   const nav=<BottomNav label="تنقل المعلم" active={tab} items={[
     {key:'home',label:'الرئيسية',icon:<NavHomeLine/>,activeIcon:<NavHome/>,onClick:()=>go('')},
     {key:'students',label:'الطلاب',icon:<NavPeople/>,onClick:()=>go('students')},
-    {key:'assistant',label:'شكابمبو',icon:<img src={SHAK.logo} alt="" aria-hidden="true"/>,onClick:()=>go('assistant')},
+    {key:'assistant',label:'شكابمبو',icon:<img src={SHAK.logo} alt="" aria-hidden="true"/>,onClick:()=>{if(pilotRequested)go('assistant');else location.assign('/teacher?pilot=1#assistant')}},
     {key:'library',label:'الكتب',icon:<NavBook/>,onClick:()=>go('library')},
     {key:'more',label:'المزيد',icon:<NavMore/>,onClick:()=>go('more')}
   ]}/>;
@@ -110,7 +111,7 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   else if(route.startsWith('student/'))body=<StudentFilePage home={data} studentId={route.split('/')[1]||''} section={route.split('/')[2]||''} back={back} go={go} refresh={refresh} toast={showToast} setHome={home.setData}/>;
   else if(route.startsWith('chat/'))body=<TeacherChatPage home={data} studentId={route.slice(5)} back={back} refresh={refresh}/>;
   else if(route==='library')body=<LibraryPage home={data} back={back} go={go} toast={showToast}/>;
-  else if(route==='assistant')body=<AssistantPage home={data} back={back} log={assistLog} setLog={setAssistLog}/>;
+  else if(route==='assistant')body=<TeacherLearningPilot back={back}/>;
   else if(route==='more')body=<MorePage home={data} environment={environment} back={back} go={go} onSignedOut={onSignedOut}/>;
   else if(route==='followup')body=<FollowupPage home={data} back={back} go={go} refresh={refresh} toast={showToast}/>;
   else if(route==='today')body=<TodayPage home={data} back={back} go={go}/>;

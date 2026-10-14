@@ -1,3 +1,6 @@
+import {studentProfilePatch} from '../server/student-profile-patch.js';
+import {isVisibleAnnouncement} from '../server/announcement-policy.js';
+import {studentPilotRead,studentPilotWrite} from '../server/learning-pilot.js';
 import {randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
@@ -53,7 +56,7 @@ async function studentSnapshot(studentId,role='guardian'){
   const homeworkIds=[...new Set(evidenceRows.map(x=>x.homeworkId).filter(Boolean))];
   const homeworkDocs=homeworkIds.length?await Promise.all(homeworkIds.map(id=>db.doc(`${root}/homework/${id}`).get())):[];
   const homework=homeworkDocs.filter(x=>x.exists).map(x=>{const raw={id:x.id,...x.data()};const safe=publicAutoGradingConfig(raw.autoGrading);return {...raw,autoGrading:safe||undefined}}).sort(desc);
-  const curriculumRows=items(curriculum);
+  const curriculumRows=items(curriculum).map(row=>{if(role==='teacher')return row;const {learning,...safe}=row;return safe});
   const weeklyPlanAll=items(weeklyPlan).filter(x=>x.publishStatus==='published').sort((a,b)=>String(b.weekKey||'').localeCompare(String(a.weekKey||'')));
   const latestWeekKey=weeklyPlanAll[0]?.weekKey;
   const weeklyPlanRows=latestWeekKey?weeklyPlanAll.filter(x=>x.weekKey===latestWeekKey):[];
@@ -172,19 +175,7 @@ async function saveHomework(studentId,body){
 }
 
 async function saveStudentProfile(studentId,body){
-  const photoDataUrl=String(body.photoDataUrl||'').trim();
-  if(photoDataUrl&&!/^data:image\/(png|jpeg|webp);base64,/.test(photoDataUrl))throw new Error('PHOTO_INVALID');
-  if(photoDataUrl.length>280000)throw new Error('PHOTO_TOO_LARGE');
-  const db=adminDb(),root=base();
-  const patch={studentId,updatedAt:now()};
-  if(photoDataUrl)patch.photoDataUrl=photoDataUrl;
-  else if(body.removePhoto===true)patch.photoDataUrl='';
-  if(body.hobbies!==undefined){
-    if(!Array.isArray(body.hobbies))throw new Error('HOBBIES_INVALID');
-    const hobbies=[...new Set(body.hobbies.map(x=>String(x||'').trim()).filter(Boolean))].slice(0,12);
-    if(hobbies.some(x=>x.length>40))throw new Error('HOBBIES_INVALID');
-    patch.hobbies=hobbies;
-  }
+  const db=adminDb(),root=base(),patch=studentProfilePatch(studentId,body,now());
   await db.doc(`${root}/studentProfiles/${studentId}`).set(patch,{merge:true});
   return {saved:true};
 }
@@ -224,7 +215,7 @@ async function announcementImage(req,res){
   if(!isTeacher(req)){
     const studentId=String(req.query?.studentId||'');
     await requireStudentAccess(req,studentId,null);
-    if(data.status!=='published')return res.status(404).json({ok:false,error:'ANNOUNCEMENT_NOT_FOUND'});
+    if(!isVisibleAnnouncement(data,CLASS_ID))return res.status(404).json({ok:false,error:'ANNOUNCEMENT_NOT_FOUND'});
   }
   const dataUrl=String(data.imageDataUrl||'');
   const match=dataUrl.match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
@@ -272,6 +263,9 @@ async function studentPwaManifest(req,res){
 export default async function handler(req,res){
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
+    if(req.method==='GET'&&(['learning-pilot','learning-print','announcement-pilot','learning-quran','homework-photo','learning-portfolio'].includes(String(req.query?.view||''))||(req.query?.view==='home'&&req.query?.studentId==='__shakabumbo_demo__'&&req.query?.pilot==='1')))return await studentPilotRead(req,res);
+    if(req.method==='POST'&&jsonBody(req).action==='student_profile'&&jsonBody(req).studentId==='__shakabumbo_demo__'&&jsonBody(req).pilot===true)return await studentPilotWrite(req,res,jsonBody(req));
+    if(req.method==='POST'&&['learning_attempt','announcement_read','quran_review','homework_photo','learning_activity_photo'].includes(String(jsonBody(req).action||'')))return await studentPilotWrite(req,res,jsonBody(req));
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke'){requireTeacher(req);return res.status(200).json(await stagingSmoke())}
     if(req.method==='GET'&&String(req.query?.view||'')==='announcement-image')return await announcementImage(req,res);
     if(req.method==='GET'&&String(req.query?.view||'')==='pwa-manifest')return await studentPwaManifest(req,res);

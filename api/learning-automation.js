@@ -1,3 +1,5 @@
+import {pilotDaySubjects} from '../server/pilot-schedule.js';
+import {teacherPilotRead,teacherPilotWrite} from '../server/learning-pilot.js';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {contentForWeek,COPYWORK_PAGES,quranForDay,riyadhDateString,riyadhWeekday,termPhase,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
@@ -82,7 +84,7 @@ export async function publishWeeklyPlan(week){
 }
 
 function fallbackSubjects(weekday,reason='TIMETABLE_EMPTY'){
-  return {subjects:[...(fallbackSchedule[weekday]||[])],timetableCount:0,source:'verified_distribution_schedule_fallback',reason};
+  return {subjects:pilotDaySubjects(fallbackSchedule[weekday]||[],weekday),timetableCount:0,source:'verified_distribution_schedule_fallback',reason};
 }
 async function scheduledSubjectsForDay(weekday){
   try{
@@ -90,7 +92,7 @@ async function scheduledSubjectsForDay(weekday){
     const all=rows(snap).filter(item=>(!item.classId||item.classId===CLASS_ID)&&Number(item.weekday)===weekday),subjects=[];
     for(const item of all){const normalized=normalizeSubject(item.subject);if(normalized&&!subjects.includes(normalized))subjects.push(normalized)}
     if(snap.size===0)return fallbackSubjects(weekday);
-    return {subjects,timetableCount:snap.size,source:'timetable'};
+    return {subjects:pilotDaySubjects(subjects,weekday),timetableCount:snap.size,source:'timetable'};
   }catch(error){
     return {...fallbackSubjects(weekday,'TIMETABLE_READ_UNAVAILABLE'),error:error instanceof Error?error.message:String(error)};
   }
@@ -260,6 +262,8 @@ export default async function handler(req,res){
     if(action==='preview')return res.status(200).json(await previewAutomation());
     // Everything below is a teacher tool: it needs the signed teacher session.
     requireTeacher(req,{write:req.method==='POST'});
+    if(req.method==='GET'&&action==='learning_pilot')return res.status(200).json(await teacherPilotRead(req.query||{}));
+    if(req.method==='POST'&&['learning_content','learning_plan','learning_paper_result','learning_photo_review','learning_photo_assess','learning_photo_read','learning_approve_reading'].includes(action))return res.status(200).json({ok:true,...await teacherPilotWrite(action,body)});
     if(req.method==='GET'){
       if(action==='overview'){await ensureFresh();return res.status(200).json(await readClassOverview())}
       await ensureFresh();

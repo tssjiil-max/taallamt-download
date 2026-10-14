@@ -1,3 +1,5 @@
+import {HomeworkPhoto,SubmissionPortfolio} from './homework-photo';
+import {pilotRequested,StudentLearningPilot,StudentAnnouncementsPilot,usePilotAnnouncements} from './learning-pilot';
 // Student / guardian pages in the mandatory reference design: header, weekly plan, assessment, homework, stars and the
 // bottom bar (الرئيسية — الفصول — النجوم — حسابي). Every card and its detail page read the same server payload.
 import React from 'react';
@@ -31,7 +33,7 @@ type Home={
 const query=new URLSearchParams(location.search);
 const STUDENT_ID=query.get('studentId')||'';
 const INVITE=query.get('invite')||query.get('inviteToken')||'';
-const accessQuery=`studentId=${encodeURIComponent(STUDENT_ID)}${INVITE?`&invite=${encodeURIComponent(INVITE)}`:''}`;
+const accessQuery=`studentId=${encodeURIComponent(STUDENT_ID)}${INVITE?`&invite=${encodeURIComponent(INVITE)}`:''}${pilotRequested?'&pilot=1':''}${pilotRequested&&STUDENT_ID==='__shakabumbo_demo__'?`&demoSession=${encodeURIComponent(query.get('demoSession')||'')}`:''}`;
 
 function homeworkCountText(home:Home){
   const {countToday,doneToday}=home.homework;
@@ -44,6 +46,7 @@ const dueText=(item:Homework)=>item.dueDate?`يُسلَّم ${formatDay(item.due
 export function StudentApp(){
   const [route,go,back]=useHashRoute();
   const [toast,showToast]=useToast();
+  const announcements=usePilotAnnouncements();
   const home=useRemote<Home>(STUDENT_ID?`home:${STUDENT_ID}`:null,()=>api<Home>(`/api/student-state?view=home&${accessQuery}`));
   const [busy,setBusy]=React.useState<string>('');
   // Moving between pages picks up what changed on the other site, without reloading on every tap.
@@ -70,11 +73,12 @@ export function StudentApp(){
     }finally{setBusy('')}
   },[busy,home,showToast]);
 
-  const tab=route==='achievements'?'file':route==='chat'?'chat':route==='settings'?'settings':'home';
-  const nav=<BottomNav label="تنقل الطالب" variant="stu" active={tab} items={[
+  const tab=route==='achievements'?'file':route==='chat'?'chat':route==='settings'?'settings':route==='announcements'?'announcements':'home';
+  const nav=<BottomNav label="تنقل الطالب" variant={pilotRequested?"stu pilot":"stu"} active={tab} items={[
     {key:'home',label:'الرئيسية',icon:<FillHome/>,onClick:()=>go('')},
     {key:'file',label:'ملف الإنجاز',icon:<FillFolder/>,onClick:()=>go('achievements')},
     {key:'chat',label:'الرسائل',icon:<FillChat/>,badge:home.data?.messages.unread||0,onClick:()=>go('chat')},
+    ...(pilotRequested?[{key:'announcements',label:'الإعلانات',icon:<IconMessage/>,badge:announcements.data?.unread||0,onClick:()=>go('announcements')}]:[]),
     {key:'settings',label:'الإعدادات',icon:<FillGear/>,onClick:()=>go('settings')}
   ]}/>;
 
@@ -91,7 +95,9 @@ export function StudentApp(){
   if(!data){
     body=<><Header title={title} subtitle={subtitle} hero={boy} avatarLabel="حسابي" onAvatar={()=>go('me')}/>
       {home.error?<Failure error={home.error} role="student" onRetry={()=>void home.reload()}/>:<CardsSkeleton/>}</>;
-  }else if(route==='plan')body=<PlanPage home={data} back={back} go={go}/>;
+  }else if(route==='learning'&&(pilotRequested||location.hostname.startsWith('taallamt-teacher-')))body=<StudentLearningPilot back={back}/>;
+  else if(pilotRequested&&route==='announcements')body=<StudentAnnouncementsPilot back={back} resource={announcements}/>;
+  else if(route==='plan')body=<PlanPage home={data} back={back} go={go}/>;
   else if(route==='assessment')body=<AssessmentPage home={data} back={back} go={go}/>;
   else if(route==='homework')body=<HomeworkPage home={data} back={back} toggle={toggleHomework} busy={busy}/>;
   else if(route.startsWith('subject/'))body=<SubjectPage home={data} subjectKey={route.slice(8) as SubjectKey} back={back} toggle={toggleHomework} busy={busy}/>;
@@ -165,7 +171,7 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
         <p className="tkPanelDates"><span>{hijriRange(plan.range)}</span><span>{gregorianRange(plan.range)}</span></p>
         <div className="tkHwList">
           {plan.holiday?<p className="tkPanelEmpty">إجازة هذا الأسبوع — لا توجد دروس جديدة.</p>
-          :!plan.published?<p className="tkPanelEmpty">خطة هذا الأسبوع قيد النشر، وستظهر هنا تلقائيًا.</p>
+          :!plan.published&&!plan.fromDistribution?<p className="tkPanelEmpty">خطة هذا الأسبوع قيد النشر، وستظهر هنا تلقائيًا.</p>
           :plan.items.map(item=><button key={item.subjectKey} type="button" className="tkHw slim" onClick={()=>go(`subject/${item.subjectKey}`)} aria-label={`${item.label}: ${item.summary}`}>
             <span className="tkHwIcon"><SubjectImg subject={item.subjectKey} size={48}/></span>
             <span className="tkHwMain"><b>{item.label}</b><span>{item.summary||'—'}</span></span><ChevronBack/></button>)}
@@ -190,11 +196,11 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
         </div>
       </>}
     </section>
-    <button className="tkAskCard" type="button" onClick={()=>go('chat')}>
+    <button className="tkAskCard" type="button" onClick={()=>{if(pilotRequested){go('learning');return}if(location.hostname.endsWith('.vercel.app')&&location.hostname.startsWith('taallamt-teacher-')){const destination=new URL(location.href);destination.searchParams.set('pilot','1');destination.hash='learning';location.assign(destination.toString());return}go('chat')}}>
       <span className="tkAskPic"><img src={SHAK.logo} alt="" aria-hidden="true"/></span>
-      <span className="tkAskText"><b>مساعدي الذكي</b><small>اشرح لي الواجب أو ساعدني في الحل</small></span><ChevronBack/>
+      <span className="tkAskText"><b>{pilotRequested||location.hostname.startsWith('taallamt-teacher-')?'شكابمبو':'مساعدي الذكي'}</b><small>{pilotRequested||location.hostname.startsWith('taallamt-teacher-')?'تعلّم، تدرّب، وأكمل من حيث توقفت':'اشرح لي الواجب أو ساعدني في الحل'}</small></span><ChevronBack/>
     </button>
-    {home.announcements?.length>0&&<section id="tkNotices" className="tkAlert info" aria-label="إعلانات الفصل" style={{margin:'calc(var(--u)*10) calc(var(--u)*12) 0'}}>
+    {!pilotRequested&&home.announcements?.length>0&&<section id="tkNotices" className="tkAlert info" aria-label="إعلانات الفصل" style={{margin:'calc(var(--u)*10) calc(var(--u)*12) 0'}}>
       <b>📣 إعلانات الفصل</b>
       {home.announcements.map(item=><div key={item.id} style={{marginTop:'calc(var(--u)*7)'}}>
         {item.hasImage&&<img src={`/api/student-state?view=announcement-image&id=${encodeURIComponent(item.id)}&${accessQuery}`} alt="صورة الإعلان" style={{display:'block',width:'100%',maxHeight:'calc(var(--u)*260)',objectFit:'contain',borderRadius:'calc(var(--u)*12)',marginBottom:'calc(var(--u)*7)',background:'#f6f8fb'}}/>}
@@ -212,8 +218,9 @@ function PlanPage({home,back,go}:{home:Home;back:()=>void;go:Go}){
   return <div className="tkPage">
     <PageHead title="الخطة الأسبوعية" subtitle={`${home.week.label} · بالتاريخ الهجري والميلادي`} icon={CARD_ICON.plan} onBack={back}/>
     <PlanDates plan={plan}/>
+    {!plan.items.length&&<Empty>لم تُضف دروس لهذا الأسبوع بعد.</Empty>}
     {plan.items.map(item=><PlanSubject key={item.subjectKey} item={item} start={plan.range.start}/>)}
-    <p className="tkMeta">{planStamp(plan)}</p>
+    <p className="tkMeta">{plan.items.length?planStamp(plan):'الخطة غير مكتملة — بانتظار إضافة الدروس'}</p>
     <div className="tkActions" style={{marginTop:'calc(var(--u)*8)'}}><button className="tkBtn ghost" type="button" onClick={()=>go('weeks')}>الأسابيع السابقة</button></div>
   </div>;
 }
@@ -229,7 +236,7 @@ function HomeworkBox({item,toggle,busy}:{item:Homework;toggle:(item:Homework)=>v
       <Fact label="نُشر">{formatDay(item.publishedDate)}</Fact>
       {item.dueDate&&<Fact label="التسليم">{formatDay(item.dueDate)}</Fact>}
     </dl>
-    <div className="tkHwDone">
+    {pilotRequested&&<HomeworkPhoto homeworkId={item.id}/>}<div className="tkHwDone">
       <span>{item.done?(item.teacherApprovedAt?'أنجزته واعتمده المعلم':'أنجزته — بانتظار اطلاع المعلم'):'لم يُنجز بعد'}</span>
       <button className={`tkToggle ${item.done?'on':''}`} type="button" onClick={()=>toggle(item)} disabled={busy===item.id} aria-pressed={item.done}><Check on={item.done} busy={busy===item.id}/>{item.done?'تم الإنجاز':'أنجزت الواجب'}</button>
     </div>
@@ -369,7 +376,7 @@ function assessedSkills(home:Home):Skill[]{
   return [...current,...older];
 }
 const HOBBY_OPTIONS=['القراءة','الرسم','التلوين','كرة القدم','السباحة','ركوب الدراجة','القصص','الحفظ','الألعاب التركيبية','الأشغال اليدوية','التقنية والروبوت','الزراعة','الجري','التصوير','الألعاب الذهنية'];
-const saveProfile=(body:Record<string,unknown>)=>api('/api/student-state',{method:'POST',body:{studentId:STUDENT_ID,action:'student_profile',invite:INVITE,...body}});
+const saveProfile=(body:Record<string,unknown>)=>api('/api/student-state',{method:'POST',body:{studentId:STUDENT_ID,action:'student_profile',invite:INVITE,...(pilotRequested&&STUDENT_ID==='__shakabumbo_demo__'?{pilot:true,demoSession:query.get('demoSession')}:{}),...body}});
 // The chosen picture is cropped to a small square in the browser before it is saved.
 function squarePhoto(file:File):Promise<string>{
   return new Promise((resolve,reject)=>{
@@ -500,7 +507,7 @@ function AchievementsPage({home,back}:{home:Home;back:()=>void}){
   return <div className="tkPage">
     <PageHead title="إنجازاتي" subtitle="ما حققته حتى الآن" onBack={back}/>
     <div className="tkAchieve">{tiles.map(([label,value,tone])=><div key={label} className={tone}><b className="num">{value}</b><span>{label}</span></div>)}</div>
-    <h2 className="tkH">مهارات أتقنتها<small>{mastered.length}</small></h2>
+    {pilotRequested&&<SubmissionPortfolio/>}<h2 className="tkH">مهارات أتقنتها<small>{mastered.length}</small></h2>
     {mastered.length?<div className="tkList">{mastered.map((item,index)=><SkillRow key={`${item.subjectKey}-${item.week}-${index}`} item={item}/>)}</div>:<Empty>ستظهر هنا المهارات التي يسجّل المعلم إتقانك لها.</Empty>}
   </div>;
 }
