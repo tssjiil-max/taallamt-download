@@ -22,7 +22,7 @@ const rows=snap=>snap.docs.map(doc=>({id:doc.id,...doc.data()}));
 const safeId=value=>{const s=String(value||'');if(!/^[A-Za-z0-9:_-]{1,100}$/.test(s))throw new AccessError('ID_INVALID',400);return s};
 const memoryOf=profile=>profile?.learningPilotMemory||{};
 const isUnverifiedReading=target=>target?.subject==='arabic'&&(
-  String(target.id||'').startsWith('original-arabic-')||
+  String(target.id||'').includes('original-arabic-')||
   String(target.learning?.reference||'').includes('نص وتدريب أصليان لفهم المقروء')
 );
 const safeCurriculum=targets=>targets.filter(target=>!isUnverifiedReading(target));
@@ -36,7 +36,7 @@ const onlyStudent=(plan,studentId)=>plan.studentId===studentId;
 async function readContext(studentId,demoSession=''){
   const student=studentId===DEMO_STUDENT_ID?DEMO_STUDENT:rosterStudent(studentId);if(!student)throw new AccessError('STUDENT_NOT_FOUND',404);
   const db=adminDb(),base=workspaceRoot();
-  if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,demoSession).get(),memory=memoryOf(profile.data());return {student:DEMO_STUDENT,memory,catalog:DEMO_TARGETS,model:buildLearningModel({studentId,targets:DEMO_TARGETS,memory,now:now()}),assessments:[],plans:[DEMO_PLAN]}}
+  if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,demoSession).get(),memory=memoryOf(profile.data());return {student:DEMO_STUDENT,memory,catalog:safeCurriculum(DEMO_TARGETS),model:buildLearningModel({studentId,targets:safeCurriculum(DEMO_TARGETS),memory,now:now()}),assessments:[],plans:[DEMO_PLAN]}}
   const [profile,targets,assessments,plans]=await Promise.all([db.doc(`${base}/studentProfiles/${studentId}`).get(),db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/assessments`).where('studentId','==',studentId).get(),db.collection(`${base}/remediationPlans`).where('studentId','==',studentId).get()]);
   const memory=memoryOf(profile.exists?profile.data():{}),catalog=safeCurriculum(rows(targets)),timestamp=now();
   const model=buildLearningModel({studentId,targets:catalog,assessments:rows(assessments),memory,now:timestamp,weekNumber:weekNumberForDate()});
