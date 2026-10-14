@@ -58,3 +58,14 @@ test('reading exercises retain full passage answers and cannot be silently appro
   expect(CONTENT_TEMPLATES.every(t=>t.learning.status==='draft')).toBe(true);
   expect(CONTENT_TEMPLATES.filter(t=>t.subject==='handwriting').every(t=>!t.learning.rulingVerified)).toBe(true);
 });
+
+test('teacher approves only reviewed original reading lessons; no grades or handwriting are changed',async()=>{
+  const response=await teacherPilotWrite('learning_approve_reading',{});
+  expect(response.approved).toBe(8);
+  const approved=[...state.docs.values()].filter(item=>item.learning?.status==='approved');
+  expect(approved).toHaveLength(8);
+  expect(approved.every(item=>item.subject==='arabic')).toBe(true);
+  expect(approved.every(item=>item.learning.questions.length===3)).toBe(true);
+  expect((await teacherPilotWrite('learning_approve_reading',{})).approved).toBe(0);
+  expect([...state.docs.keys()].some(path=>path.includes('/assessments/'))).toBe(false);
+});
