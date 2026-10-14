@@ -1,10 +1,10 @@
 import sharp from 'sharp';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-import {fileURLToPath} from 'node:url';
+import {resolve,sep} from 'node:path';
 import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url);
-const assetPath=fileURLToPath(new URL('./ocr-assets/',import.meta.url));
+const require=createRequire(resolve(process.cwd(),'package.json'));
+const assetPath=resolve(process.cwd(),'server/ocr-assets')+sep;
 const dataUrl=bytes=>'data:image/jpeg;base64,'+bytes.toString('base64');
 export const visualRevision=target=>createHash('sha256').update(JSON.stringify({subject:target?.subject,learning:target?.learning})).digest('hex');
 export function compareVisualAnswer(question,answer){
