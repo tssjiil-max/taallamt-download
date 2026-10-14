@@ -92,3 +92,16 @@ test('paper-answer photo requires own current approved question and a valid JPEG
   expect([...state.docs.keys()].filter(key=>key.includes('/homeworkEvidence/'))).toHaveLength(0);
   expect([...state.docs.keys()].filter(key=>key.includes('/assessments/'))).toHaveLength(0);
 });
+
+test('an already reviewed paper-photo answer cannot be overwritten and lose its verified grade or star',async()=>{
+  const demoSession='photo-lock-test';
+  const view=res();
+  await studentPilotRead(req(DEMO_STUDENT_ID,{demoSession}),view);
+  const activity=view.body.activity;
+  const {createHash}=await import('node:crypto');
+  const id='activity-'+createHash('sha256').update([DEMO_STUDENT_ID+':'+demoSession,activity.targetId,activity.question.id].join(':')).digest('hex').slice(0,40);
+  const path=`${root}/homeworkEvidence/${id}`;
+  state.docs.set(path,{studentId:DEMO_STUDENT_ID,photoSource:'learning-pilot-photo',photoAssessment:{verified:true,estimatedScore:100,starGranted:true}});
+  await expect(studentPilotWrite({headers:{}},res(),{action:'learning_activity_photo',pilot:true,studentId:DEMO_STUDENT_ID,demoSession,targetId:activity.targetId,questionId:activity.question.id,image:'data:image/jpeg;base64,YQ=='})).rejects.toMatchObject({code:'PHOTO_ALREADY_ASSESSED'});
+  expect(state.docs.get(path).photoAssessment.starGranted).toBe(true);
+});
