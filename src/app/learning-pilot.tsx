@@ -118,7 +118,7 @@ function QuranAudio({segment}:{segment:QuranSegment}){
 }
 
 
-type PortfolioEvidenceData={student:{firstName?:string;name?:string};skills:Skill[];assessments:{id:string;academic:{title:string;result:string}[]}[];achievements:{id:string;title:string;date?:string}[];plans:{id:string;title:string;status:string}[];submissions:{id:string;image?:string;title?:string;submittedAt?:string;homeworkId?:string;status?:string;reviewNote?:string}[]};
+type PortfolioEvidenceData={student:{firstName?:string;name?:string};skills:Skill[];assessments:{id:string;academic:{title:string;result:string}[]}[];achievements:{id:string;title:string;date?:string}[];plans:{id:string;title:string;status:string}[];submissions:{id:string;image?:string;title?:string;submittedAt?:string;homeworkId?:string;status?:string;reviewNote?:string;assessment?:{estimatedScore:number;correct:number;total:number;starGranted?:boolean;verified?:boolean}}[]};
 function StudentPortfolioEvidence(){
   const [visible,setVisible]=React.useState(false);
   const resource=useRemote<PortfolioEvidenceData>(visible?`student-portfolio:${access.studentId}`:null,()=>api(`/api/student-state?view=learning-portfolio&${accessQuery}`));
@@ -167,7 +167,7 @@ function StudentPortfolioEvidence(){
   };
   return <section className="tkBox"><h2>شواهد ملف إنجازي</h2><p>ملفي الشخصي يضم المهارات والتقييمات والإنجازات والخطط وشواهد الواجبات، دون تغيير الدرجات الرسمية.</p>
     <button type="button" className="tkBtn ghost" onClick={()=>setVisible(value=>!value)}>{visible?'إخفاء الشواهد':'عرض شواهدي'}</button>
-    {visible&&(resource.error?<p role="alert">تعذر تحميل الشواهد.</p>:!resource.data?<Loading/>:submissions.length?<><p>{submissions.length} شاهد مصور</p>{submissions.map(item=><article className="tkBox" key={item.id}><small>{item.submittedAt?new Date(item.submittedAt).toLocaleDateString('ar-SA'):''}</small>{item.status==='reviewed'&&<p>راجع المعلم هذا الواجب.</p>}{item.status==='needs_revision'&&<p>يحتاج الواجب إلى تصحيح وإعادة.</p>}{item.reviewNote&&<p>ملاحظة المعلم: {item.reviewNote}</p>}<img src={item.image} alt="شاهد واجب الطالب" style={{maxWidth:'100%',height:'auto'}} loading="lazy"/></article>)}<button type="button" className="tkBtn" onClick={print}>طباعة الشواهد / حفظ PDF</button><button type="button" className="tkBtn ghost" onClick={()=>void shareFile()}>مشاركة نسخة ملف الإنجاز</button></>:<Empty>لا توجد صور واجبات محفوظة بعد.</Empty>)}
+    {visible&&(resource.error?<p role="alert">تعذر تحميل الشواهد.</p>:!resource.data?<Loading/>:submissions.length?<><p>{submissions.length} شاهد مصور</p>{submissions.map(item=><article className="tkBox" key={item.id}><small>{item.submittedAt?new Date(item.submittedAt).toLocaleDateString('ar-SA'):''}</small>{item.status==='reviewed'&&<p>راجع المعلم هذا الواجب.</p>}{item.status==='needs_revision'&&<p>يحتاج الواجب إلى تصحيح وإعادة.</p>}{item.reviewNote&&<p>ملاحظة المعلم: {item.reviewNote}</p>}{item.assessment?.verified&&<p role="status">تقدير مبدئي بعد مراجعة المعلم: {item.assessment.estimatedScore}٪ ({item.assessment.correct} من {item.assessment.total}). {item.assessment.starGranted?'أحسنت! حصلت على نجمة تدريبية.':'استمر في التدريب.'} هذه ليست الدرجة الرسمية.</p>}<img src={item.image} alt="شاهد واجب الطالب" style={{maxWidth:'100%',height:'auto'}} loading="lazy"/></article>)}<button type="button" className="tkBtn" onClick={print}>طباعة الشواهد / حفظ PDF</button><button type="button" className="tkBtn ghost" onClick={()=>void shareFile()}>مشاركة نسخة ملف الإنجاز</button></>:<Empty>لا توجد صور واجبات محفوظة بعد.</Empty>)}
   </section>;
 }
 
