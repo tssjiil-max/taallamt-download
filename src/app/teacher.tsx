@@ -93,7 +93,7 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   const nav=<BottomNav label="تنقل المعلم" active={tab} items={[
     {key:'home',label:'الرئيسية',icon:<NavHomeLine/>,activeIcon:<NavHome/>,onClick:()=>go('')},
     {key:'students',label:'الطلاب',icon:<NavPeople/>,onClick:()=>go('students')},
-    {key:'assistant',label:'شكابمبو',icon:<img src={SHAK.logo} alt="" aria-hidden="true"/>,onClick:()=>go('assistant')},
+    {key:'assistant',label:'شكابمبو',icon:<img src={SHAK.logo} alt="" aria-hidden="true"/>,onClick:()=>{if(pilotRequested)go('assistant');else location.assign('/teacher?pilot=1#assistant')}},
     {key:'library',label:'الكتب',icon:<NavBook/>,onClick:()=>go('library')},
     {key:'more',label:'المزيد',icon:<NavMore/>,onClick:()=>go('more')}
   ]}/>;
