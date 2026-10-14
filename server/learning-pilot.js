@@ -5,7 +5,7 @@ import {studentProfilePatch} from './student-profile-patch.js';
 import {isFocused} from './quick-assess.js';
 import {TEACHER_BOOK_REFERENCE} from './teacher-book-reference.js';
 import {DEMO_STUDENT_ID,DEMO_STUDENT,DEMO_TARGET,DEMO_TARGETS,DEMO_PLAN,DEMO_ANNOUNCEMENTS,demoHome} from './learning-pilot-demo.js';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {adminDb} from './firebase-admin.js';
 import {CLASS_ID} from './class-roster.js';
 import {requireStudentAccess,AccessError} from './access.js';
@@ -145,7 +145,7 @@ export async function studentPilotWrite(req,res,body){
       quality={status:warnings.length?'needs_clearer_photo':'captured',warnings,width:meta.width,height:meta.height};
     }catch{throw new AccessError('PHOTO_INVALID',400)}
     const baseId=studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,body.demoSession):studentId;
-    const id=safeId(`activity-${baseId}-${targetId}-${questionId}`);
+    const id='activity-'+createHash('sha256').update([baseId,targetId,questionId].join(':')).digest('hex').slice(0,40);
     const ref=db.doc(`${base}/homeworkEvidence/${id}`),existing=await ref.get();
     if(existing.exists&&existing.data()?.studentId!==studentId)throw new AccessError('PHOTO_ACCESS_DENIED',403);
     await ref.set({id,studentId,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,
