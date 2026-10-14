@@ -180,6 +180,19 @@ function PhotoAcademicReview({photo,targets,disabled,onSave}:{photo:{photoAssess
  const [targetId,setTargetId]=React.useState('');
  const [answers,setAnswers]=React.useState('');
  const [verified,setVerified]=React.useState(false);
+ const [readNotice,setReadNotice]=React.useState('');
+ const tryDeviceRead=async()=>{
+   setReadNotice('');
+   const Detector=(window as unknown as {TextDetector?:new()=>{detect:(image:HTMLImageElement)=>Promise<{rawValue?:string}[]>}}).TextDetector;
+   if(!Detector){setReadNotice('هذه النسخة من المتصفح لا تدعم قراءة النصوص من الصورة محليًا؛ تحقق من الإجابات يدويًا.');return}
+   try{
+     const image=new Image();image.src=photo.image;await image.decode();
+     const matches=await new Detector().detect(image);
+     setAnswers(matches.map(row=>row.rawValue||'').filter(Boolean).join('\n'));
+     setVerified(false);
+     setReadNotice('هذه قراءة أولية قد تشمل نص الأسئلة، ويجب فصل إجابات الطالب وتصحيح أخطاء القراءة والتحقق منها قبل أي تقييم.');
+   }catch{setReadNotice('تعذرت القراءة الأولية. يمكنك إدخال الإجابات بعد قراءتها من الصورة.')}
+ };
  const target=targets.find(t=>t.id===targetId);
  const count=target?.learning?.questions?.length||0;
  const entered=answers.split('\n').map(x=>x.trim());
@@ -188,7 +201,7 @@ function PhotoAcademicReview({photo,targets,disabled,onSave}:{photo:{photoAssess
  <p>اقرأ إجابات الطالب من الصورة وراجع تفريغها قبل المطابقة. لا توجد قراءة موثوقة للخط اليدوي تلقائيًا بعد.</p>
  <label className="tkField">المهارة المطابقة للصفحة<select value={targetId} onChange={e=>{setTargetId(e.target.value);setAnswers('');setVerified(false)}}><option value="">اختر مهارة معتمدة</option>{targets.map(t=><option key={t.id} value={t.id}>{String(t.skill||t.title).split('auto:')[0].trim()}</option>)}</select></label>
  {target&&<p>عدد الأسئلة المطلوب تفريغها: {count}. تحقق من أن الأسئلة هي نفسها الموجودة في الصفحة، وبالترتيب.</p>}
- <label className="tkField">إجابات الطالب — إجابة واحدة في كل سطر<textarea rows={5} value={answers} onChange={e=>{setAnswers(e.target.value);setVerified(false)}} placeholder="اكتب الإجابات كما ظهرت في الصورة"/></label>
+ <button type="button" className="tkBtn ghost" disabled={disabled} onClick={()=>void tryDeviceRead()}>محاولة قراءة الصورة على الجهاز</button>{readNotice&&<p role="status">{readNotice}</p>}<label className="tkField">إجابات الطالب — إجابة واحدة في كل سطر<textarea rows={5} value={answers} onChange={e=>{setAnswers(e.target.value);setVerified(false)}} placeholder="اكتب الإجابات كما ظهرت في الصورة"/></label>
  <label><input type="checkbox" checked={verified} onChange={e=>setVerified(e.target.checked)}/> تحققت من قراءة الإجابات ومطابقة أسئلة الصفحة للمهارة المختارة</label>
  <button type="button" className="tkBtn" disabled={disabled||!verified||!count||entered.length!==count||entered.some(x=>!x)} onClick={()=>onSave(targetId,entered)}>احسب التقدير الأولي واحفظ المراجعة</button>
  </>}
