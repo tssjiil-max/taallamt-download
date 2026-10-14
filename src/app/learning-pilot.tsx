@@ -1,3 +1,4 @@
+import {HomeworkPhoto} from './homework-photo';
 import React from 'react';
 import {api,asApiError,PageHead,Empty,Loading,SHAK,useRemote} from './kit';
 
@@ -15,7 +16,7 @@ const message=(error:unknown)=>{const e=asApiError(error);return e.code==='DAILY
 const stateLabel=(state:string)=>({unknown:'نكتشف مستواك',needs_practice:'نتدرّب للتقدم',mastered:'أتقنتها مع المعلم',practice_mastered:'أتقنت التدريب'}[state]||'قيد المتابعة');
 const planLabel=(state:string)=>({proposed:'بانتظار اعتماد المعلم',active:'قيد التنفيذ',improved:'تحسن',needs_more_support:'نواصل التدريب',resolved:'أنهيت الخطة'}[state]||state);
 export function StudentLearningPilot({back}:{back:()=>void}){
-  const [targetId,setTarget]=React.useState(''),[step,setStep]=React.useState(0),[answer,setAnswer]=React.useState(''),[busy,setBusy]=React.useState(false),[feedback,setFeedback]=React.useState('');
+  const [targetId,setTarget]=React.useState(''),[step,setStep]=React.useState(0),[answerMode,setAnswerMode]=React.useState<'paper'|'typing'>('paper'),[answer,setAnswer]=React.useState(''),[busy,setBusy]=React.useState(false),[feedback,setFeedback]=React.useState('');
   const resource=useRemote<LearningData>(`learning:${access.studentId}:${targetId}`,()=>api(`/api/student-state?view=learning-pilot&${accessQuery}${targetId?`&targetId=${encodeURIComponent(targetId)}`:''}`));
   const data=resource.data,activity=data?.activity;
   const retryAttempt=React.useRef<{key:string;id:string}|null>(null);
@@ -31,8 +32,8 @@ export function StudentLearningPilot({back}:{back:()=>void}){
         {data.model.resume&&<button className="tkBtn ghost" onClick={()=>{setTarget(data.model.resume!.targetId);setStep(data.model.resume!.mode==='test'?2:1);setFeedback('')}}>أكمل من حيث توقفت</button>}
       </div>
       {activity&&<section className="tkBox"><h2>{activity.title}</h2><div className="tkLearningSteps" role="tablist" aria-label="رحلة التعلم">{['تعلّم','تدرّب','أتقن'].map((label,i)=><button type="button" role="tab" aria-selected={step===i} className={`tkBtn ${step===i?'':'ghost'}`} key={label} onClick={()=>{setStep(i);setFeedback('')}}>{label}</button>)}</div>
-        {activity.teacherReview&&step!==0?<p>تدرّب على الورقة المطبوعة، ثم اعرضها على المعلم لتقييم الخط. الطباعة وحدها لا تسجل إتقانًا.</p>:step===0?<><p className="tkLearningText">{activity.explanation}</p><small>المصدر: {activity.reference}</small></>:<form onSubmit={submit}><p>{step===2?'اختبار المهارة:':'تدريبك:'} {activity.question.prompt}</p><label className="tkField">إجابتك<input value={answer} onChange={e=>setAnswer(e.target.value)} maxLength={300} autoComplete="off" required/></label>
-          {step!==2&&activity.question.hint&&<details><summary>أحتاج تلميحًا</summary><p>{activity.question.hint}</p></details>}<button className="tkBtn" disabled={busy||!answer.trim()}>{busy?'جارٍ الحفظ…':'تحقق من إجابتي'}</button></form>}
+        {activity.teacherReview&&step!==0?<p>تدرّب على الورقة المطبوعة، ثم اعرضها على المعلم لتقييم الخط. الطباعة وحدها لا تسجل إتقانًا.</p>:step===0?<><p className="tkLearningText">{activity.explanation}</p><small>المصدر: {activity.reference}</small></>:<div><p>{step===2?'اختبار المهارة:':'تدريبك:'} {activity.question.prompt}</p><div className="tkLearningSteps"><button type="button" className={`tkBtn ${answerMode==='paper'?'':'ghost'}`} onClick={()=>setAnswerMode('paper')}>أكتب على ورقة وأصوّر</button><button type="button" className={`tkBtn ${answerMode==='typing'?'':'ghost'}`} onClick={()=>setAnswerMode('typing')}>أكتب بالجوال (اختياري)</button></div>{answerMode==='paper'?<HomeworkPhoto key={`${activity.targetId}:${activity.question.id}`} targetId={activity.targetId} questionId={activity.question.id}/>:<form onSubmit={submit}><label className="tkField">إجابتك<input value={answer} onChange={e=>setAnswer(e.target.value)} maxLength={300} autoComplete="off" required/></label>
+          {step!==2&&activity.question.hint&&<details><summary>أحتاج تلميحًا</summary><p>{activity.question.hint}</p></details>}<button className="tkBtn" disabled={busy||!answer.trim()}>{busy?'جارٍ الحفظ…':'تحقق من إجابتي'}</button></form>}</div>}
         {feedback&&<p role="status" className="tkAlert info">{feedback}</p>}
         <a className="tkBtn ghost" target="_blank" rel="noopener" href={`/api/student-state?view=learning-print&${accessQuery}&targetId=${encodeURIComponent(activity.targetId)}`}>اطبع تدريبي</a>
       </section>}
