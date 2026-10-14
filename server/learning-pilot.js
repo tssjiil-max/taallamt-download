@@ -184,6 +184,7 @@ export async function teacherPilotWrite(action,body){
   if(action==='learning_content'){
     const id=safeId(body.id),learning=validateContent(body.learning),subject=String(body.subject||'');
     if(!['arabic','spelling','handwriting'].includes(subject))throw new AccessError('SUBJECT_INVALID',400);
+    if(subject==='arabic'&&learning.status==='approved'&&isUnverifiedReading({id,subject,learning}))throw new AccessError('SOURCE_VERIFICATION_REQUIRED',409);
     if(subject==='handwriting'&&learning.status==='approved'&&!learning.rulingVerified)throw new AccessError('RULING_VERIFICATION_REQUIRED',400);
     if(learning.prerequisites.includes(id))throw new AccessError('PREREQUISITE_INVALID',400);
     const title=String(body.title||'').trim().slice(0,200);if(!title)throw new AccessError('TITLE_REQUIRED',400);
