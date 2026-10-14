@@ -196,9 +196,9 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
         </div>
       </>}
     </section>
-    <button className="tkAskCard" type="button" onClick={()=>go(pilotRequested?'learning':'chat')}>
+    <button className="tkAskCard" type="button" onClick={()=>{if(pilotRequested){go('learning');return}if(location.hostname.endsWith('.vercel.app')&&location.hostname.startsWith('taallamt-teacher-')){const destination=new URL(location.href);destination.searchParams.set('pilot','1');destination.hash='learning';location.assign(destination.toString());return}go('chat')}}>
       <span className="tkAskPic"><img src={SHAK.logo} alt="" aria-hidden="true"/></span>
-      <span className="tkAskText"><b>{pilotRequested?'شكابمبو':'مساعدي الذكي'}</b><small>{pilotRequested?'تعلّم، تدرّب، وأكمل من حيث توقفت':'اشرح لي الواجب أو ساعدني في الحل'}</small></span><ChevronBack/>
+      <span className="tkAskText"><b>{pilotRequested||location.hostname.startsWith('taallamt-teacher-')?'شكابمبو':'مساعدي الذكي'}</b><small>{pilotRequested||location.hostname.startsWith('taallamt-teacher-')?'تعلّم، تدرّب، وأكمل من حيث توقفت':'اشرح لي الواجب أو ساعدني في الحل'}</small></span><ChevronBack/>
     </button>
     {!pilotRequested&&home.announcements?.length>0&&<section id="tkNotices" className="tkAlert info" aria-label="إعلانات الفصل" style={{margin:'calc(var(--u)*10) calc(var(--u)*12) 0'}}>
       <b>📣 إعلانات الفصل</b>
