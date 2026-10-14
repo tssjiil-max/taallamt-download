@@ -95,7 +95,7 @@ export function StudentApp(){
   if(!data){
     body=<><Header title={title} subtitle={subtitle} hero={boy} avatarLabel="حسابي" onAvatar={()=>go('me')}/>
       {home.error?<Failure error={home.error} role="student" onRetry={()=>void home.reload()}/>:<CardsSkeleton/>}</>;
-  }else if(pilotRequested&&route==='learning')body=<StudentLearningPilot back={back}/>;
+  }else if(route==='learning'&&(pilotRequested||location.hostname.startsWith('taallamt-teacher-')))body=<StudentLearningPilot back={back}/>;
   else if(pilotRequested&&route==='announcements')body=<StudentAnnouncementsPilot back={back} resource={announcements}/>;
   else if(route==='plan')body=<PlanPage home={data} back={back} go={go}/>;
   else if(route==='assessment')body=<AssessmentPage home={data} back={back} go={go}/>;
