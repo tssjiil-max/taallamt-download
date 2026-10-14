@@ -73,7 +73,7 @@ export async function studentPilotRead(req,res){
       demo?Promise.resolve(null):db.collection(`${base}/portfolioEvents`).where('studentId','==',studentId).get()
     ]);
     const prefix=scopedProfileId(studentId,req.query.demoSession)+'_';
-    const ownedPhotos=rows(photoSnap).filter(p=>p.photoSource==='learning-pilot-photo'&&(studentId!==DEMO_STUDENT_ID||p.id.startsWith(prefix)))
+    const ownedPhotos=rows(photoSnap).filter(p=>p.photoSource==='learning-pilot-photo'&&(studentId!==DEMO_STUDENT_ID||(p.id.startsWith(prefix)||p.demoProfileId===scopedProfileId(studentId,req.query.demoSession))))
       .sort((a,b)=>String(b.photoSubmittedAt||b.submittedAt||'').localeCompare(String(a.photoSubmittedAt||a.submittedAt||''))).slice(0,40);
     const homeworkIds=[...new Set(ownedPhotos.map(p=>p.homeworkId).filter(id=>typeof id==='string'&&/^[A-Za-z0-9:_-]{1,100}$/.test(id)))];
     const homeworkDocs=demo?[]:await Promise.all(homeworkIds.map(id=>db.doc(`${base}/homework/${id}`).get()));
@@ -152,7 +152,7 @@ export async function studentPilotWrite(req,res,body){
     }catch{throw new AccessError('PHOTO_INVALID',400)}
     const target=context.catalog.find(t=>t.id===targetId);
     const visualReport=await processVisualPhoto(image);
-    await db.runTransaction(async tx=>{const current=await tx.get(ref);if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);tx.set(ref,{id,studentId,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,visualReport,photoSourceRevision:visualRevision(target),
+    await db.runTransaction(async tx=>{const current=await tx.get(ref);if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);tx.set(ref,{id,studentId,demoProfileId:studentId===DEMO_STUDENT_ID?baseId:null,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,visualReport,photoSourceRevision:visualRevision(target),
       photoSource:'learning-pilot-photo',photoImage:image,photoQuality:quality,photoStatus:'pending_teacher_review',
       photoSubmittedAt:now(),photoRequiresTeacherReview:true,photoAssessment:null,photoReviewNote:''},{merge:true})});
     return res.status(200).json({ok:true,status:'pending_teacher_review',photoQuality:quality,academicScore:null,starGranted:false,visualStatus:visualReport.status});

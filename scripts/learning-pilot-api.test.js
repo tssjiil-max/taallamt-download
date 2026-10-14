@@ -133,3 +133,15 @@ test('concurrent re-binding cannot save an assessment from the old target',async
  await expect(teacherPilotWrite('learning_photo_assess',{id:'binding-race',targetId:'source-a',answers:['أ','ب','ج'],transcriptionVerified:true})).rejects.toMatchObject({code:'CONTENT_CHANGED'});
  expect(state.docs.get(path).photoAssessment).toBeUndefined();expect(state.docs.get(`${root}/studentProfiles/s2-4-02`)).toBeUndefined();
 });
+test('actual student HTTP handler routes paper-photo uploads, ignores forged assessment and persists OCR evidence',async()=>{
+ const invalid=res();await studentState({method:'POST',query:{},headers:{},body:{action:'learning_activity_photo',pilot:true,studentId:DEMO_STUDENT_ID,demoSession:'http-upload',targetId:DEMO_TARGET.id,questionId:'book',image:'data:image/jpeg;base64,YQ=='}},invalid);
+ expect(invalid.body.error).toBe('PHOTO_INVALID');
+ const {default:sharp}=await import('sharp');
+ const jpeg=await sharp({create:{width:700,height:700,channels:3,background:'white'}}).jpeg().toBuffer();
+ const response=res();await studentState({method:'POST',query:{},headers:{},body:{action:'learning_activity_photo',pilot:true,studentId:DEMO_STUDENT_ID,demoSession:'http-upload',targetId:DEMO_TARGET.id,questionId:'book',image:'data:image/jpeg;base64,'+jpeg.toString('base64'),academicScore:100,starGranted:true,visualReport:{text:'كتابٍ',confidence:100},photoAssessment:{verified:true,estimatedScore:100}}},response);
+ expect(response.code).toBe(200);expect(response.body.academicScore).toBe(null);expect(response.body.starGranted).toBe(false);
+ const evidence=[...state.docs.values()].find(r=>r.photoSource==='learning-pilot-photo');
+ expect(evidence.visualReport.engine).toContain('tesseract.js');expect(evidence.photoAssessment).toBe(null);expect(evidence.visualReport.readings[0].text).not.toBe('كتابٍ');
+ const portfolio=res();await studentPilotRead(req(DEMO_STUDENT_ID,{view:'learning-portfolio',demoSession:'http-upload'}),portfolio);expect(portfolio.body.submissions).toHaveLength(1);
+ const otherSession=res();await studentPilotRead(req(DEMO_STUDENT_ID,{view:'learning-portfolio',demoSession:'different-session'}),otherSession);expect(otherSession.body.submissions).toHaveLength(0);
+},15000);
