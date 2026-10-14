@@ -41,7 +41,7 @@ const SOURCE_LABEL:Record<string,string>={'cron-daily':'التشغيل المج�
 
 export function TeacherApp({initialRoute=''}:{initialRoute?:string}){
   const session=useRemote<Session>('session',()=>api<Session>(`${AUTOMATION}?action=session`));
-  React.useEffect(()=>{if(initialRoute&&!location.hash)history.replaceState(null,'',`/teacher#${initialRoute}`)},[initialRoute]);
+  React.useEffect(()=>{if(initialRoute&&!location.hash)history.replaceState(null,'',`/teacher${location.search}#${initialRoute}`)},[initialRoute]);
   if(session.error)return <Screen><TeacherTop/><Failure error={session.error} role="teacher" onRetry={()=>void session.reload()}/></Screen>;
   if(!session.data)return <Screen><TeacherTop/><CardsSkeleton/></Screen>;
   if(!session.data.teacher)return <Login session={session.data} onDone={()=>void session.reload()}/>;
@@ -111,8 +111,7 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   else if(route.startsWith('student/'))body=<StudentFilePage home={data} studentId={route.split('/')[1]||''} section={route.split('/')[2]||''} back={back} go={go} refresh={refresh} toast={showToast} setHome={home.setData}/>;
   else if(route.startsWith('chat/'))body=<TeacherChatPage home={data} studentId={route.slice(5)} back={back} refresh={refresh}/>;
   else if(route==='library')body=<LibraryPage home={data} back={back} go={go} toast={showToast}/>;
-  else if(pilotRequested&&route==='assistant')body=<TeacherLearningPilot back={back}/>;
-  else if(route==='assistant')body=<AssistantPage home={data} back={back} log={assistLog} setLog={setAssistLog}/>;
+  else if(route==='assistant')body=<TeacherLearningPilot back={back}/>;
   else if(route==='more')body=<MorePage home={data} environment={environment} back={back} go={go} onSignedOut={onSignedOut}/>;
   else if(route==='followup')body=<FollowupPage home={data} back={back} go={go} refresh={refresh} toast={showToast}/>;
   else if(route==='today')body=<TodayPage home={data} back={back} go={go}/>;
