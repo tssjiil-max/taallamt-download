@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve,sep} from 'node:path';
 import {createRequire} from 'node:module';
-const require=createRequire(resolve(process.cwd(),'package.json'));
+const ocrRequire=createRequire(resolve(process.cwd(),'package.json'));
 const assetPath=resolve(process.cwd(),'server/ocr-assets')+sep;
 const dataUrl=bytes=>'data:image/jpeg;base64,'+bytes.toString('base64');
 export const visualRevision=target=>createHash('sha256').update(JSON.stringify({subject:target?.subject,learning:target?.learning})).digest('hex');
@@ -24,7 +24,7 @@ export async function localArabicReader(){
  const {createWorker,OEM,PSM}=await import('tesseract.js');
  const expected=(await readFile(assetPath+'SHA256SUMS','utf8')).trim().split(/\s+/)[0];
  if(createHash('sha256').update(await readFile(assetPath+'ara.traineddata')).digest('hex')!==expected)throw Error('OCR_ASSET_MISMATCH');
- const worker=await createWorker('ara',OEM.LSTM_ONLY,{langPath:assetPath,gzip:false,cacheMethod:'none',corePath:require.resolve('tesseract.js-core'),logger:()=>{},errorHandler:()=>{}});
+ const worker=await createWorker('ara',OEM.LSTM_ONLY,{langPath:assetPath,gzip:false,cacheMethod:'none',corePath:ocrRequire.resolve('tesseract.js-core'),logger:()=>{},errorHandler:()=>{}});
  await worker.setParameters({tessedit_pageseg_mode:PSM.SINGLE_BLOCK,preserve_interword_spaces:'1',user_defined_dpi:'300'});
  return {read:async bytes=>{const {data}=await worker.recognize(bytes);return {text:String(data.text||'').trim().slice(0,2000),confidence:Number.isFinite(data.confidence)?data.confidence:null}},close:()=>worker.terminate()};
 }
