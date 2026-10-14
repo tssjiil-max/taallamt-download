@@ -148,6 +148,7 @@ export async function studentPilotWrite(req,res,body){
     const id='activity-'+createHash('sha256').update([baseId,targetId,questionId].join(':')).digest('hex').slice(0,40);
     const ref=db.doc(`${base}/homeworkEvidence/${id}`),existing=await ref.get();
     if(existing.exists&&existing.data()?.studentId!==studentId)throw new AccessError('PHOTO_ACCESS_DENIED',403);
+    if(existing.exists&&existing.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
     await ref.set({id,studentId,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,
       photoSource:'learning-pilot-photo',photoImage:image,photoQuality:quality,photoStatus:'pending_teacher_review',
       photoSubmittedAt:now(),photoRequiresTeacherReview:true,photoAssessment:null,photoReviewNote:''},{merge:true});
