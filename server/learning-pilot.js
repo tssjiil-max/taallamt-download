@@ -21,6 +21,12 @@ export function requirePilot(environment=process.env){
 const rows=snap=>snap.docs.map(doc=>({id:doc.id,...doc.data()}));
 const safeId=value=>{const s=String(value||'');if(!/^[A-Za-z0-9:_-]{1,100}$/.test(s))throw new AccessError('ID_INVALID',400);return s};
 const memoryOf=profile=>profile?.learningPilotMemory||{};
+const isUnverifiedReading=target=>target?.subject==='arabic'&&(
+  String(target.id||'').startsWith('original-arabic-')||
+  String(target.learning?.reference||'').includes('نص وتدريب أصليان لفهم المقروء')
+);
+const safeCurriculum=targets=>targets.filter(target=>!isUnverifiedReading(target));
+
 const now=()=>new Date().toISOString();
 const scopedProfileId=(id,session)=>id===DEMO_STUDENT_ID&&session?`${id}_${safeId(session).slice(0,64)}`:id;
 const pilotProfile=(id,session)=>adminDb().doc(`${workspaceRoot()}/studentProfiles/${scopedProfileId(id,session)}`);
@@ -32,7 +38,7 @@ async function readContext(studentId,demoSession=''){
   const db=adminDb(),base=workspaceRoot();
   if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,demoSession).get(),memory=memoryOf(profile.data());return {student:DEMO_STUDENT,memory,catalog:DEMO_TARGETS,model:buildLearningModel({studentId,targets:DEMO_TARGETS,memory,now:now()}),assessments:[],plans:[DEMO_PLAN]}}
   const [profile,targets,assessments,plans]=await Promise.all([db.doc(`${base}/studentProfiles/${studentId}`).get(),db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/assessments`).where('studentId','==',studentId).get(),db.collection(`${base}/remediationPlans`).where('studentId','==',studentId).get()]);
-  const memory=memoryOf(profile.exists?profile.data():{}),catalog=rows(targets),timestamp=now();
+  const memory=memoryOf(profile.exists?profile.data():{}),catalog=safeCurriculum(rows(targets)),timestamp=now();
   const model=buildLearningModel({studentId,targets:catalog,assessments:rows(assessments),memory,now:timestamp,weekNumber:weekNumberForDate()});
   const planRows=rows(plans).filter(p=>p.source==='learning-pilot'&&onlyStudent(p,studentId));
   const fileIds=[...new Set(planRows.flatMap(p=>p.fileIds||[]))].slice(0,40),fileSnaps=await Promise.all(fileIds.map(id=>db.doc(`${base}/files/${safeId(id)}`).get()));
@@ -168,36 +174,13 @@ export async function studentPilotWrite(req,res,body){
 export async function teacherPilotRead(query){
   requirePilot();const db=adminDb(),base=workspaceRoot();
   const [targets,profiles,assessments,plans,papers,photos]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get(),db.collection(`${base}/homeworkEvidence`).where('photoSource','==','learning-pilot-photo').get()]);
-  const catalog=rows(targets),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
+  const catalog=safeCurriculum(rows(targets)),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
   const students=ROSTER.map(student=>{const profile=profilesRows.find(p=>p.id===student.id)||{};const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),next:model.next,skills:model.skills}}).filter(Boolean);
   return {ok:true,photos:rows(photos).filter(p=>rosterStudent(p.studentId)).map(p=>({...p,image:p.photoImage,submittedAt:p.photoSubmittedAt})),contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
 }
 export async function teacherPilotWrite(action,body){
   requirePilot();const db=adminDb(),base=workspaceRoot(),timestamp=now();
-  if(action==='learning_approve_reading'){
-    // Only original reading-comprehension templates with checked answers.
-    // Do not approve book handwriting, Quran, or unrelated existing targets.
-    const selected=CONTENT_TEMPLATES.filter(t=>t.subject==='arabic');
-    if(selected.length!==8)throw new AccessError('CONTENT_REVIEW_INCOMPLETE',409);
-    const writes=[];
-    for(const item of selected){
-      const learning=validateContent({...item.learning,status:'approved'});
-      if(learning.questions.length!==3||learning.questions.some(q=>!q.answers.length))
-        throw new AccessError('CONTENT_REVIEW_INCOMPLETE',409);
-      const existing=await db.collection(`${base}/curriculumTargets`).where('subject','==','arabic').get();
-      const match=rows(existing).find(t=>t.skill===item.title&&t.learning?.status==='approved');
-      if(match)continue;
-      const ref=db.doc(`${base}/curriculumTargets/${safeId(item.id)}`);
-      const previous=await ref.get();
-      if(previous.exists&&previous.data().learning?.status==='approved')continue;
-      if(previous.exists&&previous.data().source!=='teacher_original')throw new AccessError('CONTENT_CONFLICT',409);
-      writes.push({ref,item,learning});
-    }
-    for(const {ref,item,learning} of writes){
-      await ref.set({id:item.id,title:item.title,skill:item.title,subject:'arabic',weekNumber:learning.weekNumber,source:'teacher_original',classId:CLASS_ID,learning:{...learning,approvedAt:timestamp},updatedAt:timestamp},{merge:true});
-    }
-    return {saved:true,approved:writes.length,scope:'original_reading_only'};
-  }
+  if(action==='learning_approve_reading')throw new AccessError('SOURCE_VERIFICATION_REQUIRED',409);
   if(action==='learning_content'){
     const id=safeId(body.id),learning=validateContent(body.learning),subject=String(body.subject||'');
     if(!['arabic','spelling','handwriting'].includes(subject))throw new AccessError('SUBJECT_INVALID',400);
