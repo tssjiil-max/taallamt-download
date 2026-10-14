@@ -1,4 +1,5 @@
 import {publishedQuran,QURAN_SOURCE} from './quran-reader.js';
+import {evaluateVerifiedPhotoAnswers} from './photo-review-score.js';
 import {CONTENT_TEMPLATES} from './teacher-content-bank.js';
 import {studentProfilePatch} from './student-profile-patch.js';
 import {isFocused} from './quick-assess.js';
@@ -77,7 +78,7 @@ export async function studentPilotRead(req,res){
     const homeworkDocs=demo?[]:await Promise.all(homeworkIds.map(id=>db.doc(`${base}/homework/${id}`).get()));
     const homeworkTitles=new Map(homeworkDocs.filter(doc=>doc.exists).map(doc=>[doc.id,String(doc.data().title||doc.data().subject||'واجب')]));
     const submissions=ownedPhotos
-      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted',photoQuality:p.photoQuality||null,reviewNote:String(p.photoReviewNote||'').slice(0,600)}));
+      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted',photoQuality:p.photoQuality||null,assessment:p.photoAssessment||null,reviewNote:String(p.photoReviewNote||'').slice(0,600)}));
     const achievements=(eventSnap?rows(eventSnap):[]).filter(p=>p.type==='achievement'||p.type==='positive_behavior'||p.type==='improvement')
       .sort((a,b)=>String(b.occurredAt||'').localeCompare(String(a.occurredAt||''))).slice(0,40)
       .map(p=>({id:p.id,title:String(p.summary||'إنجاز موثق').slice(0,220),date:p.occurredAt||''}));
@@ -194,6 +195,25 @@ export async function teacherPilotWrite(action,body){
     const record={learning:{...learning,approvedAt:learning.status==='approved'?timestamp:null},updatedAt:timestamp};
     if(!previous.exists)Object.assign(record,{id,title,skill:title,subject,weekNumber:learning.weekNumber,source:'teacher_original',classId:CLASS_ID});
     await ref.set(record,{merge:true});return {saved:true};
+  }
+  if(action==='learning_photo_assess'){
+    const id=safeId(body.id),targetId=safeId(body.targetId);
+    if(body.transcriptionVerified!==true)throw new AccessError('TRANSCRIPTION_REVIEW_REQUIRED',400);
+    const submission=await db.doc(`${base}/homeworkEvidence/${id}`).get();
+    const targetSnap=await db.doc(`${base}/curriculumTargets/${targetId}`).get();
+    if(!submission.exists||submission.data().photoSource!=='learning-pilot-photo'||!rosterStudent(submission.data().studentId))throw new AccessError('PHOTO_NOT_FOUND',404);
+    const target=targetSnap.data();
+    if(!targetSnap.exists||target.learning?.status!=='approved'||isUnverifiedReading({...target,id:targetId}))throw new AccessError('CONTENT_NOT_AVAILABLE',404);
+    let estimate;
+    try{estimate=evaluateVerifiedPhotoAnswers(target.learning.questions,body.answers)}catch{throw new AccessError('ANSWERS_INVALID',400)}
+    const ref=db.doc(`${base}/homeworkEvidence/${id}`);
+    await db.runTransaction(async tx=>{
+      const current=await tx.get(ref);
+      if(!current.exists||current.data().studentId!==submission.data().studentId)throw new AccessError('PHOTO_NOT_FOUND',404);
+      if(current.data().photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
+      tx.set(ref,{photoAssessment:{...estimate,verified:true,estimated:true,targetId,answers:body.answers,sourceRevision:target.learning.approvedAt||target.learning.reference,assessedAt:timestamp},photoStatus:'reviewed',photoReviewedBy:'teacher',photoReviewedAt:timestamp,photoStarEligible:estimate.eligibleForStar},{merge:true});
+    });
+    return {saved:true,...estimate,starGranted:false,officialGradeChanged:false};
   }
   if(action==='learning_photo_review'){
     const id=safeId(body.id),ref=db.doc(`${base}/homeworkEvidence/${id}`);
