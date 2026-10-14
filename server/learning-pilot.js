@@ -77,7 +77,7 @@ export async function studentPilotRead(req,res){
     const homeworkDocs=demo?[]:await Promise.all(homeworkIds.map(id=>db.doc(`${base}/homework/${id}`).get()));
     const homeworkTitles=new Map(homeworkDocs.filter(doc=>doc.exists).map(doc=>[doc.id,String(doc.data().title||doc.data().subject||'واجب')]));
     const submissions=ownedPhotos
-      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted',reviewNote:String(p.photoReviewNote||'').slice(0,600)}));
+      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted',photoQuality:p.photoQuality||null,reviewNote:String(p.photoReviewNote||'').slice(0,600)}));
     const achievements=(eventSnap?rows(eventSnap):[]).filter(p=>p.type==='achievement'||p.type==='positive_behavior'||p.type==='improvement')
       .sort((a,b)=>String(b.occurredAt||'').localeCompare(String(a.occurredAt||''))).slice(0,40)
       .map(p=>({id:p.id,title:String(p.summary||'إنجاز موثق').slice(0,220),date:p.occurredAt||''}));
@@ -130,9 +130,10 @@ export async function studentPilotWrite(req,res,body){
     else{const assigned=await db.doc(`${base}/homeworkEvidence/${homeworkId}_${studentId}`).get();if(!assigned.exists)throw new AccessError('HOMEWORK_NOT_ASSIGNED',403)}
     const image=String(body.image||'');if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>280000)throw new AccessError('PHOTO_INVALID',400);
     const {default:sharp}=await import('sharp');const buffer=Buffer.from(image.split(',')[1],'base64');
-    try{const metadata=await sharp(buffer,{limitInputPixels:4000000}).metadata();if(metadata.format!=='jpeg'||!metadata.width||!metadata.height)throw new Error('invalid');await sharp(buffer).stats()}catch{throw new AccessError('PHOTO_INVALID',400)}
-    await ref.set({photoSource:'learning-pilot-photo',studentId,homeworkId,photoImage:image,photoStatus:'pending_teacher_review',photoSubmittedAt:now(),photoRequiresTeacherReview:true},{merge:true});
-    return res.status(200).json({ok:true,status:'pending_teacher_review',score:null});
+    let photoQuality;
+    try{const imageReader=sharp(buffer,{limitInputPixels:4000000});const metadata=await imageReader.metadata();if(metadata.format!=='jpeg'||!metadata.width||!metadata.height)throw new Error('invalid');const stats=await imageReader.stats();const pixels=metadata.width*metadata.height;const warnings=[];if(Math.min(metadata.width,metadata.height)<650)warnings.push('دقة الصورة منخفضة؛ قرّب التصوير وثبّت الجوال.');if(stats.channels.slice(0,3).every(c=>c.mean<75))warnings.push('الصورة داكنة؛ استخدم إضاءة أقوى.');if(stats.channels.slice(0,3).every(c=>c.mean>238))warnings.push('الصورة شديدة الإضاءة؛ تجنب انعكاس الضوء.');photoQuality={status:warnings.length?'needs_clearer_photo':'captured',warnings,width:metadata.width,height:metadata.height,pixels,academicScore:null,academicReview:'بانتظار التحقق من الإجابات'};}catch{throw new AccessError('PHOTO_INVALID',400)}
+    await ref.set({photoQuality,photoSource:'learning-pilot-photo',studentId,homeworkId,photoImage:image,photoStatus:'pending_teacher_review',photoSubmittedAt:now(),photoRequiresTeacherReview:true},{merge:true});
+    return res.status(200).json({ok:true,status:'pending_teacher_review',score:null,photoQuality});
   }
   if(body.action==='quran_review'){
     const plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(db,weekNumberForDate());
@@ -176,7 +177,7 @@ export async function teacherPilotRead(query){
   const [targets,profiles,assessments,plans,papers,photos]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get(),db.collection(`${base}/homeworkEvidence`).where('photoSource','==','learning-pilot-photo').get()]);
   const catalog=safeCurriculum(rows(targets)),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
   const students=ROSTER.map(student=>{const profile=profilesRows.find(p=>p.id===student.id)||{};const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),next:model.next,skills:model.skills}}).filter(Boolean);
-  return {ok:true,photos:rows(photos).filter(p=>rosterStudent(p.studentId)).map(p=>({...p,image:p.photoImage,submittedAt:p.photoSubmittedAt})),contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
+  return {ok:true,photos:rows(photos).filter(p=>rosterStudent(p.studentId)).map(p=>({...p,image:p.photoImage,submittedAt:p.photoSubmittedAt,photoQuality:p.photoQuality||null})),contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
 }
 export async function teacherPilotWrite(action,body){
   requirePilot();const db=adminDb(),base=workspaceRoot(),timestamp=now();
