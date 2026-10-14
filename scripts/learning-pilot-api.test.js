@@ -64,3 +64,20 @@ test('unverified invented reading passages cannot be approved or shown to studen
   const response=res();await studentPilotRead(req(DEMO_STUDENT_ID,{demoSession:'curriculum-check'}),response);
   expect(JSON.stringify(response.body)).not.toContain('نسي خالد أن يسقي النبتة');
 });
+
+test('photo estimated score requires verified transcription and an approved matching lesson',async()=>{
+  const rootPhoto=`${root}/homeworkEvidence/review-grade-1`;
+  state.docs.set(rootPhoto,{studentId:'s2-4-02',photoSource:'learning-pilot-photo',photoStatus:'pending_teacher_review'});
+  await expect(teacherPilotWrite('learning_photo_assess',{id:'review-grade-1',targetId:'approved-lesson',answers:['أ','ب','ج']})).rejects.toMatchObject({code:'TRANSCRIPTION_REVIEW_REQUIRED'});
+  state.docs.set(`${root}/curriculumTargets/approved-lesson`,{id:'approved-lesson',subject:'spelling',learning:{status:'approved',reference:'درس معتمد',questions:[{id:'q1',answers:['أ']},{id:'q2',answers:['ب']},{id:'q3',answers:['ج']}]}});
+  const result=await teacherPilotWrite('learning_photo_assess',{id:'review-grade-1',targetId:'approved-lesson',answers:['أ','ب','ج'],transcriptionVerified:true});
+  expect(result.estimatedScore).toBe(100);
+  expect(result.starGranted).toBe(true);
+  expect(result.officialGradeChanged).toBe(false);
+  expect(state.docs.get(rootPhoto).photoAssessment.verified).toBe(true);
+  const profile=state.docs.get(`${root}/studentProfiles/s2-4-02`);
+  expect(profile.learningPilotMemory.learningStars).toHaveLength(1);
+  await expect(teacherPilotWrite('learning_photo_assess',{id:'review-grade-1',targetId:'approved-lesson',answers:['أ','ب','ج'],transcriptionVerified:true})).rejects.toMatchObject({code:'PHOTO_ALREADY_ASSESSED'});
+  expect(profile.learningPilotMemory.learningStars).toHaveLength(1);
+  expect([...state.docs.keys()].filter(k=>k.includes('/assessments/'))).toHaveLength(0);
+});
