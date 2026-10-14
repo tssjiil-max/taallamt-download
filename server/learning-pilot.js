@@ -124,6 +124,35 @@ export async function studentPilotWrite(req,res,body){
   const studentId=String(body.studentId||'');await authorizeStudent(req,studentId,body,true);
   if(studentId!==DEMO_STUDENT_ID&&!rosterStudent(studentId))throw new AccessError('STUDENT_NOT_FOUND',404);
   const db=adminDb(),base=workspaceRoot(),profile=pilotProfile(studentId,body.demoSession);
+  if(body.action==='learning_activity_photo'){
+    const targetId=safeId(body.targetId),questionId=safeId(body.questionId);
+    const context=await readContext(studentId,body.demoSession);
+    const activity=activityView(context,targetId);
+    if(!activity||activity.question?.id!==questionId)throw new AccessError('ACTIVITY_CHANGED',409);
+    if(isUnverifiedReading(context.catalog.find(t=>t.id===targetId)))throw new AccessError('CONTENT_NOT_AVAILABLE',404);
+    const image=String(body.image||'');
+    if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>280000)throw new AccessError('PHOTO_INVALID',400);
+    const {default:sharp}=await import('sharp');
+    const buffer=Buffer.from(image.split(',')[1],'base64');
+    let quality;
+    try{
+      const reader=sharp(buffer,{limitInputPixels:4000000}),meta=await reader.metadata();
+      if(meta.format!=='jpeg'||!meta.width||!meta.height)throw new Error('bad image');
+      const stats=await reader.stats(),warnings=[];
+      if(Math.min(meta.width,meta.height)<650)warnings.push('الصورة منخفضة الدقة؛ اقترب من الورقة.');
+      if(stats.channels.slice(0,3).every(c=>c.mean<75))warnings.push('الصورة داكنة؛ زِد الإضاءة.');
+      if(stats.channels.slice(0,3).every(c=>c.mean>238))warnings.push('خفّف انعكاس الإضاءة على الورقة.');
+      quality={status:warnings.length?'needs_clearer_photo':'captured',warnings,width:meta.width,height:meta.height};
+    }catch{throw new AccessError('PHOTO_INVALID',400)}
+    const baseId=studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,body.demoSession):studentId;
+    const id=safeId(`activity-${baseId}-${targetId}-${questionId}`);
+    const ref=db.doc(`${base}/homeworkEvidence/${id}`),existing=await ref.get();
+    if(existing.exists&&existing.data()?.studentId!==studentId)throw new AccessError('PHOTO_ACCESS_DENIED',403);
+    await ref.set({id,studentId,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,
+      photoSource:'learning-pilot-photo',photoImage:image,photoQuality:quality,photoStatus:'pending_teacher_review',
+      photoSubmittedAt:now(),photoRequiresTeacherReview:true,photoAssessment:null,photoReviewNote:''},{merge:true});
+    return res.status(200).json({ok:true,status:'pending_teacher_review',photoQuality:quality,academicScore:null,starGranted:false});
+  }
   if(body.action==='homework_photo'){
     const homeworkId=safeId(body.homeworkId),demo=studentId===DEMO_STUDENT_ID;
     const ref=db.doc(`${base}/homeworkEvidence/${demo?scopedProfileId(studentId,body.demoSession)+'_'+homeworkId:homeworkId+'_'+studentId}`);
