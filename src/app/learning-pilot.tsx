@@ -50,7 +50,7 @@ export function StudentAnnouncementsPilot({back,resource}:{back:()=>void;resourc
 }
 
 type Paper={id:string;studentId:string;targetId:string;status:string;questions:{id:string;prompt:string}[];results?:boolean[]};
-type TeacherData={photos?:{id:string;studentId:string;homeworkId:string;image:string;submittedAt:string;photoStatus?:string;photoReviewNote?:string;photoAssessment?:{estimatedScore:number;correct:number;total:number;eligibleForStar:boolean;verified:boolean}}[];contentTemplates:{id:string;title:string;subject:string;bookWeek:number|null;printedPage:number|null;learning:any}[];bookReference:{title:string;warning:string;skills:{title:string;printedPage:number}[]};papers:Paper[];students:{id:string;name:string;needsIntervention:boolean;next:LearningData['model']['next'];skills:Skill[]}[];targets:any[];plans:Plan[];contentPending:number};
+type TeacherData={photos?:{id:string;studentId:string;homeworkId:string;image:string;submittedAt:string;photoStatus?:string;photoReviewNote?:string;photoAssessment?:{estimatedScore:number;correct:number;total:number;eligibleForStar:boolean;starGranted?:boolean;verified:boolean}}[];contentTemplates:{id:string;title:string;subject:string;bookWeek:number|null;printedPage:number|null;learning:any}[];bookReference:{title:string;warning:string;skills:{title:string;printedPage:number}[]};papers:Paper[];students:{id:string;name:string;needsIntervention:boolean;next:LearningData['model']['next'];skills:Skill[]}[];targets:any[];plans:Plan[];contentPending:number};
 function suggestRemediation(target:any){
   const title=String(target?.title||target?.skill||'المهارة').split('auto:')[0].trim();
   const questions=Array.isArray(target?.learning?.questions)?target.learning.questions.filter((q:any)=>q.prompt):[];
@@ -176,7 +176,7 @@ function PhotoReviewForm({photo,disabled,onSave}:{photo:{photoStatus?:string;pho
   return <div className="tkBox"><label className="tkField">ملاحظة المعلم<textarea value={note} onChange={event=>setNote(event.target.value)} maxLength={600} placeholder="ملاحظة تربوية على صورة الواجب"/></label><div className="tkLearningSteps"><button type="button" className="tkBtn" disabled={disabled} onClick={()=>onSave('reviewed',note)}>اعتماد المراجعة</button><button type="button" className="tkBtn ghost" disabled={disabled||!note.trim()} onClick={()=>onSave('needs_revision',note)}>إعادته للتصحيح</button></div><small>قرار المراجعة لا يغير الدرجة الرسمية للطالب.</small></div>;
 }
 
-function PhotoAcademicReview({photo,targets,disabled,onSave}:{photo:{photoAssessment?:{estimatedScore:number;correct:number;total:number;eligibleForStar:boolean;verified:boolean}};targets:TeacherData['targets'];disabled:boolean;onSave:(targetId:string,answers:string[])=>void}){
+function PhotoAcademicReview({photo,targets,disabled,onSave}:{photo:{photoAssessment?:{estimatedScore:number;correct:number;total:number;eligibleForStar:boolean;starGranted?:boolean;verified:boolean}};image:string;targets:TeacherData['targets'];disabled:boolean;onSave:(targetId:string,answers:string[])=>void}){
  const [targetId,setTargetId]=React.useState('');
  const [answers,setAnswers]=React.useState('');
  const [verified,setVerified]=React.useState(false);
@@ -184,7 +184,7 @@ function PhotoAcademicReview({photo,targets,disabled,onSave}:{photo:{photoAssess
  const count=target?.learning?.questions?.length||0;
  const entered=answers.split('\n').map(x=>x.trim());
  return <div className="tkBox"><h3>مطابقة إجابات الواجب وتقديره</h3>
- {photo.photoAssessment?.verified?<p role="status">التقدير المبدئي: {photo.photoAssessment.estimatedScore}٪ — الصحيح {photo.photoAssessment.correct} من {photo.photoAssessment.total}. {photo.photoAssessment.eligibleForStar?'مؤهل لترشيح نجمة، دون منح تلقائي.':''}</p>:<>
+ {photo.photoAssessment?.verified?<p role="status">التقدير المبدئي: {photo.photoAssessment.estimatedScore}٪ — الصحيح {photo.photoAssessment.correct} من {photo.photoAssessment.total}. {photo.photoAssessment.starGranted?'حصل الطالب على نجمة تدريبية وفق معايير الاستحقاق.':photo.photoAssessment.eligibleForStar?'لم تُمنح نجمة بسبب الحد الأسبوعي أو سبق المكافأة.':''}</p>:<>
  <p>اقرأ إجابات الطالب من الصورة وراجع تفريغها قبل المطابقة. لا توجد قراءة موثوقة للخط اليدوي تلقائيًا بعد.</p>
  <label className="tkField">المهارة المطابقة للصفحة<select value={targetId} onChange={e=>{setTargetId(e.target.value);setAnswers('');setVerified(false)}}><option value="">اختر مهارة معتمدة</option>{targets.map(t=><option key={t.id} value={t.id}>{String(t.skill||t.title).split('auto:')[0].trim()}</option>)}</select></label>
  {target&&<p>عدد الأسئلة المطلوب تفريغها: {count}. تحقق من أن الأسئلة هي نفسها الموجودة في الصفحة، وبالترتيب.</p>}
