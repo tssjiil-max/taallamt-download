@@ -72,13 +72,15 @@ test('photo estimated score requires verified transcription and an approved matc
   state.docs.set(`${root}/curriculumTargets/approved-lesson`,{id:'approved-lesson',subject:'spelling',learning:{status:'approved',reference:'درس معتمد',questions:[{id:'q1',answers:['أ']},{id:'q2',answers:['ب']},{id:'q3',answers:['ج']}]}});
   const result=await teacherPilotWrite('learning_photo_assess',{id:'review-grade-1',targetId:'approved-lesson',answers:['أ','ب','ج'],transcriptionVerified:true});
   expect(result.estimatedScore).toBe(100);
-  expect(result.starGranted).toBe(true);
+  expect(result.starGranted).toBe(false);
   expect(result.officialGradeChanged).toBe(false);
   expect(state.docs.get(rootPhoto).photoAssessment.verified).toBe(true);
   const profile=state.docs.get(`${root}/studentProfiles/s2-4-02`);
-  expect(profile.learningPilotMemory.learningStars).toHaveLength(1);
+  expect(profile.learningPilotMemory.learningStars||[]).toHaveLength(0);
+  expect(profile.learningPilotMemory.photoProgress['approved-lesson'].estimatedScore).toBe(100);
   await expect(teacherPilotWrite('learning_photo_assess',{id:'review-grade-1',targetId:'approved-lesson',answers:['أ','ب','ج'],transcriptionVerified:true})).rejects.toMatchObject({code:'PHOTO_ALREADY_ASSESSED'});
-  expect(profile.learningPilotMemory.learningStars).toHaveLength(1);
+  expect(profile.learningPilotMemory.learningStars||[]).toHaveLength(0);
+  expect(profile.learningPilotMemory.photoProgress['approved-lesson'].estimatedScore).toBe(100);
   expect([...state.docs.keys()].filter(k=>k.includes('/assessments/'))).toHaveLength(0);
 });
 
@@ -145,3 +147,23 @@ test('actual student HTTP handler routes paper-photo uploads, ignores forged ass
  const portfolio=res();await studentPilotRead(req(DEMO_STUDENT_ID,{view:'learning-portfolio',demoSession:'http-upload'}),portfolio);expect(portfolio.body.submissions).toHaveLength(1);
  const otherSession=res();await studentPilotRead(req(DEMO_STUDENT_ID,{view:'learning-portfolio',demoSession:'different-session'}),otherSession);expect(otherSession.body.submissions).toHaveLength(0);
 },15000);
+test('photo encouragement uses the roster name, measured progress and no new star',async()=>{
+ const {visualRevision}=await import('../server/visual-photo.js');const {rosterStudent}=await import('../server/roster.js');
+ const target={subject:'spelling',learning:{status:'approved',reference:'معتمد',questions:[{id:'q1',answers:['أ']},{id:'q2',answers:['ب']},{id:'q3',answers:['ج']}]}};
+ state.docs.set(`${root}/curriculumTargets/named`,target);
+ state.docs.set(`${root}/homeworkEvidence/named-photo`,{studentId:'s2-4-02',photoSource:'learning-pilot-photo',photoImage:'same'});
+ state.docs.set(`${root}/studentProfiles/s2-4-02`,{learningPilotMemory:{photoProgress:{named:{estimatedScore:40,sourceRevision:visualRevision(target),questionScope:JSON.stringify(['q1','q2','q3'])}},learningStars:[{id:'historical',week:'old',targetId:'old'}]}});
+ const result=await teacherPilotWrite('learning_photo_assess',{id:'named-photo',targetId:'named',answers:['أ','ب','ج'],transcriptionVerified:true,firstName:'اسم مزور',feedback:{level:'excellent'}});
+ expect(result.feedback.text).toContain(rosterStudent('s2-4-02').firstName);expect(result.feedback.text).not.toContain('اسم مزور');expect(result.feedback.progress).toBe('improved');expect(result.starGranted).toBe(false);
+ expect(state.docs.get(`${root}/studentProfiles/s2-4-02`).learningPilotMemory.learningStars).toEqual([{id:'historical',week:'old',targetId:'old'}]);
+});
+
+test('a narrower question set cannot manufacture an improvement claim',async()=>{
+ const {visualRevision}=await import('../server/visual-photo.js');
+ const target={subject:'spelling',learning:{status:'approved',reference:'معتمد',questions:[{id:'q1',answers:['أ']},{id:'q2',answers:['ب']},{id:'q3',answers:['ج']}]}};
+ state.docs.set(`${root}/curriculumTargets/scope`,target);
+ state.docs.set(`${root}/homeworkEvidence/narrow-photo`,{studentId:'s2-4-02',targetId:'scope',questionId:'q1',photoSourceRevision:visualRevision(target),photoSource:'learning-pilot-photo'});
+ state.docs.set(`${root}/studentProfiles/s2-4-02`,{learningPilotMemory:{photoProgress:{scope:{estimatedScore:33,sourceRevision:visualRevision(target),questionScope:JSON.stringify(['q1','q2','q3'])}}}});
+ const r=await teacherPilotWrite('learning_photo_assess',{id:'narrow-photo',targetId:'scope',answers:['أ'],transcriptionVerified:true});
+ expect(r.feedback.progress).toBe('not_compared');expect(r.feedback.text).not.toContain('تقدّمت');
+});

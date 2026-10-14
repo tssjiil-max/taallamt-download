@@ -16,5 +16,5 @@ export function evaluateVerifiedPhotoAnswers(questions,answers){
  const totalPoints=weights.reduce((a,b)=>a+b,0),earned=items.reduce((a,r)=>a+r.points,0),unknown=items.filter(r=>!r.resolved).reduce((a,r)=>a+r.maxPoints,0);
  const correct=items.filter(r=>r.status==='correct').length;
  const estimatedScore=unknown?null:Math.round(earned*100/totalPoints);
- return {results:items.map(r=>r.resolved?r.status==='correct':null),items,correct,total:items.length,totalPoints,earnedPoints:earned,estimatedScore,scoreRange:{min:Math.round(earned*100/totalPoints),max:Math.round((earned+unknown)*100/totalPoints)},weightSource:questions.every(q=>q.points!==undefined)?'teacher_rubric':'equal_weight_training_only',eligibleForStar:estimatedScore===100&&items.length>=3};
+ return {results:items.map(r=>r.resolved?r.status==='correct':null),items,correct,total:items.length,totalPoints,earnedPoints:earned,estimatedScore,scoreRange:{min:Math.round(earned*100/totalPoints),max:Math.round((earned+unknown)*100/totalPoints)},weightSource:questions.every(q=>q.points!==undefined)?'teacher_rubric':'equal_weight_training_only',eligibleForStar:false};
 }

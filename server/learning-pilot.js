@@ -1,3 +1,4 @@
+import {photoFeedback} from './photo-feedback.js';
 import {processVisualPhoto,visualRevision,validateRegions} from './visual-photo.js';
 import {publishedQuran,QURAN_SOURCE} from './quran-reader.js';
 import {evaluateVerifiedPhotoAnswers} from './photo-review-score.js';
@@ -79,7 +80,7 @@ export async function studentPilotRead(req,res){
     const homeworkDocs=demo?[]:await Promise.all(homeworkIds.map(id=>db.doc(`${base}/homework/${id}`).get()));
     const homeworkTitles=new Map(homeworkDocs.filter(doc=>doc.exists).map(doc=>[doc.id,String(doc.data().title||doc.data().subject||'واجب')]));
     const submissions=ownedPhotos
-      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted',photoQuality:p.photoQuality||null,visualReport:p.visualReport?{status:p.visualReport.status,readings:p.visualReport.readings.map(r=>({questionId:r.questionId,text:r.text,confidence:r.confidence,status:r.status,reason:r.reason})),reasons:p.visualReport.reasons}:null,assessment:p.photoAssessment||null,reviewNote:String(p.photoReviewNote||'').slice(0,600)}));
+      .map(p=>({id:p.id,image:/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(p.photoImage||''))?p.photoImage:null,title:homeworkTitles.get(p.homeworkId)||'واجب مصور',homeworkId:p.homeworkId,submittedAt:p.photoSubmittedAt||p.submittedAt||'',status:p.photoStatus||'submitted',photoQuality:p.photoQuality||null,feedback:p.photoFeedback||p.photoAssessment?.feedback||null,visualReport:p.visualReport?{status:p.visualReport.status,readings:p.visualReport.readings.map(r=>({questionId:r.questionId,text:r.text,confidence:r.confidence,status:r.status,reason:r.reason})),reasons:p.visualReport.reasons}:null,assessment:p.photoAssessment||null,reviewNote:String(p.photoReviewNote||'').slice(0,600)}));
     const achievements=(eventSnap?rows(eventSnap):[]).filter(p=>p.type==='achievement'||p.type==='positive_behavior'||p.type==='improvement')
       .sort((a,b)=>String(b.occurredAt||'').localeCompare(String(a.occurredAt||''))).slice(0,40)
       .map(p=>({id:p.id,title:String(p.summary||'إنجاز موثق').slice(0,220),date:p.occurredAt||''}));
@@ -87,7 +88,7 @@ export async function studentPilotRead(req,res){
     const plans=context.plans.map(p=>({id:p.id,title:String(p.goal||'خطة للتقدم'),status:p.status||'',date:p.dueDate||''}));
     return res.status(200).json({ok:true,student:{id:context.student.id,name:context.student.name||context.student.fullName||context.student.firstName||''},skills:context.model.skills,stars:context.model.stars,assessments,achievements,plans,submissions});
   }
-  if(req.query.view==='homework-photo'){const id=safeId(req.query.homeworkId),ref=adminDb().doc(`${workspaceRoot()}/homeworkEvidence/${studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,req.query.demoSession)+'_'+id:id+'_'+studentId}`),snap=await ref.get();return res.status(200).json({ok:true,submission:snap.exists?{image:snap.data().photoImage,status:snap.data().photoStatus,submittedAt:snap.data().photoSubmittedAt}:null});}
+  if(req.query.view==='homework-photo'){const id=safeId(req.query.homeworkId),ref=adminDb().doc(`${workspaceRoot()}/homeworkEvidence/${studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,req.query.demoSession)+'_'+id:id+'_'+studentId}`),snap=await ref.get();return res.status(200).json({ok:true,submission:snap.exists?{image:snap.data().photoImage,status:snap.data().photoStatus,submittedAt:snap.data().photoSubmittedAt,feedback:snap.data().photoFeedback||snap.data().photoAssessment?.feedback||null,photoQuality:snap.data().photoQuality||null}:null});}
   if(req.query.view==='learning-quran'){
     const p=await pilotProfile(studentId,req.query.demoSession).get(),plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(adminDb(),weekNumberForDate());
     return res.status(200).json({ok:true,source:QURAN_SOURCE,segments:publishedQuran(plan),reviews:memoryOf(p.data()).quranReviews||[]});
@@ -152,10 +153,11 @@ export async function studentPilotWrite(req,res,body){
     }catch{throw new AccessError('PHOTO_INVALID',400)}
     const target=context.catalog.find(t=>t.id===targetId);
     const visualReport=await processVisualPhoto(image);
-    await db.runTransaction(async tx=>{const current=await tx.get(ref);if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);tx.set(ref,{id,studentId,demoProfileId:studentId===DEMO_STUDENT_ID?baseId:null,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,visualReport,photoSourceRevision:visualRevision(target),
+    const feedback=photoFeedback({firstName:(studentId===DEMO_STUDENT_ID?DEMO_STUDENT:rosterStudent(studentId))?.firstName,quality:quality});
+    await db.runTransaction(async tx=>{const current=await tx.get(ref);if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);tx.set(ref,{id,studentId,demoProfileId:studentId===DEMO_STUDENT_ID?baseId:null,homeworkId:'learning-activity',targetId,questionId,activityPrompt:activity.question.prompt,visualReport,photoFeedback:feedback,photoSourceRevision:visualRevision(target),
       photoSource:'learning-pilot-photo',photoImage:image,photoQuality:quality,photoStatus:'pending_teacher_review',
       photoSubmittedAt:now(),photoRequiresTeacherReview:true,photoAssessment:null,photoReviewNote:''},{merge:true})});
-    return res.status(200).json({ok:true,status:'pending_teacher_review',photoQuality:quality,academicScore:null,starGranted:false,visualStatus:visualReport.status});
+    return res.status(200).json({ok:true,status:'pending_teacher_review',photoQuality:quality,academicScore:null,starGranted:false,visualStatus:visualReport.status,feedback});
   }
   if(body.action==='homework_photo'){
     const homeworkId=safeId(body.homeworkId),demo=studentId===DEMO_STUDENT_ID;
@@ -168,8 +170,9 @@ export async function studentPilotWrite(req,res,body){
     let photoQuality;
     try{const imageReader=sharp(buffer,{limitInputPixels:4000000});const metadata=await imageReader.metadata();if(metadata.format!=='jpeg'||!metadata.width||!metadata.height)throw new Error('invalid');const stats=await imageReader.stats();const pixels=metadata.width*metadata.height;const warnings=[];if(Math.min(metadata.width,metadata.height)<650)warnings.push('دقة الصورة منخفضة؛ قرّب التصوير وثبّت الجوال.');if(stats.channels.slice(0,3).every(c=>c.mean<75))warnings.push('الصورة داكنة؛ استخدم إضاءة أقوى.');if(stats.channels.slice(0,3).every(c=>c.mean>238))warnings.push('الصورة شديدة الإضاءة؛ تجنب انعكاس الضوء.');photoQuality={status:warnings.length?'needs_clearer_photo':'captured',warnings,width:metadata.width,height:metadata.height,pixels,academicScore:null,academicReview:'بانتظار التحقق من الإجابات'};}catch{throw new AccessError('PHOTO_INVALID',400)}
     const visualReport=await processVisualPhoto(image);
-    await db.runTransaction(async tx=>{const current=await tx.get(ref);if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);tx.set(ref,{photoQuality,visualReport,photoAssessment:null,photoReviewNote:'',photoSource:'learning-pilot-photo',studentId,homeworkId,photoImage:image,photoStatus:'pending_teacher_review',photoSubmittedAt:now(),photoRequiresTeacherReview:true},{merge:true})});
-    return res.status(200).json({ok:true,status:'pending_teacher_review',score:null,photoQuality});
+    const feedback=photoFeedback({firstName:(studentId===DEMO_STUDENT_ID?DEMO_STUDENT:rosterStudent(studentId))?.firstName,quality:photoQuality});
+    await db.runTransaction(async tx=>{const current=await tx.get(ref);if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);tx.set(ref,{photoQuality,visualReport,photoFeedback:feedback,photoAssessment:null,photoReviewNote:'',photoSource:'learning-pilot-photo',studentId,homeworkId,photoImage:image,photoStatus:'pending_teacher_review',photoSubmittedAt:now(),photoRequiresTeacherReview:true},{merge:true})});
+    return res.status(200).json({ok:true,status:'pending_teacher_review',score:null,photoQuality,feedback});
   }
   if(body.action==='quran_review'){
     const plan=studentId===DEMO_STUDENT_ID?demoHome().plan:await readWeekPlan(db,weekNumberForDate());
@@ -265,7 +268,7 @@ export async function teacherPilotWrite(action,body){
     try{estimate=evaluateVerifiedPhotoAnswers(questions,body.answers)}catch{throw new AccessError('ANSWERS_INVALID',400)}
     const ref=db.doc(`${base}/homeworkEvidence/${id}`);
     const profileRef=db.doc(`${base}/studentProfiles/${submission.data().studentId}`);
-    let starGranted=false;
+    const starGranted=false;let feedback;
     await db.runTransaction(async tx=>{
       const current=await tx.get(ref);
       const profile=await tx.get(profileRef);
@@ -273,12 +276,15 @@ export async function teacherPilotWrite(action,body){
       const source=await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`));
       if(current.data().photoImage!==submission.data().photoImage||current.data().targetId!==submission.data().targetId||current.data().questionId!==submission.data().questionId||current.data().photoSourceRevision!==submission.data().photoSourceRevision||visualRevision(source.data())!==visualRevision(target))throw new AccessError('CONTENT_CHANGED',409);
       if(current.data().photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
-      const memory=memoryOf(profile.data()),awards=memory.learningStars||[],week=learningWeek(timestamp);
-      starGranted=estimate.eligibleForStar&&new Set(questions.map(q=>q.id)).size>=3&&awards.filter(a=>a.week===week).length<3&&!awards.some(a=>a.week===week&&a.targetId===targetId);
-      if(starGranted)tx.set(profileRef,{learningPilotMemory:{...memory,learningStars:[...awards,{id:`photo:${id}`,targetId,week,at:timestamp,reason:'أجبت عن أسئلة مهارة معتمدة بعد التحقق من الإجابات'}].slice(-156),updatedAt:timestamp}},{merge:true});
-      tx.set(ref,{photoAssessment:{...estimate,verified:estimate.estimatedScore!==null,estimated:true,targetId,answers:body.answers,sourceRevision:target.learning.approvedAt||target.learning.reference,assessedAt:timestamp,starGranted},photoStatus:estimate.estimatedScore===null?'pending_teacher_review':'reviewed',photoReviewedBy:'teacher',photoReviewedAt:timestamp,photoStarEligible:estimate.eligibleForStar},{merge:true});
+      const memory=memoryOf(profile.data());
+      const prior=memory.photoProgress?.[targetId];const questionScope=JSON.stringify(questions.map(q=>q.id).sort());
+      feedback=photoFeedback({firstName:rosterStudent(submission.data().studentId)?.firstName,estimate,previousScore:prior?.sourceRevision===visualRevision(target)&&prior.questionScope===questionScope?prior.estimatedScore:null,questions});
+      if(estimate.estimatedScore!==null){const progress={...(memory.photoProgress||{}),[targetId]:{estimatedScore:estimate.estimatedScore,sourceRevision:visualRevision(target),questionScope,at:timestamp,evidenceId:id}};
+        const photoProgress=Object.fromEntries(Object.entries(progress).sort((a,b)=>String(b[1].at||'').localeCompare(String(a[1].at||''))).slice(0,40));
+        tx.set(profileRef,{learningPilotMemory:{...memory,photoProgress}},{merge:true});}
+      tx.set(ref,{photoAssessment:{...estimate,feedback,verified:estimate.estimatedScore!==null,estimated:true,targetId,answers:body.answers,sourceRevision:target.learning.approvedAt||target.learning.reference,assessedAt:timestamp,starGranted},photoStatus:estimate.estimatedScore===null?'pending_teacher_review':'reviewed',photoReviewedBy:'teacher',photoReviewedAt:timestamp,photoFeedback:feedback,photoStarEligible:false},{merge:true});
     });
-    return {saved:true,...estimate,starGranted,officialGradeChanged:false};
+    return {saved:true,...estimate,starGranted,feedback,officialGradeChanged:false};
   }
   if(action==='learning_photo_review'){
     const id=safeId(body.id),ref=db.doc(`${base}/homeworkEvidence/${id}`);
@@ -290,7 +296,8 @@ export async function teacherPilotWrite(action,body){
       const snap=await tx.get(ref);
       if(!snap.exists||snap.data().photoSource!=='learning-pilot-photo'||!rosterStudent(snap.data().studentId))throw new AccessError('PHOTO_NOT_FOUND',404);
       if(!['pending_teacher_review','reviewed','needs_revision'].includes(snap.data().photoStatus))throw new AccessError('PHOTO_STATE_INVALID',409);
-      tx.set(ref,{photoStatus:status,photoReviewNote:note,photoReviewedAt:timestamp,photoReviewedBy:'teacher',photoRequiresTeacherReview:false},{merge:true});
+      const feedback=photoFeedback({firstName:rosterStudent(snap.data().studentId)?.firstName,status,reviewNote:note});
+      tx.set(ref,{photoFeedback:feedback,photoStatus:status,photoReviewNote:note,photoReviewedAt:timestamp,photoReviewedBy:'teacher',photoRequiresTeacherReview:false},{merge:true});
     });
     return {saved:true,status,officialGradeChanged:false};
   }
