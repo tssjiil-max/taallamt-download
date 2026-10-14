@@ -49,3 +49,12 @@ test('teacher photo review records feedback without setting an official grade',a
   expect([...state.docs.keys()].some(p=>p.includes('/assessments/'))).toBe(false);
   await expect(teacherPilotWrite('learning_photo_review',{id:'missing',status:'reviewed'})).rejects.toMatchObject({code:'PHOTO_NOT_FOUND'});
 });
+
+test('reading exercises retain full passage answers and cannot be silently approved',async()=>{
+  const {CONTENT_TEMPLATES}=await import('../server/teacher-content-bank.js');
+  expect(CONTENT_TEMPLATES).toHaveLength(44);
+  const lesson=CONTENT_TEMPLATES.find(t=>t.id==='original-arabic-8');
+  expect(lesson.learning.questions[1].answers).toContain('في مزارع كثيرة في بلادي');
+  expect(CONTENT_TEMPLATES.every(t=>t.learning.status==='draft')).toBe(true);
+  expect(CONTENT_TEMPLATES.filter(t=>t.subject==='handwriting').every(t=>!t.learning.rulingVerified)).toBe(true);
+});
