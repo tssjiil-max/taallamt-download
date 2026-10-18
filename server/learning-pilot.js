@@ -1,3 +1,4 @@
+import {foundationCatalog,foundationSnapshot} from './foundation-content.js';
 import {photoFeedback} from './photo-feedback.js';
 import {processVisualPhoto,visualRevision,validateRegions} from './visual-photo.js';
 import {publishedQuran,QURAN_SOURCE} from './quran-reader.js';
@@ -39,9 +40,9 @@ const onlyStudent=(plan,studentId)=>plan.studentId===studentId;
 async function readContext(studentId,demoSession=''){
   const student=studentId===DEMO_STUDENT_ID?DEMO_STUDENT:rosterStudent(studentId);if(!student)throw new AccessError('STUDENT_NOT_FOUND',404);
   const db=adminDb(),base=workspaceRoot();
-  if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,demoSession).get(),memory=memoryOf(profile.data());return {student:DEMO_STUDENT,memory,catalog:safeCurriculum(DEMO_TARGETS),model:buildLearningModel({studentId,targets:safeCurriculum(DEMO_TARGETS),memory,now:now()}),assessments:[],plans:[DEMO_PLAN]}}
+  if(studentId===DEMO_STUDENT_ID){const profile=await pilotProfile(studentId,demoSession).get(),memory=memoryOf(profile.data());return {student:DEMO_STUDENT,memory,catalog:safeCurriculum(foundationCatalog(DEMO_TARGETS)),model:buildLearningModel({studentId,targets:safeCurriculum(foundationCatalog(DEMO_TARGETS)),memory,now:now()}),assessments:[],plans:[DEMO_PLAN]}}
   const [profile,targets,assessments,plans]=await Promise.all([db.doc(`${base}/studentProfiles/${studentId}`).get(),db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/assessments`).where('studentId','==',studentId).get(),db.collection(`${base}/remediationPlans`).where('studentId','==',studentId).get()]);
-  const memory=memoryOf(profile.exists?profile.data():{}),catalog=safeCurriculum(rows(targets)),timestamp=now();
+  const memory=memoryOf(profile.exists?profile.data():{}),catalog=safeCurriculum(foundationCatalog(rows(targets))),timestamp=now();
   const model=buildLearningModel({studentId,targets:catalog,assessments:rows(assessments),memory,now:timestamp,weekNumber:weekNumberForDate()});
   const planRows=rows(plans).filter(p=>p.source==='learning-pilot'&&onlyStudent(p,studentId));
   const fileIds=[...new Set(planRows.flatMap(p=>p.fileIds||[]))].slice(0,40),fileSnaps=await Promise.all(fileIds.map(id=>db.doc(`${base}/files/${safeId(id)}`).get()));
@@ -200,7 +201,7 @@ export async function studentPilotWrite(req,res,body){
     if(existing){if(existing.targetId!==targetId)throw new AccessError('ATTEMPT_CONFLICT',409);return {duplicate:true,correct:existing.correct}}
     const count=(memory.attempts||[]).filter(a=>a.at.slice(0,10)===now().slice(0,10)).length;
     if(count>=target.learning.dailyLimit)throw new AccessError('DAILY_LIMIT_REACHED',429);
-    let currentTarget=target;if(studentId!==DEMO_STUDENT_ID){const stored=await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`));currentTarget=stored.exists?{id:stored.id,...stored.data()}:null;if(!currentTarget||currentTarget.learning?.status!=='approved')throw new AccessError('CONTENT_NOT_AVAILABLE',404)}
+    let currentTarget=target;if(studentId!==DEMO_STUDENT_ID){const stored=foundationSnapshot(await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`)),targetId);currentTarget=stored.exists?{id:stored.id,...stored.data()}:null;if(!currentTarget||currentTarget.learning?.status!=='approved')throw new AccessError('CONTENT_NOT_AVAILABLE',404)}
     const question=selectActivity(currentTarget,memory);
     if(question.id!==String(body.questionId||''))throw new AccessError('ACTIVITY_CHANGED',409);
     const correct=gradeAnswer(question,body.answer),timestamp=now();
@@ -214,7 +215,7 @@ export async function studentPilotWrite(req,res,body){
 export async function teacherPilotRead(query){
   requirePilot();const db=adminDb(),base=workspaceRoot();
   const [targets,profiles,assessments,plans,papers,photos]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get(),db.collection(`${base}/homeworkEvidence`).where('photoSource','==','learning-pilot-photo').get()]);
-  const catalog=safeCurriculum(rows(targets)),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
+  const catalog=safeCurriculum(foundationCatalog(rows(targets))),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
   const students=ROSTER.map(student=>{const profile=profilesRows.find(p=>p.id===student.id)||{};const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),next:model.next,skills:model.skills}}).filter(Boolean);
   return {ok:true,photos:rows(photos).filter(p=>rosterStudent(p.studentId)).map(p=>({...p,image:p.photoImage,submittedAt:p.photoSubmittedAt,photoQuality:p.photoQuality||null})),contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
 }
@@ -223,7 +224,7 @@ export async function teacherPilotWrite(action,body){
   if(action==='learning_approve_reading')throw new AccessError('SOURCE_VERIFICATION_REQUIRED',409);
   if(action==='learning_content'){
     const id=safeId(body.id),learning=validateContent(body.learning),subject=String(body.subject||'');
-    if(!['arabic','spelling','handwriting'].includes(subject))throw new AccessError('SUBJECT_INVALID',400);
+    if(!['arabic','spelling','handwriting','islamic'].includes(subject))throw new AccessError('SUBJECT_INVALID',400);
     if(subject==='arabic'&&learning.status==='approved'&&isUnverifiedReading({id,subject,learning}))throw new AccessError('SOURCE_VERIFICATION_REQUIRED',409);
     if(subject==='handwriting'&&learning.status==='approved'&&!learning.rulingVerified)throw new AccessError('RULING_VERIFICATION_REQUIRED',400);
     if(learning.prerequisites.includes(id))throw new AccessError('PREREQUISITE_INVALID',400);
@@ -240,14 +241,14 @@ export async function teacherPilotWrite(action,body){
     if(!submission.exists||row.photoSource!=='learning-pilot-photo'||!rosterStudent(row.studentId))throw new AccessError('PHOTO_NOT_FOUND',404);
     if(row.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
     let regions;try{regions=validateRegions(body.regions)}catch{throw new AccessError('REGIONS_INVALID',400)}
-    const targetId=safeId(row.targetId||body.targetId),targetSnap=await db.doc(`${base}/curriculumTargets/${targetId}`).get(),target=targetSnap.data();
+    const targetId=safeId(row.targetId||body.targetId),targetSnap=foundationSnapshot(await db.doc(`${base}/curriculumTargets/${targetId}`).get(),targetId),target=targetSnap.data();
     if(!targetSnap.exists||target.learning?.status!=='approved'||isUnverifiedReading({...target,id:targetId}))throw new AccessError('CONTENT_NOT_AVAILABLE',404);
     const allowed=new Set((row.questionId?target.learning.questions.filter(q=>q.id===row.questionId):target.learning.questions).map(q=>q.id));
     if(regions.some(r=>!allowed.has(r.questionId)))throw new AccessError('REGIONS_INVALID',400);
     const revision=visualRevision(target);
     if(row.photoSourceRevision&&row.photoSourceRevision!==revision)throw new AccessError('CONTENT_CHANGED',409);
     const report=await processVisualPhoto(row.photoImage,{regions});
-    await db.runTransaction(async tx=>{const current=await tx.get(ref),source=await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`));
+    await db.runTransaction(async tx=>{const current=await tx.get(ref),source=foundationSnapshot(await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`)),targetId);
       if(current.data()?.photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
       if(current.data()?.photoImage!==row.photoImage||current.data()?.targetId!==row.targetId||current.data()?.questionId!==row.questionId||current.data()?.photoSourceRevision!==row.photoSourceRevision||visualRevision(source.data())!==revision)throw new AccessError('CONTENT_CHANGED',409);
       tx.set(ref,{visualReport:report,targetId,photoSourceRevision:revision},{merge:true});});
@@ -257,7 +258,7 @@ export async function teacherPilotWrite(action,body){
     const id=safeId(body.id),targetId=safeId(body.targetId);
     if(body.transcriptionVerified!==true)throw new AccessError('TRANSCRIPTION_REVIEW_REQUIRED',400);
     const submission=await db.doc(`${base}/homeworkEvidence/${id}`).get();
-    const targetSnap=await db.doc(`${base}/curriculumTargets/${targetId}`).get();
+    const targetSnap=foundationSnapshot(await db.doc(`${base}/curriculumTargets/${targetId}`).get(),targetId);
     if(!submission.exists||submission.data().photoSource!=='learning-pilot-photo'||!rosterStudent(submission.data().studentId))throw new AccessError('PHOTO_NOT_FOUND',404);
     const target=targetSnap.data();
     if(!targetSnap.exists||target.learning?.status!=='approved'||isUnverifiedReading({...target,id:targetId}))throw new AccessError('CONTENT_NOT_AVAILABLE',404);
@@ -273,7 +274,7 @@ export async function teacherPilotWrite(action,body){
       const current=await tx.get(ref);
       const profile=await tx.get(profileRef);
       if(!current.exists||current.data().studentId!==submission.data().studentId)throw new AccessError('PHOTO_NOT_FOUND',404);
-      const source=await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`));
+      const source=foundationSnapshot(await tx.get(db.doc(`${base}/curriculumTargets/${targetId}`)),targetId);
       if(current.data().photoImage!==submission.data().photoImage||current.data().targetId!==submission.data().targetId||current.data().questionId!==submission.data().questionId||current.data().photoSourceRevision!==submission.data().photoSourceRevision||visualRevision(source.data())!==visualRevision(target))throw new AccessError('CONTENT_CHANGED',409);
       if(current.data().photoAssessment?.verified)throw new AccessError('PHOTO_ALREADY_ASSESSED',409);
       const memory=memoryOf(profile.data());
@@ -305,7 +306,7 @@ export async function teacherPilotWrite(action,body){
     const id=safeId(body.id),ref=db.doc(`${base}/homeworkEvidence/${id}`),paper=await ref.get();
     if(!paper.exists||paper.data().kind!=='learning-pilot-paper'||!rosterStudent(paper.data().studentId))throw new AccessError('PAPER_NOT_FOUND',404);
     const record=paper.data(),results=body.results;
-    const target=await db.doc(`${base}/curriculumTargets/${record.targetId}`).get();if(!target.exists||target.data().learning?.status!=='approved'||record.sourceRevision!==(target.data().learning.approvedAt||target.data().learning.reference))throw new AccessError('CONTENT_CHANGED',409);
+    const target=foundationSnapshot(await db.doc(`${base}/curriculumTargets/${record.targetId}`).get(),record.targetId);if(!target.exists||target.data().learning?.status!=='approved'||record.sourceRevision!==(target.data().learning.approvedAt||target.data().learning.reference))throw new AccessError('CONTENT_CHANGED',409);
     if(!Array.isArray(results)||results.length!==record.questions.length||results.some(x=>typeof x!=='boolean'))throw new AccessError('PAPER_RESULT_INVALID',400);
     const profile=pilotProfile(record.studentId);
     await db.runTransaction(async tx=>{const p=await tx.get(profile),memory=memoryOf(p.data());let next={...memory,attempts:(memory.attempts||[]).filter(a=>!a.id.startsWith(id+':'))};for(let i=0;i<results.length;i++)next=recordAttempt(next,{id:`${id}:${i}`,targetId:record.targetId,questionId:record.questions[i].id,correct:results[i],mode:'test',strategy:'teacher_review',errorType:'teacher_marked'},timestamp);tx.set(profile,{learningPilotMemory:next},{merge:true});tx.set(ref,{status:'graded',results,gradedAt:timestamp,gradedBy:'teacher'},{merge:true})});
@@ -315,7 +316,7 @@ export async function teacherPilotWrite(action,body){
     const studentId=safeId(body.studentId);if(!rosterStudent(studentId))throw new AccessError('STUDENT_NOT_FOUND',404);
     const targetId=safeId(body.targetId),id=body.id?safeId(body.id):`learning-${randomUUID()}`,ref=db.doc(`${base}/remediationPlans/${id}`),old=await ref.get();
     if(old.exists&&(old.data().studentId!==studentId||old.data().source!=='learning-pilot'))throw new AccessError('PLAN_ACCESS_DENIED',403);
-    const target=await db.doc(`${base}/curriculumTargets/${targetId}`).get();if(!target.exists||target.data().learning?.status!=='approved')throw new AccessError('CONTENT_NOT_AVAILABLE',404);
+    const target=foundationSnapshot(await db.doc(`${base}/curriculumTargets/${targetId}`).get(),targetId);if(!target.exists||target.data().learning?.status!=='approved')throw new AccessError('CONTENT_NOT_AVAILABLE',404);
     const status=['proposed','active','improved','needs_more_support','resolved'].includes(body.status)?body.status:'proposed';
     if(status==='resolved'&&!old.exists)throw new AccessError('PLAN_STATE_INVALID',400);
     const fileIds=[...new Set((Array.isArray(body.fileIds)?body.fileIds:old.data()?.fileIds||[]).map(safeId))].slice(0,8);

@@ -173,3 +173,22 @@ test('interactive cycle grants one star and preserves attempts in portfolio with
  expect(last.body.star.reason).toBeTruthy();const portfolio=res();await studentPilotRead({headers:{},query:{view:'learning-portfolio',pilot:'1',studentId:DEMO_STUDENT_ID,demoSession:'full-cycle'}},portfolio);expect(portfolio.body.stars).toHaveLength(1);expect(portfolio.body.trainingRecords).toHaveLength(3);expect([...state.docs.keys()].some(p=>p.includes('/assessments/'))).toBe(false);
  const retry=res();await studentPilotWrite({headers:{}},retry,{action:'learning_attempt',pilot:true,studentId:DEMO_STUDENT_ID,demoSession:'full-cycle',targetId:DEMO_TARGET.id,attemptId:'cycle-friend',questionId:'friend',answer:'صديقٍ',mode:'test'});expect(retry.body.duplicate).toBe(true);
 });
+
+test('foundation activates for all 30 authorized roster identities and supports Islamic answer correction and teacher stop',async()=>{
+ const {teacherPilotRead}=await import('../server/learning-pilot.js');
+ const invite='foundation-test-invite-1234567890';
+ for(const id of ['s2-4-02','s2-4-03'])state.docs.set(`${root}/studentProfiles/${id}`,{guardianInviteToken:invite});
+ const overview=await teacherPilotRead({});
+ expect(overview.students).toHaveLength(30);
+ for(const student of overview.students){expect(new Set(student.skills.map(s=>s.subject))).toEqual(new Set(['arabic','spelling','handwriting','islamic']))}
+ const read=res();await studentPilotRead(req('s2-4-02',{targetId:'foundation-faith',invite}),read);
+ expect(read.body.activity.question.prompt).toBe('من ربك؟');expect(read.body.activity.question.answers).toBeUndefined();
+ const write=res();await studentPilotWrite({headers:{}},write,{action:'learning_attempt',pilot:true,studentId:'s2-4-02',invite,targetId:'foundation-faith',attemptId:'islamic-one',questionId:'q1',answer:'الله',mode:'test'});
+ expect(write.body.correct).toBe(true);
+ const other=res();await studentPilotRead(req('s2-4-03',{targetId:'foundation-faith',invite}),other);expect(other.body.activity.question.id).toBe('q1');
+ const target=overview.targets.find(t=>t.id==='foundation-faith');
+ await teacherPilotWrite('learning_content',{id:target.id,title:target.title,subject:target.subject,learning:{...target.learning,status:'draft'}});
+ const stopped=res();await studentPilotRead(req('s2-4-02',{targetId:target.id,invite}),stopped);expect(stopped.body.activity).toBeNull();
+ await expect(studentPilotWrite({headers:{}},res(),{action:'learning_attempt',pilot:true,studentId:'s2-4-02',invite,targetId:target.id,attemptId:'after-stop',questionId:'q2',answer:'الإسلام'})).rejects.toMatchObject({code:'CONTENT_NOT_AVAILABLE'});
+ expect([...state.docs.keys()].filter(p=>p.includes('/assessments/'))).toHaveLength(0);
+});
