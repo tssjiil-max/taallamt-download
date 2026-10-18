@@ -17,6 +17,22 @@ export function usePilotAnnouncements(){return useRemote<{items:Announcement[];u
 const message=(error:unknown)=>{const e=asApiError(error);return e.code==='DAILY_LIMIT_REACHED'?'أكملت تدريبات اليوم. نكمل غدًا بإذن الله.':e.code==='ACTIVITY_CHANGED'?'تغير النشاط؛ حدّث الصفحة ثم أكمل.':e.code==='PILOT_NOT_AVAILABLE'?'التجربة غير مفعّلة على هذا الرابط.':e.kind==='offline'?'انقطع الاتصال. لم يُحفظ التغيير؛ حاول مرة أخرى.':`تعذر إتمام العملية (${e.code}).`};
 const stateLabel=(state:string)=>({unknown:'نكتشف مستواك',needs_practice:'نتدرّب للتقدم',mastered:'أتقنتها مع المعلم',practice_mastered:'أتقنت التدريب'}[state]||'قيد المتابعة');
 const planLabel=(state:string)=>({proposed:'بانتظار اعتماد المعلم',active:'قيد التنفيذ',improved:'تحسن',needs_more_support:'نواصل التدريب',resolved:'أنهيت الخطة'}[state]||state);
+function ShakabumboCompanion({feedback}:{feedback:string}){
+  const [listening,setListening]=React.useState(false);
+  React.useEffect(()=>{
+    const onPlay=(event:Event)=>{if((event.target as HTMLElement)?.tagName==='AUDIO')setListening(true)};
+    const onPause=()=>setListening(Boolean(document.querySelector('audio:not([paused])')));
+    document.addEventListener('play',onPlay,true);
+    document.addEventListener('pause',onPause,true);
+    return()=>{document.removeEventListener('play',onPlay,true);document.removeEventListener('pause',onPause,true)};
+  },[]);
+  const celebrating=!listening&&/نجمة|إجابتك صحيحة|أحسنت/.test(feedback);
+  return <aside className={`tkShakCompanion ${listening?'listening':celebrating?'celebrating':'walking'}`} aria-label={listening?'شكابمبو ينصت للقرآن':'شكابمبو يشجعك'}>
+    <img src={SHAK.standing} alt={listening?'شكابمبو يجلس بهدوء وينصت':'شكابمبو المساعد التعليمي'}/>
+    <span aria-live="polite">{listening?'أنصت معك للقرآن':celebrating?'أحسنت! ⭐':'هيا نتعلّم معًا!'}</span>
+  </aside>;
+}
+
 export function StudentLearningPilot({back}:{back:()=>void}){
   const [targetId,setTarget]=React.useState(''),[step,setStep]=React.useState(0),[answerMode,setAnswerMode]=React.useState<'paper'|'typing'>('typing'),[answer,setAnswer]=React.useState(''),[busy,setBusy]=React.useState(false),[feedback,setFeedback]=React.useState('');
   const resource=useRemote<LearningData>(`learning:${access.studentId}:${targetId}`,()=>api(`/api/student-state?view=learning-pilot&${accessQuery}${targetId?`&targetId=${encodeURIComponent(targetId)}`:''}`));
@@ -28,7 +44,7 @@ export function StudentLearningPilot({back}:{back:()=>void}){
     if(retryAttempt.current?.key!==key)retryAttempt.current={key,id:crypto.randomUUID()};
     try{const result=await api<{correct:boolean;hint?:string;star?:{reason:string}|null}>('/api/student-state',{method:'POST',body:{action:'learning_attempt',pilot:true,...access,targetId:activity.targetId,questionId:activity.question.id,attemptId:retryAttempt.current!.id,answer,mode:step===2?'test':activity.mode==='diagnostic'?'diagnostic':'practice'}});setFeedback(result.star?`أعطيتك نجمة ⭐ يا ${data?.student.firstName||'صديقنا'}! ${result.star.reason}. حُفظ تدريبك في ملف إنجازك.`:result.correct?`أحسنت يا ${data?.student.firstName||'صديقنا'}! إجابتك صحيحة.`:`يا ${data?.student.firstName||'صديقنا'}، ${result.hint||'راجع الشرح وجرّب مثالًا آخر.'}`);setAnswer('');retryAttempt.current=null;await resource.reload(true)}catch(error){setFeedback(message(error))}finally{setBusy(false)}
   };
-  return <div className="tkPage tkLearning"><PageHead title="شكابمبو" subtitle="تعلّم ← تدرّب ← أتقن" icon={SHAK.logo} onBack={back}/>
+  return <div className="tkPage tkLearning"><PageHead title="شكابمبو" subtitle="تعلّم ← تدرّب ← أتقن" icon={SHAK.logo} onBack={back}/><ShakabumboCompanion feedback={feedback}/>
     {!data?resource.error?<div className="tkAlert" role="alert">{message(resource.error)}<button className="tkBtn" onClick={()=>void resource.reload()}>إعادة المحاولة</button></div>:<Loading/>:<>
       <div className="tkBox"><h2>أهلًا يا {data.student.firstName}!</h2><p>{data.model.next?.reason||'يجهّز المعلم المحتوى المناسب لك. ستظهر دروسك المعتمدة هنا.'}</p>
         {data.model.resume&&<button className="tkBtn ghost" onClick={()=>{setTarget(data.model.resume!.targetId);setStep(data.model.resume!.mode==='test'?2:1);setFeedback('')}}>أكمل من حيث توقفت</button>}
