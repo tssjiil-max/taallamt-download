@@ -1,3 +1,4 @@
+import {pilotHomeworkId,homeworkIdentity} from '../server/homework-identity.js';
 import {pilotDaySubjects} from '../server/pilot-schedule.js';
 import {teacherPilotRead,teacherPilotWrite} from '../server/learning-pilot.js';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
@@ -171,13 +172,22 @@ export async function publishDailyHomework(date=new Date()){
     const plannedList=automationHomeworks(subject,item,daySpecific,localDate,week,schedule.source);
     if(!plannedList.length){gaps.push({subject,code:'SOURCE_PAGE_MISSING',message:`${subjectLabels[subject]}: لا توجد بيانات موثقة للمهمة في المصدر؛ لم يُنشر واجب لهذه المادة.`});continue}
     for(const planned of plannedList){
-      const id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
+      let id=pilotHomeworkId(planned);if(id!==planned.id){const legacy=await db.collection(`${root()}/homework`).where('weekNumber','==',week).get();const match=rows(legacy).find(item=>item.source==='automation'&&homeworkIdentity(item)===homeworkIdentity(planned));if(match)id=match.id}const ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
       if(existing.exists){
         const current=existing.data()||{};
         if(current.source==='automation'&&!current.editedByTeacherAt){const {id:_id,scheduledDate:_date,...refresh}=planned;await ref.set(refresh,{merge:true})}
         created.push({id,subject,path:planned.learningPath,duplicate:true});continue;
       }
-      const timestamp=nowIso(),record={...planned,classId:CLASS_ID,assignedAt:timestamp,publishedAt:timestamp,status:'published'};
+      const timestamp=nowIso(),record={...planned,id,classId:CLASS_ID,assignedAt:timestamp,publishedAt:timestamp,status:'published'};
+      if(pilotHomeworkId(planned)!==planned.id){
+        const duplicate=await db.runTransaction(async tx=>{
+          const current=await tx.get(ref);if(current.exists)return true;
+          const evidenceRefs=QURAN_FOLLOWUP_ROSTER.map(student=>db.doc(`${root()}/homeworkEvidence/${id}_${student.id}`));
+          const snapshots=await Promise.all(evidenceRefs.map(e=>tx.get(e)));
+          tx.set(ref,record);
+          evidenceRefs.forEach((e,index)=>{if(!snapshots[index].exists)tx.set(e,{id:e.id,homeworkId:id,studentId:QURAN_FOLLOWUP_ROSTER[index].id,status:'assigned',assignedAt:timestamp,source:'automation'})});return false;
+        });created.push({id,subject,path:record.learningPath,title:record.title,taskType:record.taskType,duplicate});continue;
+      }
       const batch=db.batch();
       batch.set(ref,record);
       for(const student of QURAN_FOLLOWUP_ROSTER){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}

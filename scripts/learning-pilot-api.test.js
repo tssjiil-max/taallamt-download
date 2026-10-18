@@ -167,3 +167,9 @@ test('a narrower question set cannot manufacture an improvement claim',async()=>
  const r=await teacherPilotWrite('learning_photo_assess',{id:'narrow-photo',targetId:'scope',answers:['أ'],transcriptionVerified:true});
  expect(r.feedback.progress).toBe('not_compared');expect(r.feedback.text).not.toContain('تقدّمت');
 });
+test('interactive cycle grants one star and preserves attempts in portfolio without changing official grades',async()=>{
+ const answers=[['book','كتابٍ'],['house','بيتٍ'],['friend','صديقٍ']];let last;
+ for(const [questionId,answer] of answers){last=res();await studentPilotWrite({headers:{}},last,{action:'learning_attempt',pilot:true,studentId:DEMO_STUDENT_ID,demoSession:'full-cycle',targetId:DEMO_TARGET.id,attemptId:'cycle-'+questionId,questionId,answer,mode:'test'});expect(last.body.correct).toBe(true)}
+ expect(last.body.star.reason).toBeTruthy();const portfolio=res();await studentPilotRead({headers:{},query:{view:'learning-portfolio',pilot:'1',studentId:DEMO_STUDENT_ID,demoSession:'full-cycle'}},portfolio);expect(portfolio.body.stars).toHaveLength(1);expect(portfolio.body.trainingRecords).toHaveLength(3);expect([...state.docs.keys()].some(p=>p.includes('/assessments/'))).toBe(false);
+ const retry=res();await studentPilotWrite({headers:{}},retry,{action:'learning_attempt',pilot:true,studentId:DEMO_STUDENT_ID,demoSession:'full-cycle',targetId:DEMO_TARGET.id,attemptId:'cycle-friend',questionId:'friend',answer:'صديقٍ',mode:'test'});expect(retry.body.duplicate).toBe(true);
+});

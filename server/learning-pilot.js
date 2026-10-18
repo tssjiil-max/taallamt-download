@@ -86,7 +86,7 @@ export async function studentPilotRead(req,res){
       .map(p=>({id:p.id,title:String(p.summary||'إنجاز موثق').slice(0,220),date:p.occurredAt||''}));
     const assessments=context.assessments.map(p=>({id:p.id,date:p.enteredAt||p.createdAt||p.updatedAt||'',academic:(Array.isArray(p.academic)?p.academic:[]).map(a=>({title:String(a.title||a.skillName||a.skill||a.code||'مهارة'),result:a.result||''}))})).slice(0,30);
     const plans=context.plans.map(p=>({id:p.id,title:String(p.goal||'خطة للتقدم'),status:p.status||'',date:p.dueDate||''}));
-    return res.status(200).json({ok:true,student:{id:context.student.id,name:context.student.name||context.student.fullName||context.student.firstName||''},skills:context.model.skills,stars:context.model.stars,assessments,achievements,plans,submissions});
+    return res.status(200).json({ok:true,student:{id:context.student.id,name:context.student.name||context.student.fullName||context.student.firstName||''},skills:context.model.skills,stars:context.memory.learningStars||[],trainingRecords:(context.memory.attempts||[]).slice(-40).map(a=>({id:a.id,title:context.catalog.find(t=>t.id===a.targetId)?.title||'تدريب',correct:a.correct,date:a.at})),assessments,achievements,plans,submissions});
   }
   if(req.query.view==='homework-photo'){const id=safeId(req.query.homeworkId),ref=adminDb().doc(`${workspaceRoot()}/homeworkEvidence/${studentId===DEMO_STUDENT_ID?scopedProfileId(studentId,req.query.demoSession)+'_'+id:id+'_'+studentId}`),snap=await ref.get();return res.status(200).json({ok:true,submission:snap.exists?{image:snap.data().photoImage,status:snap.data().photoStatus,submittedAt:snap.data().photoSubmittedAt,feedback:snap.data().photoFeedback||snap.data().photoAssessment?.feedback||null,photoQuality:snap.data().photoQuality||null}:null});}
   if(req.query.view==='learning-quran'){
@@ -207,7 +207,7 @@ export async function studentPilotWrite(req,res,body){
     const next=recordAttempt(memory,{id:attemptId,targetId,questionId:question.id,correct,mode:body.mode,strategy:activityView({...context,memory},targetId)?.strategy||target.learning.strategy,errorType:question.errorType},timestamp);
     tx.set(profile,{learningPilotMemory:next},{merge:true});
     tx.set(attemptRef,{targetId,questionId:question.id,correct,at:timestamp});
-    return {correct,hint:correct?'':question.hint||'راجع الشرح، ثم جرّب المثال التالي.',updatedAt:timestamp};
+    return {correct,star:(next.learningStars||[]).find(s=>s.id===attemptId)||null,hint:correct?'':question.hint||'راجع الشرح، ثم جرّب المثال التالي.',updatedAt:timestamp};
   });
   return res.status(200).json({ok:true,...result});
 }

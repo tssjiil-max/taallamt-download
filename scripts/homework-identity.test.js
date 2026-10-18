@@ -1,0 +1,5 @@
+import {test,expect} from 'vitest';
+import {homeworkIdentity,pilotHomeworkId} from '../server/homework-identity.js';
+const a={id:'day1',weekNumber:3,subjectKey:'arabic',learningPath:'copy',lesson:'الصديقان',page:10,task:'انسخ السطر الأول',termId:'1448'};
+test('same weekly task keeps identity across dates while different exercises and weeks stay distinct',()=>{expect(homeworkIdentity(a)).toBe(homeworkIdentity({...a,id:'day2',scheduledDate:'later'}));expect(homeworkIdentity(a)).not.toBe(homeworkIdentity({...a,page:11}));expect(homeworkIdentity(a)).not.toBe(homeworkIdentity({...a,weekNumber:4}));expect(homeworkIdentity(a)).not.toBe(homeworkIdentity({...a,task:'انسخ السطر الثاني'}));});
+test('weekly identity is isolated from production and unrelated previews',()=>{expect(pilotHomeworkId(a,{VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'preview/shakabumbo-pilot-20261013'})).toBe('day1');expect(pilotHomeworkId(a,{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'other'})).toBe('day1');expect(pilotHomeworkId(a,{VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'preview/shakabumbo-pilot-20261013'})).toMatch(/^auto-homework:weekly:/);});
