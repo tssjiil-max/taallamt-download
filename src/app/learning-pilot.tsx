@@ -21,14 +21,14 @@ function ShakabumboCompanion({feedback}:{feedback:string}){
   const [listening,setListening]=React.useState(false);
   React.useEffect(()=>{
     const onPlay=(event:Event)=>{if((event.target as HTMLElement)?.tagName==='AUDIO')setListening(true)};
-    const onPause=()=>setListening(Boolean(document.querySelector('audio:not([paused])')));
+    const onPause=()=>setListening(Array.from(document.querySelectorAll('audio')).some(audio=>!audio.paused));
     document.addEventListener('play',onPlay,true);
     document.addEventListener('pause',onPause,true);
     return()=>{document.removeEventListener('play',onPlay,true);document.removeEventListener('pause',onPause,true)};
   },[]);
   const celebrating=!listening&&/نجمة|إجابتك صحيحة|أحسنت/.test(feedback);
   return <aside className={`tkShakCompanion ${listening?'listening':celebrating?'celebrating':'walking'}`} aria-label={listening?'شكابمبو ينصت للقرآن':'شكابمبو يشجعك'}>
-    <img src={SHAK.standing} alt={listening?'شكابمبو يجلس بهدوء وينصت':'شكابمبو المساعد التعليمي'}/>
+    <img src={SHAK.standing} alt={listening?'شكابمبو ينصت بهدوء':'شكابمبو المساعد التعليمي'}/>
     <span aria-live="polite">{listening?'أنصت معك للقرآن':celebrating?'أحسنت! ⭐':'هيا نتعلّم معًا!'}</span>
   </aside>;
 }
