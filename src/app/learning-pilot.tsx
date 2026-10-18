@@ -36,7 +36,7 @@ export function StudentLearningPilot({back}:{back:()=>void}){
       {!activity&&<section className="tkBox"><h2>تدريبات المواد قيد التجهيز</h2><p>لا توجد حاليًا أسئلة معتمدة متاحة لك. يلزم تفعيل مهارات لغتي والإملاء والخط من إدارة المحتوى عند المعلم.</p></section>}
       {data.model.skills.length>0&&<nav className="tkSubjectChoices" aria-label="اختر مادة التدريب">{[...new Set(data.model.skills.map(s=>s.subject))].map(subject=><button type="button" className={`tkSubjectChoice tkSubject-${subject}`} aria-pressed={activity?.subject===subject} key={subject} onClick={()=>{const skill=data.model.skills.find(s=>s.subject===subject);if(skill){setTarget(skill.targetId);setStep(0);setFeedback('')}}}>{subjectLabel[subject]||subject}</button>)}</nav>}
       {activity&&<section className={`tkBox tkActivityCard tkSubject-${activity.subject}`}><small className="tkSubjectLabel">{subjectLabel[activity.subject]}</small><h2>{activity.title}</h2><div className="tkLearningSteps" role="tablist" aria-label="رحلة التعلم">{['تعلّم','تدرّب','أتقن'].map((label,i)=><button type="button" role="tab" aria-selected={step===i} className={`tkBtn ${step===i?'':'ghost'}`} key={label} onClick={()=>{setStep(i);setFeedback('')}}>{label}</button>)}</div>
-        {activity.teacherReview&&step!==0?<div><p>اكتب بخطك على ورقة ثم أرسل صورتها للمعلم. لا تُسجَّل درجة الخط تلقائيًا قبل مراجعته.</p><HomeworkPhoto key={`${activity.targetId}:${activity.question.id}`} targetId={activity.targetId} questionId={activity.question.id}/></div>:step===0?<><p className="tkLearningText">{activity.explanation}</p><small>المصدر: {activity.reference}</small></>:<div><p>{step===2?'اختبار المهارة:':'تدريبك:'} {activity.question.prompt}</p><div className="tkLearningSteps"><button type="button" className={`tkBtn ${answerMode==='paper'?'':'ghost'}`} onClick={()=>setAnswerMode('paper')}>أكتب على ورقة وأصوّر</button><button type="button" className={`tkBtn ${answerMode==='typing'?'':'ghost'}`} onClick={()=>setAnswerMode('typing')}>أكتب بالجوال (اختياري)</button></div>{answerMode==='paper'?<HomeworkPhoto key={`${activity.targetId}:${activity.question.id}`} targetId={activity.targetId} questionId={activity.question.id}/>:<form onSubmit={submit}><label className="tkField">إجابتك<input value={answer} onChange={e=>setAnswer(e.target.value)} maxLength={300} autoComplete="off" required/></label>
+        {activity.teacherReview&&step!==0?<div><p>اكتب بخطك على ورقة ثم أرسل صورتها للمعلم. لا تُسجَّل درجة الخط تلقائيًا قبل مراجعته.</p><HomeworkPhoto key={`${activity.targetId}:${activity.question.id}`} targetId={activity.targetId} questionId={activity.question.id}/></div>:step===0?<><p className="tkLearningText">{activity.explanation}</p><ShakabumboReadAloud key={`explain-${activity.targetId}`} text={activity.explanation}/><small>المصدر: {activity.reference}</small></>:<div><p>{step===2?'اختبار المهارة:':'تدريبك:'} {activity.question.prompt}</p><ShakabumboReadAloud key={`question-${activity.question.id}`} text={activity.question.prompt}/><div className="tkLearningSteps"><button type="button" className={`tkBtn ${answerMode==='paper'?'':'ghost'}`} onClick={()=>setAnswerMode('paper')}>أكتب على ورقة وأصوّر</button><button type="button" className={`tkBtn ${answerMode==='typing'?'':'ghost'}`} onClick={()=>setAnswerMode('typing')}>أكتب بالجوال (اختياري)</button></div>{answerMode==='paper'?<HomeworkPhoto key={`${activity.targetId}:${activity.question.id}`} targetId={activity.targetId} questionId={activity.question.id}/>:<form onSubmit={submit}><label className="tkField">إجابتك<input value={answer} onChange={e=>setAnswer(e.target.value)} maxLength={300} autoComplete="off" required/></label>
           {step!==2&&activity.question.hint&&<details><summary>أحتاج تلميحًا</summary><p>{activity.question.hint}</p></details>}<button className="tkBtn" disabled={busy||!answer.trim()}>{busy?'جارٍ الحفظ…':'تحقق من إجابتي'}</button></form>}</div>}
         {feedback&&<p role="status" className="tkAlert info">{feedback}</p>}
         <a className="tkBtn ghost" target="_blank" rel="noopener" href={`/api/student-state?view=learning-print&${accessQuery}&targetId=${encodeURIComponent(activity.targetId)}`}>اطبع تدريبي</a>
@@ -106,6 +106,22 @@ function PaperGrading({paper,name,save}:{paper:Paper;name:string;save:(results:b
 }
 
 type QuranSegment={audio?:{url:string;start:number;end:number;reciter:string;source:string}|null;id:string;name:string;day:string;start:number;end:number;verses:{number:number;text:string}[]};
+function ShakabumboReadAloud({text}:{text:string}){
+  const [speaking,setSpeaking]=React.useState(false);
+  React.useEffect(()=>()=>{if('speechSynthesis' in window)window.speechSynthesis.cancel()},[]);
+  const toggle=()=>{
+    if(!('speechSynthesis' in window))return;
+    window.speechSynthesis.cancel();
+    if(speaking){setSpeaking(false);return}
+    const utterance=new SpeechSynthesisUtterance(text);
+    utterance.lang='ar-SA';utterance.rate=0.85;
+    utterance.onend=()=>setSpeaking(false);
+    utterance.onerror=()=>setSpeaking(false);
+    window.speechSynthesis.speak(utterance);setSpeaking(true);
+  };
+  return <button type="button" className="tkBtn ghost" onClick={toggle} disabled={!('speechSynthesis' in window)} aria-label={speaking?'إيقاف قراءة شكابمبو':'استمع إلى شكابمبو'}>{speaking?'إيقاف القراءة':'🔊 شكابمبو يقرأ لي'}</button>;
+}
+
 function StudentQuranPilot(){
   const resource=useRemote<{source:{name:string;url:string;notice:string};segments:QuranSegment[];reviews:{id:string}[]}>('quran-pilot',()=>api(`/api/student-state?view=learning-quran&${accessQuery}`));
   const [busy,setBusy]=React.useState(''),[notice,setNotice]=React.useState('');
