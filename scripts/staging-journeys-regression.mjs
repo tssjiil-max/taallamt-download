@@ -156,6 +156,15 @@ check('running the automation again creates no duplicates',async()=>{
   assert.deepEqual({plans:docs('weeklyPlans').length,homework:docs('homework').length,evidence:docs('homeworkEvidence').length,publishedAt:doc('weeklyPlans/auto-week:1448-f1-w06:arabic').publishedAt},before);
 });
 
+check('pilot reuses the same weekly exercise on another day without overwriting student evidence',async()=>{
+  if(!isPilotSchedule())return;
+  const id='auto-homework:2026-10-04:arabic';const before=docs('homework').filter(k=>doc(k.replace('workspaces/'+WORKSPACE_ID+'/',''))?.learningPath==='copywork_lughati');
+  const evidenceBefore=JSON.stringify([...fakeStore.entries()].filter(([k])=>k.includes('/homeworkEvidence/'+id+'_')));
+  const {publishDailyHomework}=await import('../api/learning-automation.js');await publishDailyHomework(new Date('2026-10-05T04:30:00Z'));
+  assert.equal(doc('homework/auto-homework:2026-10-05:arabic'),undefined,'the next day does not publish a second copy');assert.ok(doc('homework/'+id));
+  assert.equal(JSON.stringify([...fakeStore.entries()].filter(([k])=>k.includes('/homeworkEvidence/'+id+'_'))),evidenceBefore,'previous submissions survive');
+});
+
 check('the same plan and homework reach the teacher and the right student',async()=>{
   for(const id of [s1,s2,s3])invites[id]=(await call(studentState,{method:'POST',body:{studentId:id,action:'access_share'},cookie:teacher})).body.inviteToken;
   const teacherHome=(await T('teacher_home')).body,student=await home(s1);

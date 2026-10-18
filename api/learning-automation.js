@@ -172,7 +172,7 @@ export async function publishDailyHomework(date=new Date()){
     const plannedList=automationHomeworks(subject,item,daySpecific,localDate,week,schedule.source);
     if(!plannedList.length){gaps.push({subject,code:'SOURCE_PAGE_MISSING',message:`${subjectLabels[subject]}: لا توجد بيانات موثقة للمهمة في المصدر؛ لم يُنشر واجب لهذه المادة.`});continue}
     for(const planned of plannedList){
-      let id=pilotHomeworkId(planned);if(id!==planned.id){const legacy=await db.collection(`${root()}/homework`).where('weekNumber','==',week).get();const match=rows(legacy).find(item=>item.source==='automation'&&homeworkIdentity(item)===homeworkIdentity(planned));if(match)id=match.id}const ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
+      let id=planned.id;if(pilotHomeworkId(planned)!==planned.id){const legacy=await db.collection(`${root()}/homework`).where('weekNumber','==',week).get();const match=rows(legacy).find(item=>item.source==='automation'&&homeworkIdentity(item)===homeworkIdentity(planned));if(match)id=match.id}const ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
       if(existing.exists){
         const current=existing.data()||{};
         if(current.source==='automation'&&!current.editedByTeacherAt){const {id:_id,scheduledDate:_date,...refresh}=planned;await ref.set(refresh,{merge:true})}
