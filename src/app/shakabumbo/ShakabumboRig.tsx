@@ -18,9 +18,9 @@ export function ShakabumboRig({state,talking}:{state:CompanionState;talking:bool
         {/* back arm (the one further from the viewer walks with an opposite phase) */}
         <g className="shakArm shakArmBack" style={{transformOrigin:'146px 118px'}}>
           <g className="shakUpperArm">
-            <rect x="136" y="112" width="20" height="46" rx="10"/>
+            <rect className="shakLimbPart" x="136" y="112" width="20" height="46" rx="10"/>
             <g className="shakForearm" style={{transformOrigin:'146px 156px'}}>
-              <rect x="137" y="150" width="18" height="40" rx="9"/>
+              <rect className="shakLimbPart" x="137" y="150" width="18" height="40" rx="9"/>
               <circle className="shakCuffLight" cx="146" cy="178" r="4"/>
               <circle className="shakHand" cx="146" cy="196" r="12"/>
             </g>
@@ -31,10 +31,10 @@ export function ShakabumboRig({state,talking}:{state:CompanionState;talking:bool
         <g className="shakLeg shakLegBack" style={{transformOrigin:'128px 176px'}}>
           <rect className="shakThigh" x="117" y="170" width="22" height="54" rx="10"/>
           <g className="shakShin" style={{transformOrigin:'128px 222px'}}>
-            <rect x="118" y="218" width="20" height="46" rx="9"/>
+            <rect className="shakLimbPart" x="118" y="218" width="20" height="46" rx="9"/>
             <circle className="shakKneeLight" cx="128" cy="222" r="3.6"/>
             <g className="shakFoot">
-              <rect x="112" y="256" width="34" height="18" rx="8"/>
+              <rect className="shakLimbPart" x="112" y="256" width="34" height="18" rx="8"/>
               <rect x="112" y="268" width="34" height="7" rx="3.5" className="shakSole"/>
             </g>
           </g>
@@ -43,7 +43,7 @@ export function ShakabumboRig({state,talking}:{state:CompanionState;talking:bool
         {/* torso + head group, leans slightly as the character turns and walks */}
         <g className="shakTorsoGroup">
           <g className="shakTorso">
-            <rect x="76" y="104" width="68" height="78" rx="24"/>
+            <rect className="shakTorsoBody" x="76" y="104" width="68" height="78" rx="24"/>
             <rect x="92" y="150" width="36" height="6" rx="3" className="shakBelt"/>
             <circle className="shakChestLight" cx="110" cy="134" r="11"/>
             <circle className="shakChestLightCore" cx="110" cy="134" r="5"/>
@@ -80,10 +80,10 @@ export function ShakabumboRig({state,talking}:{state:CompanionState;talking:bool
         <g className="shakLeg shakLegFront" style={{transformOrigin:'94px 176px'}}>
           <rect className="shakThigh" x="83" y="170" width="22" height="54" rx="10"/>
           <g className="shakShin" style={{transformOrigin:'94px 222px'}}>
-            <rect x="84" y="218" width="20" height="46" rx="9"/>
+            <rect className="shakLimbPart" x="84" y="218" width="20" height="46" rx="9"/>
             <circle className="shakKneeLight" cx="94" cy="222" r="3.6"/>
             <g className="shakFoot">
-              <rect x="76" y="256" width="34" height="18" rx="8"/>
+              <rect className="shakLimbPart" x="76" y="256" width="34" height="18" rx="8"/>
               <rect x="76" y="268" width="34" height="7" rx="3.5" className="shakSole"/>
             </g>
           </g>
@@ -92,9 +92,9 @@ export function ShakabumboRig({state,talking}:{state:CompanionState;talking:bool
         {/* front arm (nearer the viewer; points at the question, waves, claps) */}
         <g className="shakArm shakArmFront" style={{transformOrigin:'74px 118px'}}>
           <g className="shakUpperArm">
-            <rect x="64" y="112" width="20" height="46" rx="10"/>
+            <rect className="shakLimbPart" x="64" y="112" width="20" height="46" rx="10"/>
             <g className="shakForearm" style={{transformOrigin:'74px 156px'}}>
-              <rect x="65" y="150" width="18" height="40" rx="9"/>
+              <rect className="shakLimbPart" x="65" y="150" width="18" height="40" rx="9"/>
               <circle className="shakCuffLight" cx="74" cy="178" r="4"/>
               <circle className="shakHand" cx="74" cy="196" r="12"/>
             </g>
