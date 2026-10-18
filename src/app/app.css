@@ -643,7 +643,7 @@ a{color:inherit;text-decoration:none}
    of sliding as one flat image.
    ========================================================================== */
 .shakStage{position:fixed;z-index:25;left:50%;bottom:calc(calc(var(--u)*78) + env(safe-area-inset-bottom,0px) + 8px);
-  width:calc(var(--u)*412);max-width:100%;height:132px;transform:translateX(50%);pointer-events:none}
+  width:calc(var(--u)*412);max-width:100%;height:132px;transform:translateX(-50%);pointer-events:none}
 .shakStage.shakStageHidden{display:none}
 .shakStage.shakStageTucked{opacity:.18;transition:opacity .2s ease}
 .shakStage.shakStageSitting{height:112px}
