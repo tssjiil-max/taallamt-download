@@ -1,5 +1,8 @@
 import {HomeworkPhoto,SubmissionPortfolio} from './homework-photo';
 import {pilotRequested,StudentLearningPilot,StudentAnnouncementsPilot,usePilotAnnouncements} from './learning-pilot';
+import {ShakabumboCompanion} from './shakabumbo/ShakabumboCompanion';
+import {companionBus} from './shakabumbo/bus';
+import {getMotionPref,setMotionPref,type MotionPref} from './shakabumbo/settings';
 // Student / guardian pages in the mandatory reference design: header, weekly plan, assessment, homework, stars and the
 // bottom bar (الرئيسية — الفصول — النجوم — حسابي). Every card and its detail page read the same server payload.
 import React from 'react';
@@ -65,6 +68,7 @@ export function StudentApp(){
     try{
       await api('/api/homework-complete',{method:'POST',body:{studentId:STUDENT_ID,homeworkId:item.id,invite:INVITE,...(item.done?{undo:true}:{})}});
       showToast(item.done?'أُلغي تأشير الإنجاز':'تم تسجيل الإنجاز — يظهر الآن عند المعلم');
+      if(!item.done)companionBus.emit('TASK_COMPLETED');
       void home.reload(true);
     }catch(caught){
       apply(item.done);
@@ -116,7 +120,10 @@ export function StudentApp(){
   else if(route==='settings')body=<SettingsPage home={data} back={back} go={go} reload={()=>void home.reload(true)} toast={showToast}/>;
   else body=<HomeScreen home={data} go={go} reload={()=>void home.reload(true)} toast={showToast}/>;
 
-  return <Screen nav={nav}>{body}{toast}</Screen>;
+  return <>
+    <Screen nav={nav}>{body}{toast}</Screen>
+    <ShakabumboCompanion routeIsQuran={route==='quran'||route==='quran-log'}/>
+  </>;
 }
 
 type Go=(route:string)=>void;
@@ -468,7 +475,23 @@ function SettingsPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go
       <button className="tkRow" type="button" onClick={()=>go('hobbies')}><span className="tkRowIcon green" aria-hidden="true"><IconHeart/></span><span className="tkGrow"><b>هواياتي</b><small>{student.hobbies.length?student.hobbies.join(' · '):'لم تختر هواياتك بعد'}</small></span><IconChevron/></button>
       <div className="tkRow"><span className="tkGrow"><b>الاسم والصف والمدرسة</b><small>{student.name} · {student.classShort} · {student.school}</small><small>يعدّلها المعلم فقط.</small></span></div>
     </div>
+    <h2 className="tkH">حركة شكابمبو</h2>
+    <ShakabumboMotionSetting/>
     <p className="tkMeta">{home.role==='teacher'?'أنت تعاين صفحة الطالب بجلسة المعلم.':'هذه الصفحة تُفتح من رابط الطالب الخاص. لا تشارك الرابط مع غير ولي الأمر.'}</p>
+  </div>;
+}
+function ShakabumboMotionSetting(){
+  const [pref,setPref]=React.useState<MotionPref>(()=>getMotionPref());
+  const OPTIONS:{key:MotionPref;label:string;hint:string}[]=[
+    {key:'full',label:'تشغيل',hint:'يسقط ويمشي ويتفاعل بصورة كاملة'},
+    {key:'reduced',label:'تقليل',hint:'يظهر في مكانه دون مشي أو سقوط متحرك'},
+    {key:'off',label:'إيقاف',hint:'مخفي، مع إمكانية إظهاره مؤقتًا من الزر العائم'}
+  ];
+  return <div className="tkSubjectChoices" role="radiogroup" aria-label="حركة شكابمبو">
+    {OPTIONS.map(option=><button key={option.key} type="button" className="tkSubjectChoice" aria-pressed={pref===option.key}
+      onClick={()=>{setMotionPref(option.key);setPref(option.key)}}>
+      <b>{option.label}</b><br/><small>{option.hint}</small>
+    </button>)}
   </div>;
 }
 function HobbiesPage({home,back,reload,toast}:{home:Home;back:()=>void;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){

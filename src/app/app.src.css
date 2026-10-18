@@ -631,12 +631,118 @@ a{color:inherit;text-decoration:none}
 .tkLearning .tkSkillChoice{border-inline-start:4px solid var(--subject-line);background:var(--subject-card);margin-block:8u}
 .tkLearningSteps [aria-selected=true]{box-shadow:0 3px 8px #0d47a622}
 
-/* Shakabumbo: original artwork, non-obstructive and motion-safe companion. */
-.tkShakCompanion{display:flex;align-items:center;gap:12px;padding:8px 12px;margin:8px 0 16px;border-radius:18px;background:var(--blue-card,#eef7ff);max-width:100%;overflow:hidden}
-.tkShakCompanion img{width:78px;height:88px;object-fit:contain;flex:none;transform-origin:50% 90%;animation:shakWalk 3.6s ease-in-out infinite}
-.tkShakCompanion span{font-weight:700;font-size:14px;line-height:1.6}
-.tkShakCompanion.celebrating img{animation:shakCelebrate .75s ease-in-out 2}
-.tkShakCompanion.listening img{animation:none;transform:none}
-@keyframes shakWalk{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(7px) rotate(3deg)}50%{transform:translateX(0) rotate(0)}75%{transform:translateX(-7px) rotate(-3deg)}}
-@keyframes shakCelebrate{0%,100%{transform:translateY(0) rotate(0)}40%{transform:translateY(-13px) rotate(9deg)}70%{transform:translateY(-4px) rotate(-7deg)}}
-@media(prefers-reduced-motion:reduce){.tkShakCompanion img,.tkShakCompanion.celebrating img{animation:none}}
+/* ==========================================================================
+   Shakabumbo companion: a jointed vector rig (src/app/shakabumbo), not a
+   single image. Fixed in its own lane above the student bottom nav, inside
+   the same 412u reference column so it never drifts outside the page frame
+   on wide screens, and never covers nav buttons, fields or the submit
+   button. Horizontal position is driven by a CSS variable the walk loop
+   updates every frame; limb rotation is driven by these keyframes, keyed
+   off data-state on the <svg>, so the illustration genuinely walks instead
+   of sliding as one flat image.
+   ========================================================================== */
+.shakStage{position:fixed;z-index:25;left:50%;bottom:calc(78u + env(safe-area-inset-bottom,0px) + 8px);
+  width:412u;max-width:100%;height:132px;transform:translateX(50%);pointer-events:none}
+.shakStage.shakStageHidden{display:none}
+.shakStage.shakStageTucked{opacity:.18;transition:opacity .2s ease}
+.shakStage.shakStageSitting{height:112px}
+.shakWalker{position:absolute;bottom:0;width:84px;height:118px;right:var(--shak-x);transform:translateX(50%) scaleX(var(--shak-facing,1));transition:right .05s linear}
+.shakStageSitting .shakWalker{right:50%;transition:right .4s ease}
+@media(max-width:340px){.shakWalker{width:58px;height:82px}.shakStage{height:96px}}
+
+.shakAnnounce{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.shakToggle{position:fixed;z-index:26;left:12px;bottom:calc(78u + env(safe-area-inset-bottom,0px) + 10px);
+  pointer-events:auto;border:none;border-radius:99px;padding:6px 12px;font-size:11px;font-weight:700;
+  color:var(--blue-ink);background:#fff;box-shadow:0 2px 10px rgba(10,31,68,.18)}
+.shakToggle.shown{color:var(--green-ink)}
+
+/* ---- rig base ---- */
+.shakRig{overflow:visible}
+.shakShadow ellipse{fill:#0a1f44;opacity:.12}
+.shakFace{fill:#9fe3ac}
+.shakEarL,.shakEarR{fill:#8fd99d;stroke:#2f7d49;stroke-width:1.5}
+.shakHair{fill:#f3fbfb;stroke:#bfe9e6;stroke-width:1.5}
+.shakEyeWhite{fill:#fff;stroke:#17324f;stroke-width:1.4}
+.shakPupil{fill:#17324f}
+.shakGlint{fill:#fff}
+.shakBrowL,.shakBrowR{fill:none;stroke:#2f7d49;stroke-width:3;stroke-linecap:round}
+.shakMouthClosed{fill:none;stroke:#17324f;stroke-width:2.6;stroke-linecap:round}
+.shakMouthOpen{fill:#b43d3d;display:none}
+.shakRig[data-talking="1"] .shakMouthClosed{display:none}
+.shakRig[data-talking="1"] .shakMouthOpen{display:block;animation:shakTalk .32s steps(2) infinite}
+.shakTorso rect{fill:#fff;stroke:#17324f;stroke-width:2.4}
+.shakBelt{fill:#17324f}
+.shakChestLight{fill:#bdf3c8;stroke:#2f7d49;stroke-width:1.6}
+.shakChestLightCore{fill:#2fbf5c}
+.shakRig[data-state=IDLE] .shakChestLightCore,.shakRig[data-state=WALKING] .shakChestLightCore,.shakRig[data-state=SPEAKING] .shakChestLightCore{animation:shakPulse 2.4s ease-in-out infinite}
+.shakUpperArm rect,.shakForearm rect,.shakThigh,.shakShin rect{fill:#fff;stroke:#17324f;stroke-width:2.2}
+.shakHand{fill:#fff;stroke:#17324f;stroke-width:2}
+.shakCuffLight,.shakKneeLight{fill:#2fbf5c}
+.shakFoot rect{fill:#fff;stroke:#17324f;stroke-width:2.2}
+.shakSole{fill:#17324f;stroke:none}
+
+/* ---- idle: breathing + a slight head turn, no net displacement ---- */
+.shakRig[data-state=IDLE] .shakBounce{animation:shakBreathe 2.6s ease-in-out infinite}
+.shakRig[data-state=IDLE] .shakHead{animation:shakGlance 5.2s ease-in-out infinite}
+
+/* ---- real walk cycle: legs alternate, arms swing opposite the legs, a
+   vertical bob lands on each footfall, the torso counter-rotates slightly ---- */
+.shakRig[data-state=WALKING] .shakBounce{animation:shakWalkBounce .78s ease-in-out infinite}
+.shakRig[data-state=WALKING] .shakLegFront{animation:shakStrideFront .78s ease-in-out infinite}
+.shakRig[data-state=WALKING] .shakLegBack{animation:shakStrideBack .78s ease-in-out infinite}
+.shakRig[data-state=WALKING] .shakLegFront .shakShin{animation:shakShinFront .78s ease-in-out infinite}
+.shakRig[data-state=WALKING] .shakLegBack .shakShin{animation:shakShinBack .78s ease-in-out infinite}
+.shakRig[data-state=WALKING] .shakArmFront{animation:shakStrideBack .78s ease-in-out infinite}
+.shakRig[data-state=WALKING] .shakArmBack{animation:shakStrideFront .78s ease-in-out infinite}
+.shakRig[data-state=WALKING] .shakTorsoGroup{animation:shakTorsoSway .78s ease-in-out infinite}
+
+/* ---- falling in from the top, then absorbing the landing ---- */
+.shakRig[data-state=ENTERING]{animation:shakFall 1.05s cubic-bezier(.4,0,.7,1) forwards}
+.shakRig[data-state=ENTERING] .shakArmFront,.shakRig[data-state=ENTERING] .shakArmBack{animation:shakFlailArm .35s ease-in-out infinite}
+.shakRig[data-state=ENTERING] .shakLegFront,.shakRig[data-state=ENTERING] .shakLegBack{animation:shakFlailLeg .35s ease-in-out infinite}
+.shakRig[data-state=LANDING]{animation:shakLandSquash .36s ease-out forwards}
+.shakRig[data-state=LANDING] .shakLegFront,.shakRig[data-state=LANDING] .shakLegBack{animation:shakLandKnee .36s ease-out forwards}
+
+/* ---- gestures ---- */
+.shakRig[data-state=THINKING] .shakArmFront{animation:shakHandToHead .4s ease-out forwards}
+.shakRig[data-state=EXPLAINING] .shakArmFront{animation:shakPoint .4s ease-out forwards}
+.shakRig[data-state=ENCOURAGING] .shakArmFront,.shakRig[data-state=ENCOURAGING] .shakArmBack{animation:shakClap .55s ease-in-out 2}
+.shakRig[data-state=CELEBRATING] .shakBounce{animation:shakJump .65s cubic-bezier(.3,.6,.4,1) 2}
+.shakRig[data-state=CELEBRATING] .shakArmFront,.shakRig[data-state=CELEBRATING] .shakArmBack{animation:shakClap .4s ease-in-out 3}
+
+/* ---- Quran: a real seated pose, not the standing artwork relabelled ---- */
+.shakRig[data-state=LISTENING_QURAN] .shakLegFront{transform:rotate(72deg)}
+.shakRig[data-state=LISTENING_QURAN] .shakLegBack{transform:rotate(72deg)}
+.shakRig[data-state=LISTENING_QURAN] .shakLegFront .shakShin{transform:rotate(-78deg)}
+.shakRig[data-state=LISTENING_QURAN] .shakLegBack .shakShin{transform:rotate(-78deg)}
+.shakRig[data-state=LISTENING_QURAN] .shakArmFront{transform:rotate(18deg)}
+.shakRig[data-state=LISTENING_QURAN] .shakArmBack{transform:rotate(-18deg)}
+.shakRig[data-state=LISTENING_QURAN] .shakTorsoGroup{animation:shakListenBreathe 4s ease-in-out infinite}
+.shakRig[data-state=LISTENING_QURAN] .shakBounce{transform:translateY(46px)}
+
+@keyframes shakBreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes shakGlance{0%,20%,100%{transform:rotate(0)}10%{transform:rotate(-4deg)}60%,75%{transform:rotate(4deg)}}
+@keyframes shakWalkBounce{0%,50%,100%{transform:translateY(0)}25%,75%{transform:translateY(-6px)}}
+@keyframes shakTorsoSway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+@keyframes shakStrideFront{0%,100%{transform:rotate(26deg)}50%{transform:rotate(-26deg)}}
+@keyframes shakStrideBack{0%,100%{transform:rotate(-26deg)}50%{transform:rotate(26deg)}}
+@keyframes shakShinFront{0%,20%{transform:rotate(-8deg)}50%{transform:rotate(-34deg)}80%,100%{transform:rotate(-4deg)}}
+@keyframes shakShinBack{50%,70%{transform:rotate(-8deg)}0%,100%{transform:rotate(-34deg)}30%{transform:rotate(-4deg)}}
+@keyframes shakPulse{0%,100%{opacity:.75}50%{opacity:1}}
+@keyframes shakFall{0%{transform:translateY(-420px) rotate(-8deg)}70%{transform:translateY(0) rotate(4deg)}100%{transform:translateY(0) rotate(0)}}
+@keyframes shakFlailArm{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(30deg)}}
+@keyframes shakFlailLeg{0%,100%{transform:rotate(20deg)}50%{transform:rotate(-20deg)}}
+@keyframes shakLandSquash{0%{transform:scaleY(1)}40%{transform:scaleY(.82) translateY(10px)}100%{transform:scaleY(1) translateY(0)}}
+@keyframes shakLandKnee{0%{transform:rotate(0)}40%{transform:rotate(38deg)}100%{transform:rotate(0)}}
+@keyframes shakHandToHead{0%{transform:rotate(0)}100%{transform:rotate(-128deg)}}
+@keyframes shakPoint{0%{transform:rotate(0)}100%{transform:rotate(-54deg)}}
+@keyframes shakClap{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(18deg)}}
+@keyframes shakJump{0%,100%{transform:translateY(0)}45%{transform:translateY(-34px)}}
+@keyframes shakListenBreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
+@keyframes shakTalk{0%,100%{opacity:1}50%{opacity:.3}}
+
+@media(prefers-reduced-motion:reduce){
+  .shakRig *{animation:none!important}
+  .shakWalker{transition:none}
+  .shakRig[data-state=LISTENING_QURAN] .shakBounce{transform:translateY(46px)}
+}
