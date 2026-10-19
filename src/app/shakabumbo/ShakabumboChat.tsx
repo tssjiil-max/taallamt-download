@@ -1,6 +1,6 @@
 import React from 'react';
 import {getLessonContext,onLessonContextChange} from './context';
-import {tutorRespond,type TutorTurn} from './tutor';
+import {type TutorTurn} from './tutor';
 import {speakArabic,cancelArabicSpeech} from './speak';
 import {WELCOME} from './phrases';
 import {VoiceSession,type VoicePhase,type RecognitionLike} from './voice-session';
@@ -11,17 +11,19 @@ export function ShakabumboChat({open,onClose,blocked=false,onPhaseChange}:{open:
  const ctxRef=React.useRef(getLessonContext()),hintRef=React.useRef(0),closeRef=React.useRef(onClose);closeRef.current=onClose;
  const [turns,setTurns]=React.useState<TutorTurn[]>([]),[draft,setDraft]=React.useState(''),[typing,setTyping]=React.useState(false);
  const [phase,setPhase]=React.useState<VoicePhase>('idle'),[notice,setNotice]=React.useState('');
+ const requestRef=React.useRef<AbortController|null>(null);
+ const historyRef=React.useRef<{role:string;content:string}[]>([]);
  const sessionRef=React.useRef<VoiceSession|null>(null);
  if(!sessionRef.current)sessionRef.current=new VoiceSession({recognition:()=>{const C=recognitionCtor();return C&&window.isSecureContext?new C():null},speak:speakArabic,cancelSpeech:cancelArabicSpeech,
-  update:(next,message)=>{setPhase(next);if(message)setNotice(message)},
-  reply:text=>{const {reply,usedHint}=tutorRespond(text,ctxRef.current,hintRef.current);if(usedHint)hintRef.current=Math.min(1,hintRef.current+1);setTurns(prev=>[...prev,{from:'student' as const,text},{from:'shak' as const,text:reply}].slice(-12));return reply}
+  update:(next,message)=>{if(['idle','muted','error'].includes(next))requestRef.current?.abort();setPhase(next);if(message)setNotice(message)},
+  reply:async text=>{const ctx=ctxRef.current;if(!ctx?.targetId||ctx.subject==='quran')throw new Error('افتح درسًا من المنصة');requestRef.current?.abort();const controller=new AbortController();requestRef.current=controller;const q=new URLSearchParams(location.search);const r=await fetch('/api/student-state',{method:'POST',signal:controller.signal,headers:{'content-type':'application/json'},body:JSON.stringify({action:'shakabumbo_reply',studentId:q.get('studentId'),invite:q.get('invite')||q.get('inviteToken')||'',demoSession:q.get('demoSession')||'',targetId:ctx.targetId,questionId:ctx.questionId,assessment:ctx.assessment,question:text,history:historyRef.current})});const data=await r.json();if(controller.signal.aborted)throw new Error('CANCELLED');if(!r.ok||!data.reply)throw new Error(data.error||'MODEL_UNAVAILABLE');historyRef.current=[...historyRef.current,{role:'user',content:text},{role:'assistant',content:data.reply}].slice(-4);setTurns(prev=>[...prev,{from:'student' as const,text},{from:'shak' as const,text:data.reply}].slice(-12));return data.reply}
  });
  const session=sessionRef.current;
  React.useEffect(()=>{onPhaseChange?.(phase)},[phase,onPhaseChange]);
  React.useEffect(()=>onLessonContextChange(next=>{ctxRef.current=next;hintRef.current=0;session.stop();setTurns([]);setNotice('');closeRef.current()}),[session]);
  React.useEffect(()=>{
   if(open&&!blocked){ctxRef.current=getLessonContext();hintRef.current=0;setTyping(false);setNotice('');setTurns([{from:'shak',text:WELCOME}]);session.start(WELCOME)}
-  else{session.stop();setTurns([]);setDraft('')}
+  else{session.stop();historyRef.current=[];setTurns([]);setDraft('')}
   return()=>session.stop();
  },[open,blocked,session]);
  React.useEffect(()=>{const stop=()=>{if(document.hidden)session.stop('muted')};document.addEventListener('visibilitychange',stop);return()=>document.removeEventListener('visibilitychange',stop)},[session]);

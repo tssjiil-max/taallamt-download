@@ -9,7 +9,7 @@ assert(chat.includes('{typing&&<form'),'writing stays secondary');
 assert(voice.includes('r.abort()')&&voice.includes('generation'),'cancel input during output and reject stale callbacks');
 assert(css.includes('shakRoam')&&css.includes('.shakQuiet .shakOneTapCharacter{animation:none!important}'),'move only in the safe character space and stay still for Quran');
 assert(read('src/app/shakabumbo/useShakabumboEngine.ts').includes('audio:not([data-shak-voice])'),'character speech must not activate Quran mode');
-assert(speech.includes('voice-manifest.json')&&!/fetch\(|WebSocket|OPENAI_API_KEY/.test(chat+voice+speech),'local recordings with no paid voice transport');
+assert(speech.includes('voice-manifest.json')&&!/WebSocket|OPENAI_API_KEY/.test(chat+voice+speech)&&chat.includes("fetch('/api/student-state'"),'same-origin curriculum model and no paid voice transport');
 assert(!speech.includes('stripTashkeel'),'keep educational vowels');
 const manifest=JSON.parse(read('src/app/shakabumbo/voice-manifest.json'));
 assert(Object.values(manifest).some(path=>path.endsWith('/welcome.mp3')),'real welcome audio');

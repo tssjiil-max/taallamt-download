@@ -34,6 +34,7 @@ export function StudentLearningPilot({back}:{back:()=>void}){
   React.useEffect(()=>{
     if(!activity){setLessonContext(null);return}
     setLessonContext({
+      targetId:activity.targetId,questionId:activity.question.id,
       assessment:step===2,
       subject:activity.subject,
       subjectLabel:subjectLabel[activity.subject]||activity.subject,

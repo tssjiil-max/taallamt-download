@@ -24,12 +24,12 @@ export function speakArabic(text:string,handlers?:{onStart?:()=>void;onEnd?:()=>
  const next=()=>{
   if(token!==generation)return;clearAudio();if(index>=segments.length){onCancelled=null;handlers?.onEnd?.();return}
   const segment=segments[index++],src=recordings[segment];
-  if(src){
+  if(src&&!voice){
    const audio=new Audio(src);currentAudio=audio;audio.dataset.shakVoice='1';audio.setAttribute('aria-hidden','true');audio.style.display='none';document.body.append(audio);
    audio.onplaying=start;audio.onended=next;audio.onerror=fail;
    audio.play().catch(fail);
   }else if(voice&&typeof speechSynthesis!=='undefined'){
-   const u=new SpeechSynthesisUtterance(segment);u.voice=voice;u.lang=voice.lang;u.rate=.9;u.onstart=start;u.onend=next;u.onerror=fail;speechSynthesis.speak(u);
+   const u=new SpeechSynthesisUtterance(segment);u.voice=voice;u.lang=voice.lang;u.rate=.85;u.pitch=1;u.onstart=start;u.onend=next;u.onerror=fail;speechSynthesis.speak(u);
   }else fail();
  };
  try{next();return true}catch{fail();return false}

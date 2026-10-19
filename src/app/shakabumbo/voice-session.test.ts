@@ -51,3 +51,8 @@ describe('P0 exclusive voice ownership',()=>{
 describe('Quran tutor boundary',()=>{it('never returns verse text through the tutor read request',()=>{const verse='نص آية لا يرسل للصوت الاصطناعي';expect(tutorRespond('اقرأ السؤال',{subject:'quran',subjectLabel:'القرآن',title:'التلاوة',prompt:verse},0).reply).not.toContain(verse)})});
 
 describe('voice ownership cleanup',()=>{it('cleanup of the old component cannot cancel the new owner speech',()=>{const a=fixture(),b=fixture();a.session.start();b.session.start('السلام عليكم');a.cancelSpeech.mockClear();a.session.stop();expect(a.cancelSpeech).not.toHaveBeenCalled();b.session.stop()})});
+
+describe('asynchronous curriculum model',()=>{
+ it('discards a model reply received after closing',async()=>{let resolve!:(value:string)=>void;const speak=vi.fn(()=>true),update=vi.fn();const session=new VoiceSession({recognition:()=>null,speak,cancelSpeech:vi.fn(),reply:()=>new Promise<string>(r=>{resolve=r}),update});session.answer('سؤال',false);expect(update).toHaveBeenLastCalledWith('thinking');session.stop();resolve('جواب متأخر');await Promise.resolve();expect(speak).not.toHaveBeenCalled()});
+ it('speaks the actual resolved model answer',async()=>{const speak=vi.fn(()=>true);const session=new VoiceSession({recognition:()=>null,speak,cancelSpeech:vi.fn(),reply:async()=> 'الجواب من الدرس',update:vi.fn()});session.answer('سؤال',false);await Promise.resolve();expect(speak).toHaveBeenCalledWith('الجواب من الدرس',expect.any(Object));session.stop()});
+});

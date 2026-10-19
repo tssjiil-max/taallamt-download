@@ -10,7 +10,7 @@ export interface VoiceDependencies{
  recognition:()=>RecognitionLike|null;
  speak:(text:string,handlers:{onStart:()=>void;onEnd:()=>void;onError:()=>void})=>boolean;
  cancelSpeech:()=>void;
- reply:(text:string)=>string;
+ reply:(text:string)=>string|Promise<string>;
  update:(phase:VoicePhase,message?:string)=>void;
  schedule?:(callback:()=>void)=>ReturnType<typeof setTimeout>;
 }
@@ -45,7 +45,8 @@ export class VoiceSession{
  answer(text:string,voiceLoop=this.active){
   if(owner!==this){stopActiveVoiceSession();owner=this}
   this.generation++;this.clear();this.d.cancelSpeech();this.d.update('thinking');
-  const reply=this.d.reply(text);this.say(reply,voiceLoop);
+  const token=this.generation;
+  try{const reply=this.d.reply(text);if(typeof reply==='string')this.say(reply,voiceLoop);else reply.then(value=>{if(token===this.generation)this.say(value,voiceLoop)}).catch(()=>{if(token===this.generation)this.fail('تعذر الاتصال بالمساعد. حاول مرة أخرى بعد قليل.')})}catch{this.fail('تعذر الاتصال بالمساعد. حاول مرة أخرى بعد قليل.')}
  }
  private say(text:string,voiceLoop:boolean){
   this.generation++;this.clear();this.d.cancelSpeech();this.active=voiceLoop;
