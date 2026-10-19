@@ -32,12 +32,13 @@ export function StudentLearningPilot({back}:{back:()=>void}){
   React.useEffect(()=>{
     if(!activity){setLessonContext(null);return}
     setLessonContext({
+      assessment:step===2,
       subject:activity.subject,
       subjectLabel:subjectLabel[activity.subject]||activity.subject,
       title:activity.title,
       explanation:step===0?activity.explanation:undefined,
       prompt:step>0?activity.question.prompt:undefined,
-      hint:step>0?activity.question.hint:undefined
+      hint:step===1?activity.question.hint:undefined
     });
     return()=>setLessonContext(null);
   },[activity?.targetId,activity?.question.id,activity?.explanation,activity?.title,activity?.subject,step]);
@@ -140,8 +141,7 @@ function ShakabumboReadAloud({text}:{text:string}){
   const toggle=()=>{
     if(!('speechSynthesis' in window))return;
     if(speaking){window.speechSynthesis.cancel();setSpeaking(false);return}
-    // Tashkeel-stripped + an explicit Arabic voice when one is installed — fixes words like
-    // «كَسْرَتَيْنِ» coming out with the wrong vowel on the first letter (see shakabumbo/speak.ts).
+    // Preserve educational vowels; actual pronunciation requires a listening check.
     speakArabic(text,{onStart:()=>setSpeaking(true),onEnd:()=>setSpeaking(false),onError:()=>setSpeaking(false)});
   };
   return <button type="button" className="tkBtn ghost" onClick={toggle} disabled={!('speechSynthesis' in window)} aria-label={speaking?'إيقاف قراءة شكابمبو':'استمع إلى شكابمبو'}>{speaking?'إيقاف القراءة':'🔊 شكابمبو يقرأ لي'}</button>;

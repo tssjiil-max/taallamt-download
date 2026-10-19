@@ -6,6 +6,7 @@
 // chat panel. Not a bus event, because the chat needs the *current* value at open time, not
 // just a transient notification.
 export interface LessonContext{
+  assessment?:boolean;
   subject:string;
   subjectLabel:string;
   title:string;

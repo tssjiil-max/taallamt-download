@@ -645,135 +645,18 @@ a{color:inherit;text-decoration:none}
    <svg>, so the illustration genuinely walks instead of sliding as one flat
    image.
    ========================================================================== */
-.shakStage{position:fixed;z-index:25;left:8px;bottom:calc(calc(var(--u)*78) + env(safe-area-inset-bottom,0px) + 8px);
-  width:104px;height:124px;pointer-events:none}
-.shakStage.shakStageHidden{display:none}
-.shakStage.shakStageTucked{opacity:.18;transition:opacity .2s ease}
-.shakStage.shakStageSitting{height:106px}
-.shakWalker{position:absolute;bottom:0;width:70px;height:104px;right:var(--shak-x);transform:translateX(50%) scaleX(var(--shak-facing,1));transition:right .05s linear}
-.shakStageSitting .shakWalker{right:50%;transition:right .4s ease}
-@media(max-width:340px){.shakWalker{width:54px;height:80px}.shakStage{width:86px;height:98px}}
+/* Original full artwork, in normal page flow: never overlays questions or navigation. */
+.shakCompanionShelf{display:flex;align-items:center;gap:16px;margin:16px 0;padding:16px;border:1px solid #d3e5db;border-radius:20px;background:#f2f8f4;max-width:100%;overflow:hidden}
+.shakOriginalButton{flex:0 0 112px;border:0;padding:0;border-radius:16px;overflow:hidden;background:#000;cursor:pointer}.shakOriginalButton:disabled{cursor:default}
+.shakOriginal{display:block;max-width:100%;width:100%;height:auto;object-fit:contain;border-radius:14px;transform-origin:50% 85%}
+.shakCompanionIntro{min-width:0;flex:1}.shakCompanionIntro strong{color:var(--green-ink);font-size:17px}.shakCompanionIntro p{font-size:13px;line-height:1.7;margin:8px 0}
+.shakCompanionShelf button:not(.shakOriginalButton),.shakChat button{font:inherit;min-height:44px;padding:8px 12px;border:1px solid #cdded5;border-radius:12px;background:white;color:var(--blue-ink);cursor:pointer}.shakCompanionShelf .shakAskBtn{background:var(--green-ink);color:white;display:block;font-size:13px}.shakCompanionShelf .shakToggle{margin-top:8px;font-size:12px;padding:4px 8px;background:transparent;border:0}
+.shakOriginal[data-state=WALKING],.shakOriginal[data-state=IDLE]{animation:shakWholeSway 5s ease-in-out infinite}.shakOriginal[data-state=CELEBRATING],.shakOriginal[data-state=ENCOURAGING]{animation:shakWholeHop .7s ease-in-out 2}.shakOriginal[data-state=SPEAKING]{animation:shakWholeSway 3s ease-in-out infinite}.shakQuiet .shakOriginal,.shakOriginal[data-state=LISTENING_QURAN]{animation:none!important;transform:none!important}
+@keyframes shakWholeSway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}@keyframes shakWholeHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.shakChat{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(480px,calc(100vw - 24px));max-width:calc(100vw - 24px);height:min(760px,calc(100dvh - 24px));max-height:calc(100dvh - 24px);border:1px solid #d4e1db;border-radius:22px;padding:0;background:#fff;color:var(--blue-ink);box-shadow:0 16px 48px #17324f33;font-family:inherit;overflow:auto;overscroll-behavior:contain}.shakChat::backdrop{background:#10252f88}.shakChat:not([open]){display:none}
+.shakChatHead{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#eef6f0;z-index:1}.shakChatHead b{font-size:18px}.shakVoiceHero{display:flex;align-items:center;gap:16px;padding:16px 20px 0}.shakVoiceHero .shakOriginal{width:104px;flex:none;background:#000}.shakVoiceHero p{font-size:20px;font-weight:700;color:var(--green-ink)}.shakVoiceControls{display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px}.shakChat button:disabled{opacity:.55;cursor:default}.shakChatHint{font-size:12px;line-height:1.8;color:#52665b;padding:0 16px}.shakChatNotice{margin:8px 16px;padding:10px;border-radius:12px;background:#fff4df;font-size:13px;line-height:1.8}
+.shakChatList{padding:8px 16px;max-height:200px;overflow:auto;display:flex;flex-direction:column;gap:8px}.shakChatBubble{margin:0;max-width:95%;font-size:14px;line-height:1.9;padding:10px 12px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere}.shakChatBubbleShak{align-self:flex-start;background:#edf7ef}.shakChatBubbleMe{align-self:flex-end;background:#eaf1f9}.shakTextFallback{margin:8px 16px;font-size:12px!important}.shakChatForm{display:flex;align-items:end;gap:8px;padding:8px 16px}.shakChatInputLabel{min-width:0;flex:1;font-size:12px}.shakChatInput{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #bdd4c6;border-radius:12px;padding:8px;font:inherit;display:block}.shakVoiceDetails{font-size:12px;padding:12px 16px;border-top:1px solid #e6eee8}.shakVoiceDetails summary{cursor:pointer;min-height:32px}.shakVoiceDetails small{display:block;line-height:1.8;margin-top:8px}.shakPrivacy{display:block;font-size:11px;line-height:1.8;padding:8px 16px 16px;color:#52665b}
+@media(prefers-reduced-motion:reduce){.shakOriginal{animation:none!important;transition:none!important}}
+@media(max-width:380px){.shakCompanionShelf{padding:12px;gap:12px}.shakOriginalButton{flex-basis:88px}.shakVoiceHero{gap:12px}.shakVoiceHero p{font-size:17px}}
 
-.shakAnnounce{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.shakToggle{position:fixed;z-index:26;left:8px;bottom:calc(calc(var(--u)*78) + env(safe-area-inset-bottom,0px) + 134px);
-  pointer-events:auto;border:none;border-radius:99px;padding:6px 12px;font-size:11px;font-weight:700;
-  color:var(--blue-ink);background:#fff;box-shadow:0 2px 10px rgba(10,31,68,.18)}
-.shakToggle.shown{color:var(--green-ink)}
-
-/* ---- rig base — the head is the real approved artwork (a clipped crop of
-   design/shakabumbo/originals/04-standing-white-hair-star.png, see ShakabumboRig.tsx for
-   why), so there is no vector face/hair/ear styling to keep in sync here any more. The body
-   below the neck stays a close vector match: white suit, black joint rings with green
-   lights, a belt buckle, wide boots with a green ankle band. ---- */
-.shakRig{overflow:visible}
-.shakShadow ellipse{fill:#0a1f44;opacity:.12}
-.shakHeadImg{filter:drop-shadow(0 1px 0 rgba(23,50,79,.25))}
-/* Talking is shown as a gentle chatter pulse on the real head art, not a mouth swap —
-   the art has no separate mouth-open frame to toggle. */
-.shakRig[data-talking="1"] .shakHeadImg{animation:shakHeadTalk .32s ease-in-out infinite}
-.shakTorsoBody{fill:#fff;stroke:#17324f;stroke-width:2.6}
-.shakShoulderPadL,.shakShoulderPadR{fill:#fff;stroke:#17324f;stroke-width:2.2}
-.shakBelt.shakBelt{fill:#17324f}
-.shakBuckle{fill:#2fbf5c;stroke:#17324f;stroke-width:1.4}
-.shakChestRing{fill:none;stroke:#17324f;stroke-width:2.4}
-.shakChestLight{fill:#bdf3c8;stroke:#2f7d49;stroke-width:1.6}
-.shakChestLightCore{fill:#2fbf5c}
-.shakRig[data-state=IDLE] .shakChestLightCore,.shakRig[data-state=WALKING] .shakChestLightCore,.shakRig[data-state=SPEAKING] .shakChestLightCore{animation:shakPulse 2.4s ease-in-out infinite}
-.shakThigh,.shakLimbPart{fill:#fff;stroke:#17324f;stroke-width:2.2}
-.shakHand{fill:#fff;stroke:#17324f;stroke-width:2.2}
-.shakJointRing{fill:#17324f}
-.shakJointLight,.shakKneeLight{fill:#2fbf5c}
-.shakBoot.shakBoot{fill:#fff;stroke:#17324f;stroke-width:2.2}
-.shakSole.shakSole{fill:#17324f;stroke:none}
-.shakBootBand.shakBootBand{fill:#2fbf5c}
-
-/* ---- idle: breathing + a slight head turn, no net displacement ---- */
-.shakRig[data-state=IDLE] .shakBounce{animation:shakBreathe 2.6s ease-in-out infinite}
-.shakRig[data-state=IDLE] .shakHead{animation:shakGlance 5.2s ease-in-out infinite}
-
-/* ---- real walk cycle: legs alternate, arms swing opposite the legs, a
-   vertical bob lands on each footfall, the torso counter-rotates slightly ---- */
-.shakRig[data-state=WALKING] .shakBounce{animation:shakWalkBounce .78s ease-in-out infinite}
-.shakRig[data-state=WALKING] .shakLegFront{animation:shakStrideFront .78s ease-in-out infinite}
-.shakRig[data-state=WALKING] .shakLegBack{animation:shakStrideBack .78s ease-in-out infinite}
-.shakRig[data-state=WALKING] .shakLegFront .shakShin{animation:shakShinFront .78s ease-in-out infinite}
-.shakRig[data-state=WALKING] .shakLegBack .shakShin{animation:shakShinBack .78s ease-in-out infinite}
-.shakRig[data-state=WALKING] .shakArmFront{animation:shakStrideBack .78s ease-in-out infinite}
-.shakRig[data-state=WALKING] .shakArmBack{animation:shakStrideFront .78s ease-in-out infinite}
-.shakRig[data-state=WALKING] .shakTorsoGroup{animation:shakTorsoSway .78s ease-in-out infinite}
-
-/* ---- falling in from the top, then absorbing the landing ---- */
-.shakRig[data-state=ENTERING]{animation:shakFall 1.05s cubic-bezier(.4,0,.7,1) forwards}
-.shakRig[data-state=ENTERING] .shakArmFront,.shakRig[data-state=ENTERING] .shakArmBack{animation:shakFlailArm .35s ease-in-out infinite}
-.shakRig[data-state=ENTERING] .shakLegFront,.shakRig[data-state=ENTERING] .shakLegBack{animation:shakFlailLeg .35s ease-in-out infinite}
-.shakRig[data-state=LANDING]{animation:shakLandSquash .36s ease-out forwards}
-.shakRig[data-state=LANDING] .shakLegFront,.shakRig[data-state=LANDING] .shakLegBack{animation:shakLandKnee .36s ease-out forwards}
-
-/* ---- gestures ---- */
-.shakRig[data-state=THINKING] .shakArmFront{animation:shakHandToHead .4s ease-out forwards}
-.shakRig[data-state=EXPLAINING] .shakArmFront{animation:shakPoint .4s ease-out forwards}
-.shakRig[data-state=ENCOURAGING] .shakArmFront,.shakRig[data-state=ENCOURAGING] .shakArmBack{animation:shakClap .55s ease-in-out 2}
-.shakRig[data-state=CELEBRATING] .shakBounce{animation:shakJump .65s cubic-bezier(.3,.6,.4,1) 2}
-.shakRig[data-state=CELEBRATING] .shakArmFront,.shakRig[data-state=CELEBRATING] .shakArmBack{animation:shakClap .4s ease-in-out 3}
-
-/* ---- Quran: a real seated pose, not the standing artwork relabelled ---- */
-.shakRig[data-state=LISTENING_QURAN] .shakLegFront{transform:rotate(72deg)}
-.shakRig[data-state=LISTENING_QURAN] .shakLegBack{transform:rotate(72deg)}
-.shakRig[data-state=LISTENING_QURAN] .shakLegFront .shakShin{transform:rotate(-78deg)}
-.shakRig[data-state=LISTENING_QURAN] .shakLegBack .shakShin{transform:rotate(-78deg)}
-.shakRig[data-state=LISTENING_QURAN] .shakArmFront{transform:rotate(18deg)}
-.shakRig[data-state=LISTENING_QURAN] .shakArmBack{transform:rotate(-18deg)}
-.shakRig[data-state=LISTENING_QURAN] .shakTorsoGroup{animation:shakListenBreathe 4s ease-in-out infinite}
-.shakRig[data-state=LISTENING_QURAN] .shakBounce{transform:translateY(46px)}
-
-@keyframes shakBreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
-@keyframes shakGlance{0%,20%,100%{transform:rotate(0)}10%{transform:rotate(-4deg)}60%,75%{transform:rotate(4deg)}}
-@keyframes shakWalkBounce{0%,50%,100%{transform:translateY(0)}25%,75%{transform:translateY(-6px)}}
-@keyframes shakTorsoSway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
-@keyframes shakStrideFront{0%,100%{transform:rotate(26deg)}50%{transform:rotate(-26deg)}}
-@keyframes shakStrideBack{0%,100%{transform:rotate(-26deg)}50%{transform:rotate(26deg)}}
-@keyframes shakShinFront{0%,20%{transform:rotate(-8deg)}50%{transform:rotate(-34deg)}80%,100%{transform:rotate(-4deg)}}
-@keyframes shakShinBack{50%,70%{transform:rotate(-8deg)}0%,100%{transform:rotate(-34deg)}30%{transform:rotate(-4deg)}}
-@keyframes shakPulse{0%,100%{opacity:.75}50%{opacity:1}}
-@keyframes shakFall{0%{transform:translateY(-420px) rotate(-8deg)}70%{transform:translateY(0) rotate(4deg)}100%{transform:translateY(0) rotate(0)}}
-@keyframes shakFlailArm{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(30deg)}}
-@keyframes shakFlailLeg{0%,100%{transform:rotate(20deg)}50%{transform:rotate(-20deg)}}
-@keyframes shakLandSquash{0%{transform:scaleY(1)}40%{transform:scaleY(.82) translateY(10px)}100%{transform:scaleY(1) translateY(0)}}
-@keyframes shakLandKnee{0%{transform:rotate(0)}40%{transform:rotate(38deg)}100%{transform:rotate(0)}}
-@keyframes shakHandToHead{0%{transform:rotate(0)}100%{transform:rotate(-128deg)}}
-@keyframes shakPoint{0%{transform:rotate(0)}100%{transform:rotate(-54deg)}}
-@keyframes shakClap{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(18deg)}}
-@keyframes shakJump{0%,100%{transform:translateY(0)}45%{transform:translateY(-34px)}}
-@keyframes shakListenBreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
-@keyframes shakHeadTalk{0%,100%{transform:scale(1)}50%{transform:scale(1.035,.97)}}
-
-/* ---- ask-Shakabumbo chat: text + voice, never covering the lesson column itself ---- */
-.shakAskBtn{position:fixed;z-index:26;left:8px;bottom:calc(calc(var(--u)*78) + env(safe-area-inset-bottom,0px) + 158px);
-  pointer-events:auto;border:none;border-radius:99px;padding:calc(var(--u)*7) calc(var(--u)*14);font-size:12px;font-weight:700;
-  color:#fff;background:var(--blue-ink,#17324f);box-shadow:0 2px 10px rgba(10,31,68,.22)}
-.shakChat{position:fixed;z-index:30;inset-inline:10px;bottom:calc(calc(var(--u)*78) + env(safe-area-inset-bottom,0px) + 8px);
-  max-width:calc(var(--u)*412);margin-inline:auto;max-height:52vh;display:flex;flex-direction:column;
-  background:#fff;border-radius:calc(var(--u)*18);box-shadow:0 10px 30px rgba(10,31,68,.28);border:1px solid #e2eef5;
-  pointer-events:auto;overflow:hidden}
-.shakChatHead{display:flex;align-items:center;justify-content:space-between;padding:calc(var(--u)*10) calc(var(--u)*14);
-  background:var(--blue-ink,#17324f);color:#fff}
-.shakChatHeadBtns{display:flex;gap:calc(var(--u)*6)}
-.shakChatIconBtn{background:transparent;border:none;color:#fff;font-size:16px;padding:calc(var(--u)*2) calc(var(--u)*6)}
-.shakChatHint{padding:calc(var(--u)*8) calc(var(--u)*14) 0;color:#6a7f94;font-size:12px}
-.shakChatLiveHint{color:#2f7d49;font-weight:700}
-.shakChatList{flex:1;overflow-y:auto;padding:calc(var(--u)*10) calc(var(--u)*14);display:flex;flex-direction:column;gap:calc(var(--u)*8)}
-.shakChatBubble{max-width:84%;padding:calc(var(--u)*8) calc(var(--u)*12);border-radius:calc(var(--u)*14);margin:0;font-size:13px;line-height:1.5}
-.shakChatBubbleShak{align-self:flex-start;background:#eef6f0;color:#17324f}
-.shakChatBubbleMe{align-self:flex-end;background:var(--blue-ink,#17324f);color:#fff}
-.shakChatForm{display:flex;gap:calc(var(--u)*6);padding:calc(var(--u)*10);border-top:1px solid #eef2f6}
-.shakChatMic{border:none;border-radius:99px;width:40px;height:40px;font-size:18px;background:#eef6f0}
-.shakChatMic.shakChatMicOn{background:#ffd9d9;animation:shakPulse 1s ease-in-out infinite}
-.shakChatInput{flex:1;min-width:0;border:1px solid #dbe6ee;border-radius:99px;padding:0 calc(var(--u)*14);font-size:13px}
-.shakChatSend{border:none;border-radius:99px;padding:0 calc(var(--u)*16);font-weight:700;color:#fff;background:var(--green-ink,#2f7d49)}
-.shakChatSend:disabled{opacity:.5}
-
-@media(prefers-reduced-motion:reduce){
-  .shakRig *{animation:none!important}
-  .shakWalker{transition:none}
-  .shakRig[data-state=LISTENING_QURAN] .shakBounce{transform:translateY(46px)}
-}
+.shakCompanionShelf[data-motion=reduced] .shakOriginal,.shakCompanionShelf[data-motion=off] .shakOriginal{animation:none!important}
