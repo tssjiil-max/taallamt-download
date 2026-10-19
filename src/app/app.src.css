@@ -599,3 +599,69 @@ a{color:inherit;text-decoration:none}
 .tkNavBadge{position:absolute;top:2u;right:calc(50% - 26u);min-width:18u;height:18u;padding:0 4u;box-sizing:border-box;border-radius:99u;background:#c93a36;color:#fff;font-size:11u;font-weight:700;font-style:normal;display:grid;place-items:center;line-height:1}
 /* Screen and navigation are siblings: reserve the student nav height plus 14u clearance. */
 .tk:has(>.tkNav.stu)>.tkScreen{padding-bottom:calc(78u + 14u + env(safe-area-inset-bottom,0px))}
+
+/* The optional preview experiment retains the existing palette and original artwork. */
+.tk:has(>.tkNav.pilot)>.tkScreen{padding-top:env(safe-area-inset-top,0px)}
+.tkNav.stu.pilot{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tkNav.stu.pilot button{font-size:10.8u;min-width:0;min-height:44px}
+.tkLearning .tkBox{margin-bottom:12u;padding:14u;line-height:1.9}
+.tkLearning h2{font-size:18u;margin-bottom:8u}
+.tkLearningSteps{display:flex;flex-wrap:wrap;gap:8u;margin:12u 0}
+.tkLearning .tkBtn{min-height:44px;white-space:normal;margin:5u 0;padding:8u 14u}
+.tkLearningText{white-space:pre-wrap;overflow-wrap:anywhere;margin:12u 0}
+.tkLearning .tkField{margin:12u 0;display:flex;flex-direction:column;gap:6u}
+.tkLearning .tkField input,.tkLearning .tkField textarea,.tkLearning .tkField select{min-height:44px;padding:10u;border:1px solid #bcd9f5;border-radius:12u;background:#fff;max-width:100%;font:inherit;color:inherit}
+.tkLearning small{display:block;color:var(--ink3)}
+.tkAnnouncementOpen{width:100%;text-align:start;min-height:44px;display:flex;flex-direction:column;gap:8u;color:var(--ink)}
+.tkAnnouncementImage{display:block;width:100%;max-height:300u;object-fit:contain;margin:12u 0}
+
+@font-face{font-family:TaallamtQuran;src:url('/learning-font/NotoNaskhArabic-Regular.ttf') format('truetype');font-display:swap}.tkLearning .tkQuranText{font-family:TaallamtQuran,serif;font-size:calc(var(--u)*22);line-height:2.7;direction:rtl;text-align:right;overflow-wrap:break-word}.tkLearning details summary{cursor:pointer;padding:12px 0;min-height:44px}.tkLearning .tkQuranText p{padding:6px 0}
+
+/* Calm subject accents reuse the platform palette; no animation or new identity. */
+.tkLearning .tkSubject-arabic{--subject-card:var(--blue-card);--subject-ink:var(--blue-ink);--subject-line:var(--blue-soft)}
+.tkLearning .tkSubject-spelling{--subject-card:var(--orange-card);--subject-ink:var(--orange-ink);--subject-line:var(--orange-soft)}
+.tkLearning .tkSubject-handwriting{--subject-card:var(--purple-card);--subject-ink:var(--purple-ink);--subject-line:var(--purple-soft)}
+.tkLearning .tkSubject-quran,.tkLearning .tkSubject-islamic{--subject-card:var(--green-card);--subject-ink:var(--green-ink);--subject-line:var(--green-soft)}
+.tkSubjectChoices{display:flex;flex-wrap:wrap;gap:8u;margin:12u 0}
+.tkSubjectChoice{min-height:48px;padding:9u 14u;border-radius:16u;background:var(--subject-card);color:var(--subject-ink);border:2px solid transparent;font-weight:600}
+.tkSubjectChoice[aria-pressed=true]{border-color:var(--subject-ink)}
+.tkLearning .tkActivityCard{border-block-start:5px solid var(--subject-line);background:linear-gradient(180deg,var(--subject-card),#fff 150px)}
+.tkLearning .tkSubjectLabel{color:var(--subject-ink);font-weight:600}
+.tkLearning .tkStarCard{background:var(--orange-card);border:1px solid var(--orange-soft)}
+.tkLearning .tkSkillChoice{border-inline-start:4px solid var(--subject-line);background:var(--subject-card);margin-block:8u}
+.tkLearningSteps [aria-selected=true]{box-shadow:0 3px 8px #0d47a622}
+
+/* ==========================================================================
+   Shakabumbo companion: a jointed vector rig (src/app/shakabumbo), not a
+   single image. Docked in a small corner box above the student bottom nav —
+   NOT a full-width strip — so it paces within its own footprint instead of
+   crossing the page and covering lesson text, questions or the submit
+   button. The box sits at the screen's own left edge (independent of the
+   412u content column, which stays centered), small enough that nothing in
+   the reading column can ever be underneath it. Horizontal position inside
+   the box is driven by a CSS variable the walk loop updates every frame;
+   limb rotation is driven by these keyframes, keyed off data-state on the
+   <svg>, so the illustration genuinely walks instead of sliding as one flat
+   image.
+   ========================================================================== */
+/* Original full artwork, in normal page flow: never overlays questions or navigation. */
+.shakCompanionShelf{display:flex;align-items:center;gap:16px;margin:16px 0;padding:16px;border:1px solid #d3e5db;border-radius:20px;background:#f2f8f4;max-width:100%;overflow:hidden}
+.shakOriginalButton{flex:0 0 112px;border:0;padding:0;border-radius:16px;overflow:hidden;background:#000;cursor:pointer}.shakOriginalButton:disabled{cursor:default}
+.shakOriginal{display:block;max-width:100%;width:100%;height:auto;object-fit:contain;border-radius:14px;transform-origin:50% 85%}
+.shakCompanionIntro{min-width:0;flex:1}.shakCompanionIntro strong{color:var(--green-ink);font-size:17px}.shakCompanionIntro p{font-size:13px;line-height:1.7;margin:8px 0}
+.shakCompanionShelf button:not(.shakOriginalButton),.shakChat button{font:inherit;min-height:44px;padding:8px 12px;border:1px solid #cdded5;border-radius:12px;background:white;color:var(--blue-ink);cursor:pointer}.shakCompanionShelf .shakAskBtn{background:var(--green-ink);color:white;display:block;font-size:13px}.shakCompanionShelf .shakToggle{margin-top:8px;font-size:12px;padding:4px 8px;background:transparent;border:0}
+.shakOriginal[data-state=WALKING],.shakOriginal[data-state=IDLE]{animation:shakWholeSway 5s ease-in-out infinite}.shakOriginal[data-state=CELEBRATING],.shakOriginal[data-state=ENCOURAGING]{animation:shakWholeHop .7s ease-in-out 2}.shakOriginal[data-state=SPEAKING]{animation:shakWholeSway 3s ease-in-out infinite}.shakQuiet .shakOriginal,.shakOriginal[data-state=LISTENING_QURAN]{animation:none!important;transform:none!important}
+@keyframes shakWholeSway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg)}}@keyframes shakWholeHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.shakChat{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(480px,calc(100vw - 24px));max-width:calc(100vw - 24px);height:min(760px,calc(100dvh - 24px));max-height:calc(100dvh - 24px);border:1px solid #d4e1db;border-radius:22px;padding:0;background:#fff;color:var(--blue-ink);box-shadow:0 16px 48px #17324f33;font-family:inherit;overflow:auto;overscroll-behavior:contain}.shakChat::backdrop{background:#10252f88}.shakChat:not([open]){display:none}
+.shakChatHead{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#eef6f0;z-index:1}.shakChatHead b{font-size:18px}.shakVoiceHero{display:flex;align-items:center;gap:16px;padding:16px 20px 0}.shakVoiceHero .shakOriginal{width:104px;flex:none;background:#000}.shakVoiceHero p{font-size:20px;font-weight:700;color:var(--green-ink)}.shakVoiceControls{display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px}.shakChat button:disabled{opacity:.55;cursor:default}.shakChatHint{font-size:12px;line-height:1.8;color:#52665b;padding:0 16px}.shakChatNotice{margin:8px 16px;padding:10px;border-radius:12px;background:#fff4df;font-size:13px;line-height:1.8}
+.shakChatList{padding:8px 16px;max-height:200px;overflow:auto;display:flex;flex-direction:column;gap:8px}.shakChatBubble{margin:0;max-width:95%;font-size:14px;line-height:1.9;padding:10px 12px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere}.shakChatBubbleShak{align-self:flex-start;background:#edf7ef}.shakChatBubbleMe{align-self:flex-end;background:#eaf1f9}.shakTextFallback{margin:8px 16px;font-size:12px!important}.shakChatForm{display:flex;align-items:end;gap:8px;padding:8px 16px}.shakChatInputLabel{min-width:0;flex:1;font-size:12px}.shakChatInput{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #bdd4c6;border-radius:12px;padding:8px;font:inherit;display:block}.shakVoiceDetails{font-size:12px;padding:12px 16px;border-top:1px solid #e6eee8}.shakVoiceDetails summary{cursor:pointer;min-height:32px}.shakVoiceDetails small{display:block;line-height:1.8;margin-top:8px}.shakPrivacy{display:block;font-size:11px;line-height:1.8;padding:8px 16px 16px;color:#52665b}
+@media(prefers-reduced-motion:reduce){.shakOriginal{animation:none!important;transition:none!important}}
+@media(max-width:380px){.shakCompanionShelf{padding:12px;gap:12px}.shakOriginalButton{flex-basis:88px}.shakVoiceHero{gap:12px}.shakVoiceHero p{font-size:17px}}
+
+.shakCompanionShelf[data-motion=reduced] .shakOriginal,.shakCompanionShelf[data-motion=off] .shakOriginal{animation:none!important}
+
+/* One tap to greet and listen, the same tap to finish. The character stays in page flow. */
+.shakOneTap{margin:16px 0;padding:12px;border-radius:20px;background:#f2f8f4;border:1px solid #d7e8dd;text-align:center;overflow:hidden;max-width:100%}.shakOneTapLane{display:flex;align-items:center;justify-content:center;min-height:160px}.shakOneTapCharacter{display:block;position:relative;width:160px;max-width:55%;padding:0;border:0;background:#000;border-radius:20px;cursor:pointer;flex:none;animation:shakRoam 14s ease-in-out infinite}.shakOneTapCharacter:hover,.shakOneTapCharacter:focus-visible,.shakOneTapActive .shakOneTapCharacter{animation-play-state:paused}.shakOneTapCharacter:focus-visible{outline:3px solid #2f7d49;outline-offset:5px}.shakOneTapCharacter:disabled{cursor:default}.shakPose{display:block;position:relative;aspect-ratio:1312/1199;overflow:hidden;border-radius:20px}.shakOneTap .shakOriginal{animation:none!important;width:100%;height:100%;object-fit:contain;transition:opacity .25s ease}.shakOriginalWave{position:absolute;inset:0;opacity:0}.shakPose[data-talking="1"] .shakOriginalWave{opacity:1}.shakPose[data-talking="1"] .shakOriginalBase{opacity:0}.shakQuiet .shakOneTapCharacter{animation:none!important}.shakQuiet .shakOriginalWave{opacity:0!important}.shakQuiet .shakOriginalBase{opacity:1!important}.shakTapHint{font-size:13px;color:#375848;margin:10px 0 0;line-height:1.8}.shakSimpleChat{max-width:100%;text-align:center}.shakSimpleStatus{font-size:18px;font-weight:700;color:var(--green-ink);margin:10px 0}.shakSimpleStatus span{display:inline-block;width:9px;height:9px;margin-inline-end:5px;border-radius:50%;background:#2f7d49}.shakPhase-listening span{animation:shakListeningPulse 1.2s ease-in-out infinite}.shakSimpleNotice{font-size:13px;line-height:1.8;background:#fff4df;border-radius:12px;margin:10px 0;padding:10px}.shakSimpleOptions{margin-top:12px;text-align:right;font-size:12px}.shakSimpleOptions summary{cursor:pointer;color:#52665b;min-height:32px;text-align:center}.shakSimpleOptions small{display:block;font-size:11px;line-height:1.8;color:#52665b}.shakSimpleOptions button,.shakRestore{font:inherit;min-height:44px;border:1px solid #cdded5;padding:8px 12px;border-radius:12px;background:white;color:var(--blue-ink)}
+@keyframes shakRoam{0%,100%{transform:translateX(-24px) rotate(-1deg)}50%{transform:translateX(24px) rotate(1deg)}}@keyframes shakListeningPulse{50%{opacity:.4}}
+.shakOneTap[data-motion=reduced] .shakOneTapCharacter,.shakOneTap[data-motion=off] .shakOneTapCharacter{animation:none!important}@media(prefers-reduced-motion:reduce){.shakOneTapCharacter,.shakSimpleStatus span{animation:none!important}.shakOneTap .shakOriginal{transition:none!important}}
+.shakPose[data-state=CELEBRATING],.shakPose[data-state=ENCOURAGING]{animation:shakWholeHop .7s ease-in-out 2}.shakPose[data-talking="1"]{animation:shakWholeSway 2.2s ease-in-out infinite}.shakQuiet .shakPose,.shakOneTap[data-motion=reduced] .shakPose{animation:none!important}@media(prefers-reduced-motion:reduce){.shakPose{animation:none!important}}

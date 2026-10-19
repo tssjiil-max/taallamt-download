@@ -70,7 +70,15 @@
 
   function exportHtml(data){const identity=`<h1>ملف إنجاز المعلم</h1><h2>${esc(data.teacher?.name||'')}</h2><p>${esc(data.teacher?.school||'')} — ${esc(data.teacher?.className||'')} — ${esc(data.teacher?.term||'')}</p>`;const goals=`<h2>الأهداف المهنية</h2>${(data.professionalGoals||[]).map(g=>`<h3>${esc(g.title)}</h3><p>الهدف: ${esc(g.target)} — الوضع الحالي: ${esc(g.current)}</p>`).join('')}`;const sections=PROFESSIONAL_SECTIONS.filter(x=>!['الهوية المهنية','الأهداف المهنية'].includes(x)).map(title=>`<h2>${esc(title)}</h2>${title==='ملخص الأثر'?`<p>${esc(data.impactSummary?.narrative||'')}</p>`:(data.sections?.[title]||[]).map(item=>`<div class="evidence"><b>${esc(item.title)}</b><span>${fmtDate(item.occurredAt)}</span></div>`).join('')||'<p>لا توجد شواهد بعد.</p>'}`).join('');return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>ملف إنجاز المعلم</title><style>body{font-family:Arial,Tahoma,sans-serif;max-width:850px;margin:auto;padding:32px;color:#234b70;line-height:1.8}h1{color:#1678bf;border-bottom:3px solid #35a6e8;padding-bottom:10px}h2{margin-top:28px;color:#176cc5;border-bottom:1px solid #dceaf4}.evidence{padding:9px 0;border-bottom:1px solid #edf3f7;display:flex;justify-content:space-between;gap:12px}.evidence span{font-size:12px;color:#7890a2}</style></head><body>${identity}${goals}${sections}</body></html>`}
   function downloadCopy(data){const blob=new Blob([exportHtml(data)],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='ملف-إنجاز-المعلم.html';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-  async function sharePortfolio(data){const text=`ملف إنجاز المعلم ${data.teacher?.name||''} — ${data.teacher?.school||''} — ${data.counts?.total||0} شاهدًا موثقًا.`;if(navigator.share){try{await navigator.share({title:'ملف إنجاز المعلم',text,url:location.href});return}catch(error){if(error?.name==='AbortError')return}}try{await navigator.clipboard.writeText(`${text}\n${location.href}`);alert('تم نسخ رابط ملف الإنجاز للمشاركة.')}catch{alert(text)}}
+  async function sharePortfolio(data){
+    const file=new File([exportHtml(data)],'ملف-إنجاز-المعلم.html',{type:'text/html;charset=utf-8'});
+    if(navigator.canShare?.({files:[file]})){
+      try{await navigator.share({title:'ملف إنجاز المعلم',files:[file]});return}
+      catch(error){if(error?.name==='AbortError')return}
+    }
+    downloadCopy(data);
+    alert('تم تحميل نسخة ملف الإنجاز. لمشاركة PDF استخدم طباعة / حفظ PDF ثم شارك الملف من جوالك.');
+  }
   function bindActions(container,data){container.querySelector('[data-portfolio-print]')?.addEventListener('click',()=>window.print());container.querySelector('[data-portfolio-download]')?.addEventListener('click',()=>downloadCopy(data));container.querySelector('[data-portfolio-share]')?.addEventListener('click',()=>sharePortfolio(data));bindUpload(container)}
 
   function renderData(container,data,status){

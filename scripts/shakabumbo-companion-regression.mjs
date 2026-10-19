@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';import{readFileSync,existsSync,statSync}from'node:fs';
+const read=p=>readFileSync(p,'utf8');
+const rig=read('src/app/shakabumbo/ShakabumboRig.tsx'),companion=read('src/app/shakabumbo/ShakabumboCompanion.tsx'),chat=read('src/app/shakabumbo/ShakabumboChat.tsx'),voice=read('src/app/shakabumbo/voice-session.ts'),speech=read('src/app/shakabumbo/speak.ts'),css=read('src/app/app.src.css');
+assert(rig.includes('shak-original-full.webp')&&rig.includes('shak-original-wave.webp')&&!rig.includes('<svg'),'full original character plus full greeting pose');
+assert(companion.includes('setOpen(v=>!v)'),'the same character tap must start and stop');
+assert(chat.includes('session.start(WELCOME)')&&!chat.includes('<dialog'),'greet first in a small inline interaction');
+assert(!companion.includes('تحدث مع شكابمبو 🎙️'),'remove the duplicate main button');
+assert(chat.includes('{typing&&<form'),'writing stays secondary');
+assert(voice.includes('r.abort()')&&voice.includes('generation'),'cancel input during output and reject stale callbacks');
+assert(css.includes('shakRoam')&&css.includes('.shakQuiet .shakOneTapCharacter{animation:none!important}'),'move only in the safe character space and stay still for Quran');
+assert(read('src/app/shakabumbo/useShakabumboEngine.ts').includes('audio:not([data-shak-voice])'),'character speech must not activate Quran mode');
+assert(speech.includes('voice-manifest.json')&&!/fetch\(|WebSocket|OPENAI_API_KEY/.test(chat+voice+speech),'local recordings with no paid voice transport');
+assert(!speech.includes('stripTashkeel'),'keep educational vowels');
+const manifest=JSON.parse(read('src/app/shakabumbo/voice-manifest.json'));
+assert(Object.values(manifest).some(path=>path.endsWith('/welcome.mp3')),'real welcome audio');
+for(const path of Object.values(manifest))assert(existsSync('public'+path)&&statSync('public'+path).size>=512,`missing or empty audio ${path}`);
+assert(read('src/app/learning-pilot.tsx').includes('assessment:step===2'),'test help policy preserved');
+console.log(`One-tap interaction, complete character, Quran guards and ${Object.keys(manifest).length} local voice clips passed.`);

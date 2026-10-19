@@ -1,3 +1,6 @@
+import {pilotHomeworkId,homeworkIdentity} from '../server/homework-identity.js';
+import {pilotDaySubjects} from '../server/pilot-schedule.js';
+import {teacherPilotRead,teacherPilotWrite} from '../server/learning-pilot.js';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {CLASS_STUDENTS,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {contentForWeek,COPYWORK_PAGES,quranForDay,riyadhDateString,riyadhWeekday,termPhase,weekNumberForDate,TERM_WEEKS} from '../server/learning-content.js';
@@ -82,7 +85,7 @@ export async function publishWeeklyPlan(week){
 }
 
 function fallbackSubjects(weekday,reason='TIMETABLE_EMPTY'){
-  return {subjects:[...(fallbackSchedule[weekday]||[])],timetableCount:0,source:'verified_distribution_schedule_fallback',reason};
+  return {subjects:pilotDaySubjects(fallbackSchedule[weekday]||[],weekday),timetableCount:0,source:'verified_distribution_schedule_fallback',reason};
 }
 async function scheduledSubjectsForDay(weekday){
   try{
@@ -90,7 +93,7 @@ async function scheduledSubjectsForDay(weekday){
     const all=rows(snap).filter(item=>(!item.classId||item.classId===CLASS_ID)&&Number(item.weekday)===weekday),subjects=[];
     for(const item of all){const normalized=normalizeSubject(item.subject);if(normalized&&!subjects.includes(normalized))subjects.push(normalized)}
     if(snap.size===0)return fallbackSubjects(weekday);
-    return {subjects,timetableCount:snap.size,source:'timetable'};
+    return {subjects:pilotDaySubjects(subjects,weekday),timetableCount:snap.size,source:'timetable'};
   }catch(error){
     return {...fallbackSubjects(weekday,'TIMETABLE_READ_UNAVAILABLE'),error:error instanceof Error?error.message:String(error)};
   }
@@ -169,13 +172,22 @@ export async function publishDailyHomework(date=new Date()){
     const plannedList=automationHomeworks(subject,item,daySpecific,localDate,week,schedule.source);
     if(!plannedList.length){gaps.push({subject,code:'SOURCE_PAGE_MISSING',message:`${subjectLabels[subject]}: لا توجد بيانات موثقة للمهمة في المصدر؛ لم يُنشر واجب لهذه المادة.`});continue}
     for(const planned of plannedList){
-      const id=planned.id,ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
+      let id=planned.id;if(pilotHomeworkId(planned)!==planned.id){const legacy=await db.collection(`${root()}/homework`).where('weekNumber','==',week).get();const match=rows(legacy).find(item=>item.source==='automation'&&homeworkIdentity(item)===homeworkIdentity(planned));if(match)id=match.id}const ref=db.doc(`${root()}/homework/${id}`),existing=await ref.get();
       if(existing.exists){
         const current=existing.data()||{};
         if(current.source==='automation'&&!current.editedByTeacherAt){const {id:_id,scheduledDate:_date,...refresh}=planned;await ref.set(refresh,{merge:true})}
         created.push({id,subject,path:planned.learningPath,duplicate:true});continue;
       }
-      const timestamp=nowIso(),record={...planned,classId:CLASS_ID,assignedAt:timestamp,publishedAt:timestamp,status:'published'};
+      const timestamp=nowIso(),record={...planned,id,classId:CLASS_ID,assignedAt:timestamp,publishedAt:timestamp,status:'published'};
+      if(pilotHomeworkId(planned)!==planned.id){
+        const duplicate=await db.runTransaction(async tx=>{
+          const current=await tx.get(ref);if(current.exists)return true;
+          const evidenceRefs=QURAN_FOLLOWUP_ROSTER.map(student=>db.doc(`${root()}/homeworkEvidence/${id}_${student.id}`));
+          const snapshots=await Promise.all(evidenceRefs.map(e=>tx.get(e)));
+          tx.set(ref,record);
+          evidenceRefs.forEach((e,index)=>{if(!snapshots[index].exists)tx.set(e,{id:e.id,homeworkId:id,studentId:QURAN_FOLLOWUP_ROSTER[index].id,status:'assigned',assignedAt:timestamp,source:'automation'})});return false;
+        });created.push({id,subject,path:record.learningPath,title:record.title,taskType:record.taskType,duplicate});continue;
+      }
       const batch=db.batch();
       batch.set(ref,record);
       for(const student of QURAN_FOLLOWUP_ROSTER){const evidenceId=`${id}_${student.id}`;batch.set(db.doc(`${root()}/homeworkEvidence/${evidenceId}`),{id:evidenceId,homeworkId:id,studentId:student.id,status:'assigned',assignedAt:timestamp,source:'automation'})}
@@ -260,6 +272,8 @@ export default async function handler(req,res){
     if(action==='preview')return res.status(200).json(await previewAutomation());
     // Everything below is a teacher tool: it needs the signed teacher session.
     requireTeacher(req,{write:req.method==='POST'});
+    if(req.method==='GET'&&action==='learning_pilot')return res.status(200).json(await teacherPilotRead(req.query||{}));
+    if(req.method==='POST'&&['learning_content','learning_plan','learning_paper_result','learning_photo_review','learning_photo_assess','learning_photo_read','learning_approve_reading'].includes(action))return res.status(200).json({ok:true,...await teacherPilotWrite(action,body)});
     if(req.method==='GET'){
       if(action==='overview'){await ensureFresh();return res.status(200).json(await readClassOverview())}
       await ensureFresh();

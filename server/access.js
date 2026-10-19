@@ -37,6 +37,10 @@ export function teacherGate(){
   // A short code would be guessable; it is refused rather than accepted as a weak gate.
   if(envCode&&normalizeCode(envCode).length<MIN_CODE_LENGTH)return {configured:false,reason:'TEACHER_CODE_TOO_SHORT'};
   if(envCode)return {configured:true,source:'environment',fingerprint:sha(`env:${envCode}`),check:code=>safeEqual(sha(normalizeCode(code)),sha(normalizeCode(envCode)))};
+  // The Shakabumbo preview has its own teacher credential. Never fall back to the
+  // historical preview code when its branch-scoped environment setting is absent.
+  if(process.env.VERCEL_GIT_COMMIT_REF==='preview/shakabumbo-pilot-20261013')
+    return {configured:false,reason:'TEACHER_CODE_MISSING_FOR_PILOT'};
   if(!IS_PRODUCTION)return {configured:true,source:'staging',fingerprint:sha(`staging:${STAGING_CODE.hash}`),check:code=>{
     const candidate=foldLookalikes(normalizeCode(code));if(candidate.length<8||candidate.length>64)return false;
     return safeEqual(scryptSync(candidate,STAGING_CODE.salt,32,{N:16384,r:8,p:1}).toString('hex'),STAGING_CODE.hash);

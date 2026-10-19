@@ -10,7 +10,14 @@
     }
   ],
   "functions": {
-    "api/learning-automation.js": { "maxDuration": 60 }
+    "api/learning-automation.js": {
+      "maxDuration": 60,
+      "includeFiles": "{server/ocr-assets/**,node_modules/tesseract.js/**,node_modules/tesseract.js-core/**}"
+    },
+    "api/student-state.js": {
+      "maxDuration": 60,
+      "includeFiles": "{server/ocr-assets/**,node_modules/tesseract.js/**,node_modules/tesseract.js-core/**}"
+    }
   },
   "rewrites": [
     {
@@ -56,7 +63,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "preview/student-teacher-staging-20261006": true
+      "preview/student-teacher-staging-20261006": true,
+      "preview/shakabumbo-pilot-20261013": true
     }
   }
 }
