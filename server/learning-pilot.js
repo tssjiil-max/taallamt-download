@@ -338,7 +338,7 @@ export function worksheetHtml({student,target,teacher=false,id,timestamp}){
 // Read-only boundary for the real model. Answer keys and student records never leave here.
 export async function readTutorLesson(req,body){
  requirePilot();const studentId=safeId(body.studentId);await authorizeStudent(req,studentId,body);
- const context=await readContext(studentId,body.demoSession||'');
+ const context=await readContext(studentId,body.demoSession||(studentId===DEMO_STUDENT_ID?'shakabumbo-preview':''));
  const target=context.catalog.find(t=>t.id===body.targetId);
  if(!target)throw new AccessError('LESSON_NOT_FOUND',404);
  if(target.subject==='quran')throw new AccessError('QURAN_BLOCKED',403);
