@@ -8,3 +8,6 @@ describe('curriculum model boundaries',()=>{
  it('unauthenticated requests cannot invoke the model',async()=>{const r=await worker.fetch(new Request('https://worker/',{method:'POST'}),{SERVICE_TOKEN:'test'});expect(r.status).toBe(401)});
  it('exhausted budget never calls the model',async()=>{const r=await worker.fetch(new Request('https://worker/',{method:'POST',headers:{authorization:'Bearer test'},body:JSON.stringify({context,question:'اشرح'})}),{SERVICE_TOKEN:'test',BUDGET:{idFromName:()=>'',get:()=>({fetch:async()=>Response.json({allowed:false})})},AI:{run:()=>{throw new Error('must not run')}}});expect(r.status).toBe(429)});
 });
+
+it('keeps the published spelling of lesson examples',async()=>{const {groundReply}=await import('../workers/shakabumbo/worker.js');expect(groundReply('تكتب كُتَابٍ.',{context:{...context,explanation:'مثل: كتابٍ.'},question:'هل اكتب كتابن؟'})).toBe('تكتب كتابٍ.')});
+it('rejects a contradicted mark position in favor of the explicit lesson reference',async()=>{const {groundReply}=await import('../workers/shakabumbo/worker.js');expect(groundReply('ضع الكسرتين بعد الحرف الأخير.',{context:{...context,assessment:false,hint:'ضع كسرتين تحت الحرف الأخير.'},question:'أين أضع الكسرتين؟'})).toBe('من شرح الدرس: ضع كسرتين تحت الحرف الأخير.')});

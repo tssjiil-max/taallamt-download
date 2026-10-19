@@ -30,6 +30,7 @@ export function ShakabumboChat({open,onClose,blocked=false,onPhaseChange}:{open:
  if(!open||blocked)return null;
  return <div className="shakSimpleChat" role="region" aria-label="المحادثة مع شكابمبو" dir="rtl">
   <p className={`shakSimpleStatus shakPhase-${phase}`} role="status"><span aria-hidden="true"/> {labels[phase]}</p>
+  {turns.length>1&&<p className="shakChatBubble shakChatBubbleShak">{turns[turns.length-1].text}</p>}
   {notice&&<p className="shakSimpleNotice" role="alert">{notice}</p>}
   <p className="shakTapHint">اضغط على صورتي مرة أخرى لإنهاء المحادثة</p>
   <details className="shakSimpleOptions"><summary>المحادثة والخيارات</summary>
