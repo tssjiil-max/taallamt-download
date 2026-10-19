@@ -23,7 +23,7 @@ export class VoiceSession{
  private timer:ReturnType<typeof setTimeout>|null=null;private silence=0;
  constructor(private d:VoiceDependencies){}
  private clear(){if(this.timer!==null){clearTimeout(this.timer);this.timer=null}const r=this.recognition;this.recognition=null;if(r){r.onstart=r.onresult=r.onend=r.onerror=null;try{r.abort()}catch{}}}
- stop(phase:VoicePhase='idle'){if(owner===this)owner=null;this.active=false;this.generation++;this.clear();this.d.cancelSpeech();this.d.update(phase)}
+ stop(phase:VoicePhase='idle'){const mayCancelSpeech=owner===this||owner===null;if(owner===this)owner=null;this.active=false;this.generation++;this.clear();if(mayCancelSpeech)this.d.cancelSpeech();this.d.update(phase)}
  start(greeting?:string){stopActiveVoiceSession();this.stop();owner=this;this.active=true;this.silence=0;if(greeting)this.say(greeting,true);else this.listen()}
  private fail(message:string){this.stop();this.d.update('error',message)}
  private later(callback:()=>void){const token=this.generation;this.timer=(this.d.schedule||((fn)=>setTimeout(fn,500)))(()=>{this.timer=null;if(this.active&&token===this.generation)callback()})}

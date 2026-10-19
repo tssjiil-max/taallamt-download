@@ -6,7 +6,7 @@ function fixture(){
  vi.useFakeTimers();const records:RecognitionLike[]=[];const update=vi.fn(),cancelSpeech=vi.fn();let callbacks:{onStart:()=>void;onEnd:()=>void;onError:()=>void};
  const speak=vi.fn((_text:string,h:typeof callbacks)=>{callbacks=h;h.onStart();return true});
  const session=new VoiceSession({recognition:()=>{const r={start:vi.fn(),abort:vi.fn(),onstart:null,onend:null,onerror:null,onresult:null} as unknown as RecognitionLike;records.push(r);return r},speak,cancelSpeech,reply:vi.fn(()=> 'شرح معتمد'),update});
- return{session,records,update,speak,end:()=>callbacks.onEnd()};
+ return{session,records,update,speak,cancelSpeech,end:()=>callbacks.onEnd()};
 }
 afterEach(()=>{stopActiveVoiceSession();vi.useRealTimers()});
 describe('free voice turn lifecycle',()=>{
@@ -49,3 +49,5 @@ describe('P0 exclusive voice ownership',()=>{
 });
 
 describe('Quran tutor boundary',()=>{it('never returns verse text through the tutor read request',()=>{const verse='نص آية لا يرسل للصوت الاصطناعي';expect(tutorRespond('اقرأ السؤال',{subject:'quran',subjectLabel:'القرآن',title:'التلاوة',prompt:verse},0).reply).not.toContain(verse)})});
+
+describe('voice ownership cleanup',()=>{it('cleanup of the old component cannot cancel the new owner speech',()=>{const a=fixture(),b=fixture();a.session.start();b.session.start('السلام عليكم');a.cancelSpeech.mockClear();a.session.stop();expect(a.cancelSpeech).not.toHaveBeenCalled();b.session.stop()})});
