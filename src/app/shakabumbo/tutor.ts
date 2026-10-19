@@ -5,6 +5,7 @@ export interface TutorTurn{from:'student'|'shak';text:string}
 const normalize=(s:string)=>s.normalize('NFKD').replace(/[ً-ٰٟ]/g,'').replace(/[إأآ]/g,'ا').replace(/ة/g,'ه');
 export function tutorRespond(question:string,ctx:LessonContext|null,hintLevel:number):{reply:string;usedHint:boolean}{
  const q=normalize(question.trim());
+ if(ctx?.subject==='quran')return{reply:'استمع إلى التلاوة المعتمدة من زر المقطع المقرر.',usedHint:false};
  if(!ctx)return{reply:REPLY_NO_CONTEXT,usedHint:false};
  if(/كلم[هة].*كسرتين|انطق.*كسرتين/.test(q))return{reply:'كَسْرَتَيْنِ',usedHint:false};
  if(/مرحبا|السلام|اهلا|هلا|^هاي$/.test(q))return{reply:'وَعَلَيْكُمُ السَّلَامُ وَرَحْمَةُ اللَّهِ!\n'+HELP_MENU,usedHint:false};

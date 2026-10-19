@@ -19,8 +19,9 @@ import {buildLearningModel,validateContent,selectActivity,publicActivity,gradeAn
 import {visibleAnnouncements,isVisibleAnnouncement} from './announcement-policy.js';
 
 export const PILOT_BRANCH='preview/shakabumbo-pilot-20261013';
+const PILOT_PREVIEW_BRANCHES=new Set([PILOT_BRANCH,'preview/shakabumbo-p0-20261019']);
 export function requirePilot(environment=process.env){
-  if(environment.VERCEL_ENV==='production'||(environment.VERCEL_ENV&&environment.VERCEL_GIT_COMMIT_REF!==PILOT_BRANCH))throw new AccessError('PILOT_NOT_AVAILABLE',404);
+  if(environment.VERCEL_ENV==='production'||(environment.VERCEL_ENV&&!PILOT_PREVIEW_BRANCHES.has(environment.VERCEL_GIT_COMMIT_REF)))throw new AccessError('PILOT_NOT_AVAILABLE',404);
 }
 const rows=snap=>snap.docs.map(doc=>({id:doc.id,...doc.data()}));
 const safeId=value=>{const s=String(value||'');if(!/^[A-Za-z0-9:_-]{1,100}$/.test(s))throw new AccessError('ID_INVALID',400);return s};

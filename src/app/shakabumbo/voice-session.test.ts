@@ -1,5 +1,5 @@
 import {describe,it,expect,vi,afterEach} from 'vitest';
-import {VoiceSession,type RecognitionLike} from './voice-session';
+import {VoiceSession,stopActiveVoiceSession,type RecognitionLike} from './voice-session';
 import {prepareArabicSpeech} from './speak';
 import {tutorRespond} from './tutor';
 function fixture(){
@@ -8,7 +8,7 @@ function fixture(){
  const session=new VoiceSession({recognition:()=>{const r={start:vi.fn(),abort:vi.fn(),onstart:null,onend:null,onerror:null,onresult:null} as unknown as RecognitionLike;records.push(r);return r},speak,cancelSpeech,reply:vi.fn(()=> 'شرح معتمد'),update});
  return{session,records,update,speak,end:()=>callbacks.onEnd()};
 }
-afterEach(()=>vi.useRealTimers());
+afterEach(()=>{stopActiveVoiceSession();vi.useRealTimers()});
 describe('free voice turn lifecycle',()=>{
  it('plays the greeting before opening the microphone',()=>{const f=fixture();f.session.start('السلام عليكم');expect(f.speak).toHaveBeenCalledWith('السلام عليكم',expect.any(Object));expect(f.records).toHaveLength(0);f.end();vi.advanceTimersByTime(500);expect(f.records).toHaveLength(1)});
  it('a second tap stops the greeting without ever opening the microphone',()=>{const f=fixture();f.session.start('السلام عليكم');f.session.stop();f.end();vi.runAllTimers();expect(f.records).toHaveLength(0)});
@@ -28,3 +28,24 @@ describe('educational content',()=>{
  it('uses current lesson explanation on follow-up',()=>expect(tutorRespond('ما فهمت اشرح مرة ثانية',ctx,1).reply).toContain('شرح معتمد'));
  it('provides exactly the test word without replacing its vowels',()=>expect(tutorRespond('اقرأ كلمة كَسْرَتَيْنِ',ctx,0).reply).toBe('كَسْرَتَيْنِ'));
 });
+
+describe('P0 exclusive voice ownership',()=>{
+ it('runs three sequential rounds with no listening during any reply',()=>{
+  const f=fixture();f.session.start();
+  for(let i=0;i<3;i++){
+   const r=f.records[i];expect(r.lang).toBe('ar-SA');
+   r.onresult!({results:[[{transcript:'اقرأ السؤال'}]]});
+   expect(r.abort).toHaveBeenCalledOnce();expect(f.records).toHaveLength(i+1);
+   vi.advanceTimersByTime(2000);expect(f.records).toHaveLength(i+1);
+   f.end();vi.advanceTimersByTime(500);expect(f.records).toHaveLength(i+2);
+  }
+  const last=f.records[3];f.session.stop();expect(last.abort).toHaveBeenCalledOnce();
+  vi.runAllTimers();expect(f.records).toHaveLength(4);
+ });
+ it('only accepts a single completion callback per reply',()=>{const f=fixture();f.session.start('مرحبا');f.end();f.end();vi.runAllTimers();expect(f.records).toHaveLength(1)});
+ it('starting a second session releases the previous microphone',()=>{const a=fixture(),b=fixture();a.session.start();const late=a.records[0].onresult!;b.session.start();expect(a.records[0].abort).toHaveBeenCalledOnce();late({results:[[{transcript:'اشرح'}]]});expect(a.speak).not.toHaveBeenCalled();b.session.stop()});
+ it('external read-aloud or Quran can synchronously release the active microphone',()=>{const f=fixture();f.session.start();stopActiveVoiceSession();expect(f.records[0].abort).toHaveBeenCalledOnce();expect(f.update).toHaveBeenLastCalledWith('idle')});
+ it('reports unsupported speech recognition without retries',()=>{vi.useFakeTimers();const update=vi.fn();const session=new VoiceSession({recognition:()=>null,speak:()=>false,cancelSpeech:vi.fn(),reply:()=>'',update});session.start();vi.runAllTimers();expect(update).toHaveBeenLastCalledWith('error',expect.stringContaining('غير مدعوم'))});
+});
+
+describe('Quran tutor boundary',()=>{it('never returns verse text through the tutor read request',()=>{const verse='نص آية لا يرسل للصوت الاصطناعي';expect(tutorRespond('اقرأ السؤال',{subject:'quran',subjectLabel:'القرآن',title:'التلاوة',prompt:verse},0).reply).not.toContain(verse)})});

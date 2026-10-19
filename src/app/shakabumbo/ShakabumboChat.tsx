@@ -6,7 +6,7 @@ import {WELCOME} from './phrases';
 import {VoiceSession,type VoicePhase,type RecognitionLike} from './voice-session';
 type SpeechWindow=Window&{SpeechRecognition?:new()=>RecognitionLike;webkitSpeechRecognition?:new()=>RecognitionLike};
 const recognitionCtor=()=>{const w=window as SpeechWindow;return w.SpeechRecognition||w.webkitSpeechRecognition};
-const labels:Record<VoicePhase,string>={idle:'أنا هنا لمساعدتك',listening:'أسمعك يا بطل',thinking:'نفكر معًا…',speaking:'أتحدث معك…',muted:'الصوت والميكروفون مكتومان',error:'اضغط على صورتي للمحاولة من جديد'};
+const labels:Record<VoicePhase,string>={idle:'متوقف — أنا هنا لمساعدتك',listening:'أسمعك يا بطل',thinking:'نفكر معًا…',speaking:'أتحدث معك…',muted:'الصوت والميكروفون مكتومان',error:'اضغط على صورتي للمحاولة من جديد'};
 export function ShakabumboChat({open,onClose,blocked=false,onPhaseChange}:{open:boolean;onClose:()=>void;blocked?:boolean;onPhaseChange?:(phase:VoicePhase)=>void}){
  const ctxRef=React.useRef(getLessonContext()),hintRef=React.useRef(0),closeRef=React.useRef(onClose);closeRef.current=onClose;
  const [turns,setTurns]=React.useState<TutorTurn[]>([]),[draft,setDraft]=React.useState(''),[typing,setTyping]=React.useState(false);

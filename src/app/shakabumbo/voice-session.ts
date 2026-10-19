@@ -14,6 +14,8 @@ export interface VoiceDependencies{
  update:(phase:VoicePhase,message?:string)=>void;
  schedule?:(callback:()=>void)=>ReturnType<typeof setTimeout>;
 }
+let owner:VoiceSession|null=null;
+export function stopActiveVoiceSession(){owner?.stop()}
 // One active recognizer or utterance at a time. Generation tokens reject late callbacks
 // after close, mute, navigation, lesson changes, or Quran playback.
 export class VoiceSession{
@@ -21,8 +23,8 @@ export class VoiceSession{
  private timer:ReturnType<typeof setTimeout>|null=null;private silence=0;
  constructor(private d:VoiceDependencies){}
  private clear(){if(this.timer!==null){clearTimeout(this.timer);this.timer=null}const r=this.recognition;this.recognition=null;if(r){r.onstart=r.onresult=r.onend=r.onerror=null;try{r.abort()}catch{}}}
- stop(phase:VoicePhase='idle'){this.active=false;this.generation++;this.clear();this.d.cancelSpeech();this.d.update(phase)}
- start(greeting?:string){this.stop();this.active=true;this.silence=0;if(greeting)this.say(greeting,true);else this.listen()}
+ stop(phase:VoicePhase='idle'){if(owner===this)owner=null;this.active=false;this.generation++;this.clear();this.d.cancelSpeech();this.d.update(phase)}
+ start(greeting?:string){stopActiveVoiceSession();this.stop();owner=this;this.active=true;this.silence=0;if(greeting)this.say(greeting,true);else this.listen()}
  private fail(message:string){this.stop();this.d.update('error',message)}
  private later(callback:()=>void){const token=this.generation;this.timer=(this.d.schedule||((fn)=>setTimeout(fn,500)))(()=>{this.timer=null;if(this.active&&token===this.generation)callback()})}
  private listen(){
@@ -41,13 +43,14 @@ export class VoiceSession{
   try{this.d.update('listening');r.start()}catch{this.fail('تعذر بدء الميكروفون. اضغط استئناف أو استخدم الكتابة.')}
  }
  answer(text:string,voiceLoop=this.active){
+  if(owner!==this){stopActiveVoiceSession();owner=this}
   this.generation++;this.clear();this.d.cancelSpeech();this.d.update('thinking');
   const reply=this.d.reply(text);this.say(reply,voiceLoop);
  }
  private say(text:string,voiceLoop:boolean){
   this.generation++;this.clear();this.d.cancelSpeech();this.active=voiceLoop;
-  const token=this.generation;this.d.update('speaking');
-  const success=this.d.speak(text,{onStart:()=>{if(token===this.generation)this.d.update('speaking')},onEnd:()=>{if(token!==this.generation)return;if(this.active)this.later(()=>this.listen());else this.d.update('idle')},onError:()=>{if(token===this.generation)this.fail('تعذر تشغيل الصوت. اضغط على صورتي لإغلاق المحادثة ثم حاول مرة أخرى.')}});
+  const token=this.generation;let settled=false;this.d.update('speaking');
+  const success=this.d.speak(text,{onStart:()=>{if(token===this.generation)this.d.update('speaking')},onEnd:()=>{if(token!==this.generation||settled)return;settled=true;if(this.active)this.later(()=>this.listen());else this.d.update('idle')},onError:()=>{if(token===this.generation&&!settled){settled=true;this.fail('تعذر تشغيل الصوت. اضغط على صورتي لإغلاق المحادثة ثم حاول مرة أخرى.')}}});
   if(!success&&token===this.generation)this.fail('تعذر تجهيز الصوت. يمكنك استخدام الكتابة من الخيارات.');
  }
 }

@@ -1,3 +1,4 @@
+import {getLessonContext} from './context';
 import manifest from './voice-manifest.json';
 // Same-origin pre-generated Modern Standard Arabic audio comes first. No model download,
 // API key, account, per-minute billing, or dependency on installed Arabic device voices.
@@ -14,7 +15,8 @@ let onCancelled:(()=>void)|null=null;
 function clearAudio(){if(currentAudio){currentAudio.onplaying=currentAudio.onended=currentAudio.onerror=null;currentAudio.pause();currentAudio.removeAttribute('src');currentAudio.remove();currentAudio=null}}
 export function cancelArabicSpeech(){generation++;clearAudio();const stopped=onCancelled;onCancelled=null;stopped?.();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()}
 export function speakArabic(text:string,handlers?:{onStart?:()=>void;onEnd?:()=>void;onError?:()=>void;onCancel?:()=>void}):boolean{
- cancelArabicSpeech();const token=generation,segments=speechSegments(text),voice=pickArabicVoice();let index=0,started=false;
+ cancelArabicSpeech();if(getLessonContext()?.subject==='quran'){handlers?.onError?.();return false}
+ const token=generation,segments=speechSegments(text),voice=pickArabicVoice();let index=0,started=false;
  if(!segments.length||segments.some(s=>!recordings[s]&&!voice)){handlers?.onError?.();return false}
  onCancelled=handlers?.onCancel||null;
  const start=()=>{if(token!==generation)return;if(!started){started=true;handlers?.onStart?.()}};

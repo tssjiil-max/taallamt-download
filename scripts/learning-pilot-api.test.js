@@ -192,3 +192,5 @@ test('foundation activates for all 30 authorized roster identities and supports 
  await expect(studentPilotWrite({headers:{}},res(),{action:'learning_attempt',pilot:true,studentId:'s2-4-02',invite,targetId:target.id,attemptId:'after-stop',questionId:'q2',answer:'الإسلام'})).rejects.toMatchObject({code:'CONTENT_NOT_AVAILABLE'});
  expect([...state.docs.keys()].filter(p=>p.includes('/assessments/'))).toHaveLength(0);
 });
+
+test('P0 isolated Preview branch is allowed but arbitrary and production branches stay blocked',async()=>{const {requirePilot}=await import('../server/learning-pilot.js');expect(()=>requirePilot({VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'preview/shakabumbo-p0-20261019'})).not.toThrow();expect(()=>requirePilot({VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'other'})).toThrow();expect(()=>requirePilot({VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'preview/shakabumbo-p0-20261019'})).toThrow()});

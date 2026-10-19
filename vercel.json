@@ -64,7 +64,8 @@
   "git": {
     "deploymentEnabled": {
       "preview/student-teacher-staging-20261006": true,
-      "preview/shakabumbo-pilot-20261013": true
+      "preview/shakabumbo-pilot-20261013": true,
+      "preview/shakabumbo-p0-20261019": true
     }
   }
 }
