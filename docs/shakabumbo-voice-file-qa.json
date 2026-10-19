@@ -1,0 +1,396 @@
+{
+  "engine": "Nabra-7M-Distill",
+  "decodedFiles": [
+    {
+      "file": "/shakabumbo/voice/243727dee63627.mp3",
+      "seconds": 6.504,
+      "bytes": 32757
+    },
+    {
+      "file": "/shakabumbo/voice/8f8c45576194d1.mp3",
+      "seconds": 3.168,
+      "bytes": 16077
+    },
+    {
+      "file": "/shakabumbo/voice/c327134ef86d18.mp3",
+      "seconds": 4.44,
+      "bytes": 22437
+    },
+    {
+      "file": "/shakabumbo/voice/5d7846455d8a09.mp3",
+      "seconds": 4.632,
+      "bytes": 23397
+    },
+    {
+      "file": "/shakabumbo/voice/welcome.mp3",
+      "seconds": 7.032,
+      "bytes": 35397
+    },
+    {
+      "file": "/shakabumbo/voice/a209ce381de21b.mp3",
+      "seconds": 0.912,
+      "bytes": 4797
+    },
+    {
+      "file": "/shakabumbo/voice/ab6ea1a47516a7.mp3",
+      "seconds": 2.496,
+      "bytes": 12717
+    },
+    {
+      "file": "/shakabumbo/voice/1298726132466e.mp3",
+      "seconds": 2.4,
+      "bytes": 12237
+    },
+    {
+      "file": "/shakabumbo/voice/5f9e0b5da52e0b.mp3",
+      "seconds": 2.52,
+      "bytes": 12837
+    },
+    {
+      "file": "/shakabumbo/voice/e364bf39ae6cd7.mp3",
+      "seconds": 3.768,
+      "bytes": 19077
+    },
+    {
+      "file": "/shakabumbo/voice/9b616e425956a6.mp3",
+      "seconds": 6.744,
+      "bytes": 33957
+    },
+    {
+      "file": "/shakabumbo/voice/12465fd62143de.mp3",
+      "seconds": 2.928,
+      "bytes": 14877
+    },
+    {
+      "file": "/shakabumbo/voice/2e22a85988b29d.mp3",
+      "seconds": 3.096,
+      "bytes": 15717
+    },
+    {
+      "file": "/shakabumbo/voice/29158f6674a4d5.mp3",
+      "seconds": 1.608,
+      "bytes": 8277
+    },
+    {
+      "file": "/shakabumbo/voice/de8d0f0fc3387f.mp3",
+      "seconds": 4.728,
+      "bytes": 23877
+    },
+    {
+      "file": "/shakabumbo/voice/a1d633a0891cb3.mp3",
+      "seconds": 2.688,
+      "bytes": 13677
+    },
+    {
+      "file": "/shakabumbo/voice/27649593da9479.mp3",
+      "seconds": 2.76,
+      "bytes": 14037
+    },
+    {
+      "file": "/shakabumbo/voice/1651d03cbb531e.mp3",
+      "seconds": 3.024,
+      "bytes": 15357
+    },
+    {
+      "file": "/shakabumbo/voice/63bffd1b54682f.mp3",
+      "seconds": 1.464,
+      "bytes": 7557
+    },
+    {
+      "file": "/shakabumbo/voice/de192e65d84c51.mp3",
+      "seconds": 6.624,
+      "bytes": 33357
+    },
+    {
+      "file": "/shakabumbo/voice/aed619001341b4.mp3",
+      "seconds": 2.112,
+      "bytes": 10797
+    },
+    {
+      "file": "/shakabumbo/voice/af710898a889a4.mp3",
+      "seconds": 2.088,
+      "bytes": 10677
+    },
+    {
+      "file": "/shakabumbo/voice/8180b6a72ebe03.mp3",
+      "seconds": 2.28,
+      "bytes": 11637
+    },
+    {
+      "file": "/shakabumbo/voice/dd769eeea25f10.mp3",
+      "seconds": 2.4,
+      "bytes": 12237
+    },
+    {
+      "file": "/shakabumbo/voice/d1483d28fa0c84.mp3",
+      "seconds": 7.56,
+      "bytes": 38037
+    },
+    {
+      "file": "/shakabumbo/voice/05113b3a33f688.mp3",
+      "seconds": 2.88,
+      "bytes": 14637
+    },
+    {
+      "file": "/shakabumbo/voice/6d68e130abd2ef.mp3",
+      "seconds": 2.976,
+      "bytes": 15117
+    },
+    {
+      "file": "/shakabumbo/voice/bd6fbb3eba6ac3.mp3",
+      "seconds": 2.952,
+      "bytes": 14997
+    },
+    {
+      "file": "/shakabumbo/voice/a7d66b1e3fa852.mp3",
+      "seconds": 2.904,
+      "bytes": 14757
+    },
+    {
+      "file": "/shakabumbo/voice/ef5a5f93223209.mp3",
+      "seconds": 1.488,
+      "bytes": 7677
+    },
+    {
+      "file": "/shakabumbo/voice/cf568282c3e415.mp3",
+      "seconds": 5.544,
+      "bytes": 27957
+    },
+    {
+      "file": "/shakabumbo/voice/0d931919670fcc.mp3",
+      "seconds": 1.848,
+      "bytes": 9477
+    },
+    {
+      "file": "/shakabumbo/voice/a2a79d3241212a.mp3",
+      "seconds": 1.896,
+      "bytes": 9717
+    },
+    {
+      "file": "/shakabumbo/voice/596c746ebc969d.mp3",
+      "seconds": 1.992,
+      "bytes": 10197
+    },
+    {
+      "file": "/shakabumbo/voice/9bb13091232760.mp3",
+      "seconds": 2.4,
+      "bytes": 12237
+    },
+    {
+      "file": "/shakabumbo/voice/0bca562f0a0f97.mp3",
+      "seconds": 7.512,
+      "bytes": 37797
+    },
+    {
+      "file": "/shakabumbo/voice/a19b7841770e59.mp3",
+      "seconds": 1.968,
+      "bytes": 10077
+    },
+    {
+      "file": "/shakabumbo/voice/9c319bae410ef0.mp3",
+      "seconds": 1.8,
+      "bytes": 9237
+    },
+    {
+      "file": "/shakabumbo/voice/dd38b7682f58b4.mp3",
+      "seconds": 1.896,
+      "bytes": 9717
+    },
+    {
+      "file": "/shakabumbo/voice/5f16b79b8fc1b1.mp3",
+      "seconds": 1.632,
+      "bytes": 8397
+    },
+    {
+      "file": "/shakabumbo/voice/aa63f99b06891c.mp3",
+      "seconds": 10.776,
+      "bytes": 54117
+    },
+    {
+      "file": "/shakabumbo/voice/542f86df2baab8.mp3",
+      "seconds": 2.376,
+      "bytes": 12117
+    },
+    {
+      "file": "/shakabumbo/voice/8c85d945241c45.mp3",
+      "seconds": 2.4,
+      "bytes": 12237
+    },
+    {
+      "file": "/shakabumbo/voice/f5c6d163aacfa0.mp3",
+      "seconds": 2.616,
+      "bytes": 13317
+    },
+    {
+      "file": "/shakabumbo/voice/02e2d381937239.mp3",
+      "seconds": 1.896,
+      "bytes": 9717
+    },
+    {
+      "file": "/shakabumbo/voice/53ca7c3221e082.mp3",
+      "seconds": 7.032,
+      "bytes": 35397
+    },
+    {
+      "file": "/shakabumbo/voice/cd1378ff04f90d.mp3",
+      "seconds": 0.792,
+      "bytes": 4197
+    },
+    {
+      "file": "/shakabumbo/voice/17fea0df6a4c1f.mp3",
+      "seconds": 0.792,
+      "bytes": 4197
+    },
+    {
+      "file": "/shakabumbo/voice/c83d765db70a30.mp3",
+      "seconds": 0.912,
+      "bytes": 4797
+    },
+    {
+      "file": "/shakabumbo/voice/b98b893822e401.mp3",
+      "seconds": 1.8,
+      "bytes": 9237
+    },
+    {
+      "file": "/shakabumbo/voice/3b64e5c20bac50.mp3",
+      "seconds": 6.6,
+      "bytes": 33237
+    },
+    {
+      "file": "/shakabumbo/voice/04c92b2e3f6bf9.mp3",
+      "seconds": 2.064,
+      "bytes": 10557
+    },
+    {
+      "file": "/shakabumbo/voice/081e24d98ca40c.mp3",
+      "seconds": 4.416,
+      "bytes": 22317
+    },
+    {
+      "file": "/shakabumbo/voice/ed1f8c5cdc66ac.mp3",
+      "seconds": 4.008,
+      "bytes": 20277
+    },
+    {
+      "file": "/shakabumbo/voice/5afe721a3bf5f9.mp3",
+      "seconds": 1.176,
+      "bytes": 6117
+    },
+    {
+      "file": "/shakabumbo/voice/f4c3824a3ad2ff.mp3",
+      "seconds": 7.968,
+      "bytes": 40077
+    },
+    {
+      "file": "/shakabumbo/voice/50886b2f35f232.mp3",
+      "seconds": 2.904,
+      "bytes": 14757
+    },
+    {
+      "file": "/shakabumbo/voice/cde2fe0c679f61.mp3",
+      "seconds": 2.376,
+      "bytes": 12117
+    },
+    {
+      "file": "/shakabumbo/voice/c82450e0131622.mp3",
+      "seconds": 2.688,
+      "bytes": 13677
+    },
+    {
+      "file": "/shakabumbo/voice/83643ac5c497d7.mp3",
+      "seconds": 2.256,
+      "bytes": 11517
+    },
+    {
+      "file": "/shakabumbo/voice/6652d27ba115af.mp3",
+      "seconds": 2.952,
+      "bytes": 14997
+    },
+    {
+      "file": "/shakabumbo/voice/5d5213b63b3251.mp3",
+      "seconds": 1.8,
+      "bytes": 9237
+    },
+    {
+      "file": "/shakabumbo/voice/c9f1ece7915c65.mp3",
+      "seconds": 2.88,
+      "bytes": 14637
+    },
+    {
+      "file": "/shakabumbo/voice/b19830ae28f591.mp3",
+      "seconds": 2.328,
+      "bytes": 11877
+    },
+    {
+      "file": "/shakabumbo/voice/9468b3fed702de.mp3",
+      "seconds": 2.904,
+      "bytes": 14757
+    },
+    {
+      "file": "/shakabumbo/voice/0df20c7ad47397.mp3",
+      "seconds": 2.304,
+      "bytes": 11757
+    },
+    {
+      "file": "/shakabumbo/voice/ed267dfe10f05a.mp3",
+      "seconds": 1.224,
+      "bytes": 6357
+    },
+    {
+      "file": "/shakabumbo/voice/3521a525ed7318.mp3",
+      "seconds": 13.776,
+      "bytes": 69117
+    },
+    {
+      "file": "/shakabumbo/voice/3f290642ae563a.mp3",
+      "seconds": 3.432,
+      "bytes": 17397
+    },
+    {
+      "file": "/shakabumbo/voice/f7aefc977dfdf6.mp3",
+      "seconds": 3.936,
+      "bytes": 19917
+    },
+    {
+      "file": "/shakabumbo/voice/e1f133f85cf287.mp3",
+      "seconds": 3.816,
+      "bytes": 19317
+    },
+    {
+      "file": "/shakabumbo/voice/8e4fad98b75f12.mp3",
+      "seconds": 3.336,
+      "bytes": 16917
+    },
+    {
+      "file": "/shakabumbo/voice/433016ce7c218e.mp3",
+      "seconds": 0.864,
+      "bytes": 4557
+    },
+    {
+      "file": "/shakabumbo/voice/1404c23e68ab5a.mp3",
+      "seconds": 9.096,
+      "bytes": 45717
+    },
+    {
+      "file": "/shakabumbo/voice/b14f8342242d59.mp3",
+      "seconds": 1.776,
+      "bytes": 9117
+    },
+    {
+      "file": "/shakabumbo/voice/2e39a9574719b1.mp3",
+      "seconds": 1.296,
+      "bytes": 6717
+    },
+    {
+      "file": "/shakabumbo/voice/ed666552ae81a5.mp3",
+      "seconds": 1.56,
+      "bytes": 8037
+    },
+    {
+      "file": "/shakabumbo/voice/4ca465c24dde40.mp3",
+      "seconds": 1.224,
+      "bytes": 6357
+    }
+  ],
+  "note": "All MP3 containers inspected with ffprobe. This does not approve pronunciation."
+}

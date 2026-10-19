@@ -121,7 +121,7 @@ export function StudentApp(){
   else body=<HomeScreen home={data} go={go} reload={()=>void home.reload(true)} toast={showToast}/>;
 
   return <>
-    <Screen nav={nav}>{body}<ShakabumboCompanion routeIsQuran={route==='quran'||route==='quran-log'}/>{toast}</Screen>
+    <Screen nav={nav}>{body}{route!=='learning'&&<ShakabumboCompanion routeIsQuran={route==='quran'||route==='quran-log'}/>}{toast}</Screen>
   </>;
 }
 

@@ -1,3 +1,4 @@
+import {cancelArabicSpeech} from './speak';
 import React from 'react';
 import {companionBus,type CompanionEventName} from './bus';
 import type {CompanionState} from './state';
@@ -12,7 +13,7 @@ export function useShakabumboEngine(routeIsQuran:boolean):ShakabumboEngine{
  const quietRef=React.useRef(quiet);quietRef.current=quiet;
  React.useEffect(()=>onMotionPrefChange(next=>{setMotion(next);setMinimized(next==='off')}),[]);
  React.useEffect(()=>{
-  const media=()=>setAudio(Array.from(document.querySelectorAll('audio')).some(el=>!el.paused&&!el.ended));
+  const media=()=>setAudio(Array.from(document.querySelectorAll<HTMLAudioElement>('audio:not([data-shak-voice])')).some(el=>!el.paused&&!el.ended));
   const visibility=()=>setHidden(document.hidden);
   const on=()=>setAudio(true),off=()=>media();
   const stops=[companionBus.on('QURAN_PLAY_STARTED',on),companionBus.on('QURAN_PLAY_STOPPED',off)];
@@ -25,6 +26,6 @@ export function useShakabumboEngine(routeIsQuran:boolean):ShakabumboEngine{
    if(quietRef.current||document.hidden)return;if(timer.current)clearTimeout(timer.current);setState(next!);timer.current=setTimeout(()=>setState('IDLE'),1500);
   }));return()=>{stops.forEach(stop=>stop());if(timer.current)clearTimeout(timer.current)};
  },[]);
- React.useEffect(()=>{if(quiet||hidden){if(timer.current)clearTimeout(timer.current);window.speechSynthesis?.cancel();setState('IDLE')}},[quiet,hidden]);
+ React.useEffect(()=>{if(quiet||hidden){if(timer.current)clearTimeout(timer.current);cancelArabicSpeech();setState('IDLE')}},[quiet,hidden]);
  return{state:hidden?'HIDDEN':quiet?'LISTENING_QURAN':state,facing:'right',x:50,talking:false,minimized,motion,toggleMinimized:()=>setMinimized(v=>!v)};
 }

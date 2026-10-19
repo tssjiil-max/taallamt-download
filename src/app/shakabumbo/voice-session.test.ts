@@ -10,6 +10,8 @@ function fixture(){
 }
 afterEach(()=>vi.useRealTimers());
 describe('free voice turn lifecycle',()=>{
+ it('plays the greeting before opening the microphone',()=>{const f=fixture();f.session.start('السلام عليكم');expect(f.speak).toHaveBeenCalledWith('السلام عليكم',expect.any(Object));expect(f.records).toHaveLength(0);f.end();vi.advanceTimersByTime(500);expect(f.records).toHaveLength(1)});
+ it('a second tap stops the greeting without ever opening the microphone',()=>{const f=fixture();f.session.start('السلام عليكم');f.session.stop();f.end();vi.runAllTimers();expect(f.records).toHaveLength(0)});
  it('aborts input before output and resumes only after output finishes',()=>{const f=fixture();f.session.start();const r=f.records[0];r.onresult!({results:[[{transcript:'اشرح'}]]});expect(r.abort).toHaveBeenCalled();expect(f.records).toHaveLength(1);vi.runAllTimers();expect(f.records).toHaveLength(1);f.end();vi.advanceTimersByTime(500);expect(f.records).toHaveLength(2)});
  it('rejects a late speech callback after closing, muting or Quran',()=>{const f=fixture();f.session.start();f.records[0].onresult!({results:[[{transcript:'اشرح'}]]});f.session.stop('muted');f.end();vi.runAllTimers();expect(f.records).toHaveLength(1);expect(f.update).toHaveBeenLastCalledWith('muted')});
  it('ignores recognition results after stop',()=>{const f=fixture();f.session.start();const late=f.records[0].onresult!;f.session.stop();late({results:[[{transcript:'متأخر'}]]});expect(f.speak).not.toHaveBeenCalled()});

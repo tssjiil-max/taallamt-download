@@ -22,7 +22,7 @@ export class VoiceSession{
  constructor(private d:VoiceDependencies){}
  private clear(){if(this.timer!==null){clearTimeout(this.timer);this.timer=null}const r=this.recognition;this.recognition=null;if(r){r.onstart=r.onresult=r.onend=r.onerror=null;try{r.abort()}catch{}}}
  stop(phase:VoicePhase='idle'){this.active=false;this.generation++;this.clear();this.d.cancelSpeech();this.d.update(phase)}
- start(){this.stop();this.active=true;this.silence=0;this.listen()}
+ start(greeting?:string){this.stop();this.active=true;this.silence=0;if(greeting)this.say(greeting,true);else this.listen()}
  private fail(message:string){this.stop();this.d.update('error',message)}
  private later(callback:()=>void){const token=this.generation;this.timer=(this.d.schedule||((fn)=>setTimeout(fn,500)))(()=>{this.timer=null;if(this.active&&token===this.generation)callback()})}
  private listen(){
@@ -41,10 +41,13 @@ export class VoiceSession{
   try{this.d.update('listening');r.start()}catch{this.fail('تعذر بدء الميكروفون. اضغط استئناف أو استخدم الكتابة.')}
  }
  answer(text:string,voiceLoop=this.active){
+  this.generation++;this.clear();this.d.cancelSpeech();this.d.update('thinking');
+  const reply=this.d.reply(text);this.say(reply,voiceLoop);
+ }
+ private say(text:string,voiceLoop:boolean){
   this.generation++;this.clear();this.d.cancelSpeech();this.active=voiceLoop;
-  const token=this.generation;this.d.update('thinking');const reply=this.d.reply(text);
-  this.d.update('speaking');
-  const success=this.d.speak(reply,{onStart:()=>{if(token===this.generation)this.d.update('speaking')},onEnd:()=>{if(token!==this.generation)return;if(this.active)this.later(()=>this.listen());else this.d.update('idle')},onError:()=>{if(token===this.generation)this.fail('الرد ظاهر في المحادثة، لكن الصوت العربي غير متاح أو تعذر تشغيله.')}});
-  if(!success&&token===this.generation)this.fail('لا يتوفر صوت عربي جاهز على هذا الجهاز. يمكنك قراءة الرد أو إعادة المحاولة بعد تحميل الأصوات.');
+  const token=this.generation;this.d.update('speaking');
+  const success=this.d.speak(text,{onStart:()=>{if(token===this.generation)this.d.update('speaking')},onEnd:()=>{if(token!==this.generation)return;if(this.active)this.later(()=>this.listen());else this.d.update('idle')},onError:()=>{if(token===this.generation)this.fail('تعذر تشغيل الصوت. اضغط على صورتي لإغلاق المحادثة ثم حاول مرة أخرى.')}});
+  if(!success&&token===this.generation)this.fail('تعذر تجهيز الصوت. يمكنك استخدام الكتابة من الخيارات.');
  }
 }

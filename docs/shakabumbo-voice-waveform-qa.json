@@ -1,0 +1,401 @@
+{
+  "engine": "Nabra-7M-Distill",
+  "engineRevision": "16b5281ce61993df3526740990cf845a3f3036f4",
+  "modelRevision": "bbac0f1e6b001bfae89871be366a4b000180deb2",
+  "kasrataynPhonemes": [
+    "kasrˌataˌini"
+  ],
+  "files": [
+    {
+      "id": "243727dee63627",
+      "seconds": 6.45,
+      "finite": true
+    },
+    {
+      "id": "8f8c45576194d1",
+      "seconds": 3.1,
+      "finite": true
+    },
+    {
+      "id": "c327134ef86d18",
+      "seconds": 4.38,
+      "finite": true
+    },
+    {
+      "id": "5d7846455d8a09",
+      "seconds": 4.58,
+      "finite": true
+    },
+    {
+      "id": "welcome",
+      "seconds": 6.97,
+      "finite": true
+    },
+    {
+      "id": "a209ce381de21b",
+      "seconds": 0.85,
+      "finite": true
+    },
+    {
+      "id": "ab6ea1a47516a7",
+      "seconds": 2.42,
+      "finite": true
+    },
+    {
+      "id": "1298726132466e",
+      "seconds": 2.35,
+      "finite": true
+    },
+    {
+      "id": "5f9e0b5da52e0b",
+      "seconds": 2.45,
+      "finite": true
+    },
+    {
+      "id": "e364bf39ae6cd7",
+      "seconds": 3.7,
+      "finite": true
+    },
+    {
+      "id": "9b616e425956a6",
+      "seconds": 6.67,
+      "finite": true
+    },
+    {
+      "id": "12465fd62143de",
+      "seconds": 2.88,
+      "finite": true
+    },
+    {
+      "id": "2e22a85988b29d",
+      "seconds": 3.02,
+      "finite": true
+    },
+    {
+      "id": "29158f6674a4d5",
+      "seconds": 1.55,
+      "finite": true
+    },
+    {
+      "id": "de8d0f0fc3387f",
+      "seconds": 4.67,
+      "finite": true
+    },
+    {
+      "id": "a1d633a0891cb3",
+      "seconds": 2.63,
+      "finite": true
+    },
+    {
+      "id": "27649593da9479",
+      "seconds": 2.7,
+      "finite": true
+    },
+    {
+      "id": "1651d03cbb531e",
+      "seconds": 2.98,
+      "finite": true
+    },
+    {
+      "id": "63bffd1b54682f",
+      "seconds": 1.4,
+      "finite": true
+    },
+    {
+      "id": "de192e65d84c51",
+      "seconds": 6.58,
+      "finite": true
+    },
+    {
+      "id": "aed619001341b4",
+      "seconds": 2.05,
+      "finite": true
+    },
+    {
+      "id": "af710898a889a4",
+      "seconds": 2.02,
+      "finite": true
+    },
+    {
+      "id": "8180b6a72ebe03",
+      "seconds": 2.23,
+      "finite": true
+    },
+    {
+      "id": "dd769eeea25f10",
+      "seconds": 2.35,
+      "finite": true
+    },
+    {
+      "id": "d1483d28fa0c84",
+      "seconds": 7.5,
+      "finite": true
+    },
+    {
+      "id": "05113b3a33f688",
+      "seconds": 2.83,
+      "finite": true
+    },
+    {
+      "id": "6d68e130abd2ef",
+      "seconds": 2.92,
+      "finite": true
+    },
+    {
+      "id": "bd6fbb3eba6ac3",
+      "seconds": 2.9,
+      "finite": true
+    },
+    {
+      "id": "a7d66b1e3fa852",
+      "seconds": 2.85,
+      "finite": true
+    },
+    {
+      "id": "ef5a5f93223209",
+      "seconds": 1.43,
+      "finite": true
+    },
+    {
+      "id": "cf568282c3e415",
+      "seconds": 5.47,
+      "finite": true
+    },
+    {
+      "id": "0d931919670fcc",
+      "seconds": 1.8,
+      "finite": true
+    },
+    {
+      "id": "a2a79d3241212a",
+      "seconds": 1.82,
+      "finite": true
+    },
+    {
+      "id": "596c746ebc969d",
+      "seconds": 1.93,
+      "finite": true
+    },
+    {
+      "id": "9bb13091232760",
+      "seconds": 2.35,
+      "finite": true
+    },
+    {
+      "id": "0bca562f0a0f97",
+      "seconds": 7.45,
+      "finite": true
+    },
+    {
+      "id": "a19b7841770e59",
+      "seconds": 1.9,
+      "finite": true
+    },
+    {
+      "id": "9c319bae410ef0",
+      "seconds": 1.75,
+      "finite": true
+    },
+    {
+      "id": "dd38b7682f58b4",
+      "seconds": 1.82,
+      "finite": true
+    },
+    {
+      "id": "5f16b79b8fc1b1",
+      "seconds": 1.57,
+      "finite": true
+    },
+    {
+      "id": "aa63f99b06891c",
+      "seconds": 10.72,
+      "finite": true
+    },
+    {
+      "id": "542f86df2baab8",
+      "seconds": 2.33,
+      "finite": true
+    },
+    {
+      "id": "8c85d945241c45",
+      "seconds": 2.35,
+      "finite": true
+    },
+    {
+      "id": "f5c6d163aacfa0",
+      "seconds": 2.55,
+      "finite": true
+    },
+    {
+      "id": "02e2d381937239",
+      "seconds": 1.82,
+      "finite": true
+    },
+    {
+      "id": "53ca7c3221e082",
+      "seconds": 6.97,
+      "finite": true
+    },
+    {
+      "id": "cd1378ff04f90d",
+      "seconds": 0.72,
+      "finite": true
+    },
+    {
+      "id": "17fea0df6a4c1f",
+      "seconds": 0.72,
+      "finite": true
+    },
+    {
+      "id": "c83d765db70a30",
+      "seconds": 0.85,
+      "finite": true
+    },
+    {
+      "id": "b98b893822e401",
+      "seconds": 1.75,
+      "finite": true
+    },
+    {
+      "id": "3b64e5c20bac50",
+      "seconds": 6.55,
+      "finite": true
+    },
+    {
+      "id": "04c92b2e3f6bf9",
+      "seconds": 2,
+      "finite": true
+    },
+    {
+      "id": "081e24d98ca40c",
+      "seconds": 4.35,
+      "finite": true
+    },
+    {
+      "id": "ed1f8c5cdc66ac",
+      "seconds": 3.95,
+      "finite": true
+    },
+    {
+      "id": "5afe721a3bf5f9",
+      "seconds": 1.13,
+      "finite": true
+    },
+    {
+      "id": "f4c3824a3ad2ff",
+      "seconds": 7.9,
+      "finite": true
+    },
+    {
+      "id": "50886b2f35f232",
+      "seconds": 2.85,
+      "finite": true
+    },
+    {
+      "id": "cde2fe0c679f61",
+      "seconds": 2.33,
+      "finite": true
+    },
+    {
+      "id": "c82450e0131622",
+      "seconds": 2.63,
+      "finite": true
+    },
+    {
+      "id": "83643ac5c497d7",
+      "seconds": 2.2,
+      "finite": true
+    },
+    {
+      "id": "6652d27ba115af",
+      "seconds": 2.9,
+      "finite": true
+    },
+    {
+      "id": "5d5213b63b3251",
+      "seconds": 1.75,
+      "finite": true
+    },
+    {
+      "id": "c9f1ece7915c65",
+      "seconds": 2.83,
+      "finite": true
+    },
+    {
+      "id": "b19830ae28f591",
+      "seconds": 2.27,
+      "finite": true
+    },
+    {
+      "id": "9468b3fed702de",
+      "seconds": 2.85,
+      "finite": true
+    },
+    {
+      "id": "0df20c7ad47397",
+      "seconds": 2.25,
+      "finite": true
+    },
+    {
+      "id": "ed267dfe10f05a",
+      "seconds": 1.18,
+      "finite": true
+    },
+    {
+      "id": "3521a525ed7318",
+      "seconds": 13.72,
+      "finite": true
+    },
+    {
+      "id": "3f290642ae563a",
+      "seconds": 3.38,
+      "finite": true
+    },
+    {
+      "id": "f7aefc977dfdf6",
+      "seconds": 3.88,
+      "finite": true
+    },
+    {
+      "id": "e1f133f85cf287",
+      "seconds": 3.75,
+      "finite": true
+    },
+    {
+      "id": "8e4fad98b75f12",
+      "seconds": 3.27,
+      "finite": true
+    },
+    {
+      "id": "433016ce7c218e",
+      "seconds": 0.8,
+      "finite": true
+    },
+    {
+      "id": "1404c23e68ab5a",
+      "seconds": 9.03,
+      "finite": true
+    },
+    {
+      "id": "b14f8342242d59",
+      "seconds": 1.73,
+      "finite": true
+    },
+    {
+      "id": "2e39a9574719b1",
+      "seconds": 1.23,
+      "finite": true
+    },
+    {
+      "id": "ed666552ae81a5",
+      "seconds": 1.5,
+      "finite": true
+    },
+    {
+      "id": "4ca465c24dde40",
+      "seconds": 1.18,
+      "finite": true
+    }
+  ],
+  "note": "Waveform/phoneme verification; not a human pronunciation approval."
+}
