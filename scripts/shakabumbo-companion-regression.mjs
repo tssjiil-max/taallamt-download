@@ -28,6 +28,9 @@ const settings=read('src/app/shakabumbo/settings.ts');
 const student=read('src/app/student.tsx');
 const pilot=read('src/app/learning-pilot.tsx');
 const css=read('src/app/app.src.css');
+const chat=read('src/app/shakabumbo/ShakabumboChat.tsx');
+const tutor=read('src/app/shakabumbo/tutor.ts');
+const context=read('src/app/shakabumbo/context.ts');
 
 // --- the full required state machine, not a subset ---
 const REQUIRED_STATES=['ENTERING','LANDING','IDLE','WALKING','THINKING','EXPLAINING','SPEAKING','ENCOURAGING','CELEBRATING','LISTENING_QURAN','HIDDEN'];
@@ -85,9 +88,28 @@ assert(companion.includes('aria-live'),'state changes must be announced for assi
 assert(companion.includes('shakToggle'),'there must be a visible control to hide/show the companion');
 
 // --- the character keeps its approved identity: light-green face, white/turquoise hair,
-// pointed ears, white suit with black joints and green lights — not a generic robot ---
-for(const marker of ['shakFace{fill:#9fe3ac}','shakHair{fill:#f3fbfb','shakEarL,.shakEarR','shakChestLightCore{fill:#2fbf5c}'])
+// pointed ears, white suit with black joint rings + green lights, a belt buckle and wide
+// boots with a green ankle band — matching design/shakabumbo/originals, not a generic robot ---
+for(const marker of ['shakFace{fill:#9fe3ac}','shakHair{fill:#f3fbfb','shakEarL,.shakEarR','shakChestLightCore{fill:#2fbf5c}','shakJointRing{fill','shakBootBand'])
   assert(css.includes(marker),`missing identity marker in the rig styling: ${marker}`);
 assert(rig.includes('shakEarL')&&rig.includes('shakEarR')&&rig.includes('shakHair')&&rig.includes('shakEyes'),'the rig must draw the approved features: ears, hair and eyes, not a flat image swap');
+assert(rig.includes('shakJointRing')&&rig.includes('shakBoot'),'the rig must draw visible jointed rings and wide boots, matching the approved reference art');
+
+// --- the companion is docked in a small corner box, not a full-width strip, so it can
+// never visually sit on top of lesson text, questions or the submit button ---
+assert(/\.shakStage\{[^}]*width:104px/.test(css),'the companion stage must be a small docked box, not a full-width bar, to avoid covering lesson content');
+assert(!/\.shakStage\{[^}]*width:412u/.test(css),'the old full-width companion strip must be removed');
+
+// --- a real "اسأل شكابمبو" chat: grounded in the actual on-screen lesson, with voice
+// input (free Web Speech API, no paid subscription) and a text fallback that always works ---
+assert(companion.includes('ShakabumboChat')&&companion.includes('shakAskBtn'),'the student shell must expose an "اسأل شكابمبو" entry point to the chat');
+assert(companion.includes("routeIsQuran")&&/!routeIsQuran[\s\S]*ShakabumboChat|ShakabumboChat[\s\S]*routeIsQuran/.test(companion),'the chat must not be reachable while the Quran listening state is forced');
+assert(chat.includes('SpeechRecognition')&&chat.includes("lang='ar-SA'"),'voice input must use Arabic speech recognition');
+assert(chat.includes('not-allowed')||chat.includes('micDenied'),'a denied microphone permission must be handled, not left to throw');
+assert(chat.includes('speechSynthesis'),'Shakabumbo must be able to read its replies aloud in Arabic');
+assert(!/fetch\(|XMLHttpRequest|new WebSocket/.test(chat),'the chat panel itself must not call out to any network service directly — recognition and synthesis are on-device only');
+assert(tutor.includes('SHIKABOMBO_POLICY')&&tutor.includes('mayChangeAssessment'),'the tutor responder must honor the existing Shikabombo policy, in particular never revealing the assessed answer');
+const lessonContextInterface=context.match(/interface LessonContext\{[^}]*\}/)?.[0]||'';
+assert(lessonContextInterface&&!/answer/i.test(lessonContextInterface),'the LessonContext fields must never include the hidden correct answer');
 
 console.log('Shakabumbo companion engine regression checks passed.');

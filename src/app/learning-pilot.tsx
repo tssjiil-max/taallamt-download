@@ -3,6 +3,7 @@ import {HomeworkPhoto} from './homework-photo';
 import React from 'react';
 import {api,asApiError,PageHead,Empty,Loading,SHAK,useRemote} from './kit';
 import {companionBus} from './shakabumbo/bus';
+import {setLessonContext} from './shakabumbo/context';
 
 const subjectLabel:Record<string,string>={arabic:'لغتي',spelling:'الإملاء',handwriting:'فن الخط',islamic:'الدراسات الإسلامية',quran:'القرآن الكريم'};
 export const pilotRequested=new URLSearchParams(location.search).get('pilot')==='1';
@@ -25,6 +26,20 @@ export function StudentLearningPilot({back}:{back:()=>void}){
   const retryAttempt=React.useRef<{key:string;id:string}|null>(null);
   // Companion state only reacts to a trusted server result — never to the wording of `feedback`.
   React.useEffect(()=>{if(activity&&step>0)companionBus.emit('QUESTION_STARTED')},[activity?.targetId,activity?.question.id,step]);
+  // The chat's lesson context mirrors exactly what's already on screen — never the hidden
+  // correct answer, which this page never even requests for display.
+  React.useEffect(()=>{
+    if(!activity){setLessonContext(null);return}
+    setLessonContext({
+      subject:activity.subject,
+      subjectLabel:subjectLabel[activity.subject]||activity.subject,
+      title:activity.title,
+      explanation:step===0?activity.explanation:undefined,
+      prompt:step>0?activity.question.prompt:undefined,
+      hint:step>0?activity.question.hint:undefined
+    });
+    return()=>setLessonContext(null);
+  },[activity?.targetId,activity?.question.id,activity?.explanation,activity?.title,activity?.subject,step]);
   const submit=async(event:React.FormEvent)=>{
     event.preventDefault();if(!activity||busy||!answer.trim())return;setBusy(true);
     const key=`${activity.targetId}:${activity.question.id}:${answer}`;

@@ -1,6 +1,7 @@
 import React from 'react';
 import {ShakabumboRig} from './ShakabumboRig';
 import {useShakabumboEngine} from './useShakabumboEngine';
+import {ShakabumboChat} from './ShakabumboChat';
 
 const STATE_LABEL:Record<string,string>={
   ENTERING:'شكابمبو ينزل لينضم إليك',
@@ -38,9 +39,13 @@ function useKeyboardOpen(){
 export function ShakabumboCompanion({routeIsQuran}:{routeIsQuran:boolean}){
   const engine=useShakabumboEngine(routeIsQuran);
   const keyboardOpen=useKeyboardOpen();
+  const [chatOpen,setChatOpen]=React.useState(false);
   const sitting=engine.state==='LISTENING_QURAN';
   const hidden=engine.state==='HIDDEN'||engine.minimized;
   const announce=STATE_LABEL[engine.state]||'';
+
+  // Never open the chat during recitation: it must not interrupt the Quran listening state.
+  React.useEffect(()=>{if(routeIsQuran&&chatOpen)setChatOpen(false)},[routeIsQuran,chatOpen]);
 
   return (
     <>
@@ -65,6 +70,12 @@ export function ShakabumboCompanion({routeIsQuran}:{routeIsQuran:boolean}){
       >
         {hidden?'إظهار شكابمبو 👋':'إخفاء مؤقت'}
       </button>
+      {!hidden&&!routeIsQuran&&(
+        <button type="button" className="shakAskBtn" onClick={()=>setChatOpen(v=>!v)} aria-pressed={chatOpen} aria-label="اسأل شكابمبو">
+          💬 اسأل شكابمبو
+        </button>
+      )}
+      <ShakabumboChat open={chatOpen&&!hidden&&!routeIsQuran} onClose={()=>setChatOpen(false)}/>
     </>
   );
 }
