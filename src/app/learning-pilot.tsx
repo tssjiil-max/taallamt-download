@@ -5,7 +5,7 @@ import React from 'react';
 import {api,asApiError,PageHead,Empty,Loading,SHAK,useRemote} from './kit';
 import {companionBus} from './shakabumbo/bus';
 import {setLessonContext} from './shakabumbo/context';
-import {speakArabic} from './shakabumbo/speak';
+import {speakArabic,cancelArabicSpeech} from './shakabumbo/speak';
 
 const subjectLabel:Record<string,string>={arabic:'لغتي',spelling:'الإملاء',handwriting:'فن الخط',islamic:'الدراسات الإسلامية',quran:'القرآن الكريم'};
 export const pilotRequested=new URLSearchParams(location.search).get('pilot')==='1';
@@ -138,14 +138,13 @@ function PaperGrading({paper,name,save}:{paper:Paper;name:string;save:(results:b
 type QuranSegment={audio?:{url:string;start:number;end:number;reciter:string;source:string}|null;id:string;name:string;day:string;start:number;end:number;verses:{number:number;text:string}[]};
 function ShakabumboReadAloud({text}:{text:string}){
   const [speaking,setSpeaking]=React.useState(false);
-  React.useEffect(()=>()=>{if('speechSynthesis' in window)window.speechSynthesis.cancel()},[]);
+  React.useEffect(()=>()=>{cancelArabicSpeech()},[]);
   const toggle=()=>{
-    if(!('speechSynthesis' in window))return;
-    if(speaking){window.speechSynthesis.cancel();setSpeaking(false);return}
+    if(speaking){cancelArabicSpeech();setSpeaking(false);return}
     // Preserve educational vowels; actual pronunciation requires a listening check.
-    speakArabic(text,{onStart:()=>setSpeaking(true),onEnd:()=>setSpeaking(false),onError:()=>setSpeaking(false)});
+    speakArabic(text,{onStart:()=>setSpeaking(true),onEnd:()=>setSpeaking(false),onError:()=>setSpeaking(false),onCancel:()=>setSpeaking(false)});
   };
-  return <button type="button" className="tkBtn ghost" onClick={toggle} disabled={!('speechSynthesis' in window)} aria-label={speaking?'إيقاف قراءة شكابمبو':'استمع إلى شكابمبو'}>{speaking?'إيقاف القراءة':'🔊 شكابمبو يقرأ لي'}</button>;
+  return <button type="button" className="tkBtn ghost" onClick={toggle} aria-label={speaking?'إيقاف قراءة شكابمبو':'استمع إلى شكابمبو'}>{speaking?'إيقاف القراءة':'🔊 شكابمبو يقرأ لي'}</button>;
 }
 
 function StudentQuranPilot(){
@@ -159,7 +158,7 @@ function QuranAudio({segment}:{segment:QuranSegment}){
   const ref=React.useRef<HTMLAudioElement>(null),[playing,setPlaying]=React.useState(false),[repeat,setRepeat]=React.useState(false),[error,setError]=React.useState('');
   React.useEffect(()=>{const meta=document.createElement('meta');meta.name='referrer';meta.content='no-referrer';document.head.append(meta);return()=>{ref.current?.pause();meta.remove()};},[]);
   const audio=segment.audio;if(!audio)return <p>لا تتوفر تلاوة محددة لهذا المقطع بعد.</p>;
-  const play=async()=>{const el=ref.current;if(!el)return;try{setError('');if('speechSynthesis' in window)window.speechSynthesis.cancel();document.querySelectorAll('audio').forEach(other=>{if(other!==el)other.pause()});if(el.currentTime<audio.start||el.currentTime>=audio.end)el.currentTime=audio.start;await el.play();}catch{setError('تعذر تشغيل التلاوة. تحقق من الاتصال ثم حاول مرة أخرى.')}};
+  const play=async()=>{const el=ref.current;if(!el)return;try{setError('');cancelArabicSpeech();document.querySelectorAll('audio').forEach(other=>{if(other!==el)other.pause()});if(el.currentTime<audio.start||el.currentTime>=audio.end)el.currentTime=audio.start;await el.play();}catch{setError('تعذر تشغيل التلاوة. تحقق من الاتصال ثم حاول مرة أخرى.')}};
   const boundary=()=>{const el=ref.current;if(!el)return;if(el.currentTime>=audio.end){el.pause();el.currentTime=audio.start;if(repeat)void play()}else if(el.currentTime<audio.start)el.currentTime=audio.start};
   return <div><audio ref={ref} preload="none" src={audio.url} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onTimeUpdate={boundary} onSeeking={boundary} onLoadedMetadata={()=>{if(ref.current)ref.current.currentTime=audio.start}} onError={()=>{setPlaying(false);setError('تعذر تحميل التلاوة. حاول لاحقًا.')}}/><button className="tkBtn ghost" onClick={()=>playing?ref.current?.pause():void play()}>{playing?'إيقاف التلاوة':'استمع للمقطع المقرر'}</button> <button className="tkBtn ghost" aria-pressed={repeat} onClick={()=>setRepeat(v=>!v)}>{repeat?'إيقاف التكرار':'كرر المقطع'}</button>{error&&<p role="alert">{error}</p>}<small>صوت {audio.reciter} — الآيات {segment.start}–{segment.end}. الاستماع لا يعني إتقان الحفظ.</small></div>;
 }

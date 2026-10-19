@@ -10,15 +10,17 @@ export function pickArabicVoice():SpeechSynthesisVoice|null{
  const voices=speechSynthesis.getVoices();return voices.find(v=>/^ar[-_]SA$/i.test(v.lang))||voices.find(v=>/^ar\b/i.test(v.lang))||null;
 }
 let generation=0,currentAudio:HTMLAudioElement|null=null;
+let onCancelled:(()=>void)|null=null;
 function clearAudio(){if(currentAudio){currentAudio.onplaying=currentAudio.onended=currentAudio.onerror=null;currentAudio.pause();currentAudio.removeAttribute('src');currentAudio.remove();currentAudio=null}}
-export function cancelArabicSpeech(){generation++;clearAudio();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()}
-export function speakArabic(text:string,handlers?:{onStart?:()=>void;onEnd?:()=>void;onError?:()=>void}):boolean{
+export function cancelArabicSpeech(){generation++;clearAudio();const stopped=onCancelled;onCancelled=null;stopped?.();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()}
+export function speakArabic(text:string,handlers?:{onStart?:()=>void;onEnd?:()=>void;onError?:()=>void;onCancel?:()=>void}):boolean{
  cancelArabicSpeech();const token=generation,segments=speechSegments(text),voice=pickArabicVoice();let index=0,started=false;
  if(!segments.length||segments.some(s=>!recordings[s]&&!voice)){handlers?.onError?.();return false}
+ onCancelled=handlers?.onCancel||null;
  const start=()=>{if(token!==generation)return;if(!started){started=true;handlers?.onStart?.()}};
- const fail=()=>{if(token!==generation)return;clearAudio();handlers?.onError?.()};
+ const fail=()=>{if(token!==generation)return;clearAudio();onCancelled=null;handlers?.onError?.()};
  const next=()=>{
-  if(token!==generation)return;clearAudio();if(index>=segments.length){handlers?.onEnd?.();return}
+  if(token!==generation)return;clearAudio();if(index>=segments.length){onCancelled=null;handlers?.onEnd?.();return}
   const segment=segments[index++],src=recordings[segment];
   if(src){
    const audio=new Audio(src);currentAudio=audio;audio.dataset.shakVoice='1';audio.setAttribute('aria-hidden','true');audio.style.display='none';document.body.append(audio);
