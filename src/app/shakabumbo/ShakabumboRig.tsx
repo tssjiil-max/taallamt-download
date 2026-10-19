@@ -1,15 +1,25 @@
 import React from 'react';
 import type {CompanionState} from './state';
+import shakHeadReal from '../assets/shak-head-real.webp';
 
 // Shakabumbo's body, rebuilt as a jointed vector rig so the character can genuinely walk,
 // fall, sit and gesture instead of a single static illustration being slid or rocked.
 // Every limb is two nested groups (thigh/shin, upper-arm/forearm) that rotate around real
-// pivot points. The silhouette and detailing below are redrawn to match the approved
-// reference art in design/shakabumbo/originals/04-standing-white-hair-star.png: a round
-// light-green face, large close-set eyes, a wind-swept white-to-turquoise hairstyle, long
-// pointed ears with a teal inner swirl, a white robot suit with black joint rings, a visible
-// chest light, a belt buckle, and wide rounded boots each with a green ankle band — not a
-// generic simplified robot. The joints are driven entirely by CSS (see app.src.css), keyed
+// pivot points.
+//
+// The head — the single most recognizable part of the character, and the part a vector
+// redraw could never truly match — is the REAL approved artwork itself: a crop of
+// design/shakabumbo/originals/04-standing-white-hair-star.png (the exact file the brief
+// pointed to), not a redrawn approximation. It is placed as a clipped <image>, so the face,
+// the exact hairstyle, and the ear shading are the original pixels. Only the body below the
+// neck remains vector, because that artwork is a single static asymmetric pose (one arm
+// raised, one fist down) with no separate limb/torso sheets to decompose into independently
+// rotating joints without visible warping or seams — matching it in vector color/shape
+// (white suit, black joint rings with green lights, belt buckle, wide boots with a green
+// ankle band) is what the brief allows when the source art can't supply moving parts, with
+// the gap stated plainly rather than papered over: genuinely separate official limb/torso
+// art (or a 3D/skeletal rig built from one) is what would let the body match pixel-for-pixel
+// the way the head now does. The joints are driven entirely by CSS (see app.src.css), keyed
 // off data-state/data-talking, so a reduced-motion viewer still sees the correct silhouette
 // for each state, just without the animated transition.
 
@@ -64,34 +74,19 @@ export function ShakabumboRig({state,talking}:{state:CompanionState;talking:bool
           </g>
 
           <g className="shakHead">
-            <path className="shakHair" d="M60 58
-              C52 26 74 2 98 8
-              C104 -4 124 -4 130 8
-              C148 0 170 16 162 36
-              C180 30 184 58 168 66
-              C176 80 158 90 146 80
-              C138 92 84 92 74 80
-              C62 88 50 76 58 64
-              C50 66 48 54 60 58Z"/>
-            <path className="shakHairStrand" d="M86 10 C88 2 98 -2 104 4"/>
-            <path className="shakHairStrand" d="M128 6 C136 0 148 2 150 12"/>
-            <ellipse className="shakFace" cx="110" cy="76" rx="48" ry="50"/>
-            <path className="shakEarL" d="M60 70 C40 64 34 96 54 102 C62 104 70 94 65 82 Z"/>
-            <path className="shakEarSwirlL" d="M53 80 C48 84 50 92 57 93"/>
-            <path className="shakEarR" d="M160 70 C180 64 186 96 166 102 C158 104 150 94 155 82 Z"/>
-            <path className="shakEarSwirlR" d="M167 80 C172 84 170 92 163 93"/>
-            <g className="shakEyes">
-              <circle className="shakEyeWhite" cx="90" cy="74" r="15"/>
-              <circle className="shakEyeWhite" cx="130" cy="74" r="15"/>
-              <circle className="shakPupil" cx="92" cy="75" r="7"/>
-              <circle className="shakPupil" cx="132" cy="75" r="7"/>
-              <circle className="shakGlint" cx="96" cy="70" r="2.4"/>
-              <circle className="shakGlint" cx="136" cy="70" r="2.4"/>
-            </g>
-            <path className="shakBrowL" d="M78 55 Q90 48 101 55"/>
-            <path className="shakBrowR" d="M119 55 Q130 48 142 55"/>
-            <path className="shakMouthClosed" d="M96 100 Q110 107 124 100"/>
-            <path className="shakMouthOpen" d="M96 98 Q110 120 124 98 Q110 110 96 98 Z"/>
+            <defs>
+              <clipPath id="shakHeadClip">
+                <ellipse cx="110" cy="70" rx="64" ry="62"/>
+              </clipPath>
+            </defs>
+            <image
+              className="shakHeadImg"
+              href={shakHeadReal}
+              x="48" y="14" width="124" height="118.6"
+              clipPath="url(#shakHeadClip)"
+              preserveAspectRatio="xMidYMid meet"
+              style={{transformOrigin:'110px 70px'}}
+            />
           </g>
         </g>
 

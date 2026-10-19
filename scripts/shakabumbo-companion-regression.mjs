@@ -87,12 +87,16 @@ assert(css.includes('env(safe-area-inset-bottom'),'positioning must respect the 
 assert(companion.includes('aria-live'),'state changes must be announced for assistive tech');
 assert(companion.includes('shakToggle'),'there must be a visible control to hide/show the companion');
 
-// --- the character keeps its approved identity: light-green face, white/turquoise hair,
-// pointed ears, white suit with black joint rings + green lights, a belt buckle and wide
-// boots with a green ankle band — matching design/shakabumbo/originals, not a generic robot ---
-for(const marker of ['shakFace{fill:#9fe3ac}','shakHair{fill:#f3fbfb','shakEarL,.shakEarR','shakChestLightCore{fill:#2fbf5c}','shakJointRing{fill','shakBootBand'])
+// --- the head is the REAL approved artwork, not a vector redraw: a crop of the actual
+// reference file, so the face/hair/ears are the original pixels, not an approximation ---
+assert(rig.includes("from '../assets/shak-head-real.webp'"),'the rig must render the real cropped reference artwork for the head, not a vector approximation');
+assert(/originals\/04-standing-white-hair-star\.png/.test(rig),'the rig must document which approved source file the head crop came from');
+assert(rig.includes('shakHeadClip')&&rig.includes('<image'),'the head must be a clipped <image> of the real artwork');
+assert(css.includes('shakHeadImg'),'missing styling for the real head image');
+// --- the body keeps its approved suit identity: white suit with black joint rings + green
+// lights, a belt buckle and wide boots with a green ankle band ---
+for(const marker of ['shakChestLightCore{fill:#2fbf5c}','shakJointRing{fill','shakBootBand'])
   assert(css.includes(marker),`missing identity marker in the rig styling: ${marker}`);
-assert(rig.includes('shakEarL')&&rig.includes('shakEarR')&&rig.includes('shakHair')&&rig.includes('shakEyes'),'the rig must draw the approved features: ears, hair and eyes, not a flat image swap');
 assert(rig.includes('shakJointRing')&&rig.includes('shakBoot'),'the rig must draw visible jointed rings and wide boots, matching the approved reference art');
 
 // --- the companion is docked in a small corner box, not a full-width strip, so it can

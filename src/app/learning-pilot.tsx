@@ -4,6 +4,7 @@ import React from 'react';
 import {api,asApiError,PageHead,Empty,Loading,SHAK,useRemote} from './kit';
 import {companionBus} from './shakabumbo/bus';
 import {setLessonContext} from './shakabumbo/context';
+import {speakArabic} from './shakabumbo/speak';
 
 const subjectLabel:Record<string,string>={arabic:'لغتي',spelling:'الإملاء',handwriting:'فن الخط',islamic:'الدراسات الإسلامية',quran:'القرآن الكريم'};
 export const pilotRequested=new URLSearchParams(location.search).get('pilot')==='1';
@@ -138,13 +139,10 @@ function ShakabumboReadAloud({text}:{text:string}){
   React.useEffect(()=>()=>{if('speechSynthesis' in window)window.speechSynthesis.cancel()},[]);
   const toggle=()=>{
     if(!('speechSynthesis' in window))return;
-    window.speechSynthesis.cancel();
-    if(speaking){setSpeaking(false);return}
-    const utterance=new SpeechSynthesisUtterance(text);
-    utterance.lang='ar-SA';utterance.rate=0.85;
-    utterance.onend=()=>setSpeaking(false);
-    utterance.onerror=()=>setSpeaking(false);
-    window.speechSynthesis.speak(utterance);setSpeaking(true);
+    if(speaking){window.speechSynthesis.cancel();setSpeaking(false);return}
+    // Tashkeel-stripped + an explicit Arabic voice when one is installed — fixes words like
+    // «كَسْرَتَيْنِ» coming out with the wrong vowel on the first letter (see shakabumbo/speak.ts).
+    speakArabic(text,{onStart:()=>setSpeaking(true),onEnd:()=>setSpeaking(false),onError:()=>setSpeaking(false)});
   };
   return <button type="button" className="tkBtn ghost" onClick={toggle} disabled={!('speechSynthesis' in window)} aria-label={speaking?'إيقاف قراءة شكابمبو':'استمع إلى شكابمبو'}>{speaking?'إيقاف القراءة':'🔊 شكابمبو يقرأ لي'}</button>;
 }
