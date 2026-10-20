@@ -1,0 +1,34 @@
+[
+  {
+    "subject": "arabic",
+    "fileName": "02_كتاب_لغتي_ثاني_ابتدائي_ف1(1).pdf.openai-download-4b547beb7b2346f9a9695cc21d8fda51",
+    "sha256": "e915d68f815a82cb1cbd3aed2c974f1b2c715cccc629adb57d924eb4d5a5a603",
+    "pdfPages": 160,
+    "editionOnCover": 1447,
+    "reviewDate": "2026-10-20",
+    "approval": "teacher authorization in current conversation; source pages visually reviewed",
+    "included": "core reading passages / reviewed Islamic lesson summaries",
+    "excluded": [
+      "Quran verses",
+      "exercise answer keys",
+      "unreviewed OCR output",
+      "other parts of the school year"
+    ]
+  },
+  {
+    "subject": "islamic",
+    "fileName": "hala-aldirasat-alaslamih2f1 (1)(1).pdf",
+    "sha256": "16d669495393f8e8f2e369144d98de9201f2334a0ecc3b914e3a88a6ebd995a2",
+    "pdfPages": 80,
+    "editionOnCover": 1447,
+    "reviewDate": "2026-10-20",
+    "approval": "teacher authorization in current conversation; source pages visually reviewed",
+    "included": "core reading passages / reviewed Islamic lesson summaries",
+    "excluded": [
+      "Quran verses",
+      "exercise answer keys",
+      "unreviewed OCR output",
+      "other parts of the school year"
+    ]
+  }
+]

@@ -350,6 +350,6 @@ export async function readTutorLesson(req,body){
  if(!question)throw new AccessError('QUESTION_CHANGED',409);
  const assessment=body.assessment!==false;
  // Retrieve only approved public lesson explanations; never send answer keys or profiles.
- const siteReferences=buildTutorReferences(context.catalog,body.question);
+ const siteReferences=buildTutorReferences(context.catalog,body.question,body.history);
  return {subject:target.subject,title:activity.title,explanation:activity.explanation,prompt:question.prompt,hint:assessment?'':question.hint,assessment,siteReferences};
 }
