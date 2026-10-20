@@ -8,7 +8,7 @@ export interface RecognitionLike{
 }
 export interface VoiceDependencies{
  recognition:()=>RecognitionLike|null;
- speak:(text:string,handlers:{onStart:()=>void;onEnd:()=>void;onError:()=>void})=>boolean;
+ speak:(text:string,handlers:{onStart:()=>void;onEnd:()=>void;onError:(code?:string)=>void})=>boolean;
  cancelSpeech:()=>void;
  reply:(text:string)=>string|Promise<string>;
  update:(phase:VoicePhase,message?:string)=>void;
@@ -32,7 +32,7 @@ export class VoiceSession{
   if(!r){this.fail('الميكروفون الصوتي غير مدعوم في هذا المتصفح. يمكنك استخدام الكتابة.');return}
   const token=this.generation;this.recognition=r;let result=false,failed=false;
   r.lang='ar-SA';r.continuous=false;r.interimResults=false;r.maxAlternatives=1;
-  r.onstart=()=>{if(this.active&&token===this.generation)this.d.update('listening')};
+  r.onstart=()=>{if(this.active&&token===this.generation){if(this.timer!==null){clearTimeout(this.timer);this.timer=null}this.d.update('listening')}};
   r.onresult=event=>{if(!this.active||token!==this.generation||result)return;const text=event.results[0]?.[0]?.transcript?.trim();if(text){result=true;this.silence=0;this.answer(text)}};
   r.onerror=event=>{if(!this.active||token!==this.generation)return;failed=true;
    if(event.error==='no-speech'){this.clear();if(++this.silence<3)this.later(()=>this.listen());else this.fail('لم أسمع سؤالًا. اضغط استئناف عندما تكون جاهزًا.');return}
@@ -40,7 +40,7 @@ export class VoiceSession{
    this.fail(messages[event.error]||'توقفت خدمة الكلام. يمكنك استئنافها أو استخدام الكتابة.');
   };
   r.onend=()=>{if(!this.active||token!==this.generation||result||failed)return;this.clear();if(++this.silence<3)this.later(()=>this.listen());else this.fail('توقف الاستماع. اضغط استئناف عندما تكون جاهزًا.')};
-  try{this.d.update('requesting-permission');r.start()}catch{this.fail('تعذر بدء الميكروفون. اضغط استئناف أو استخدم الكتابة.')}
+  try{this.d.update('requesting-permission');this.timer=setTimeout(()=>{if(this.active&&token===this.generation)this.fail('تأخر تشغيل الميكروفون. تحقق من الإذن ثم استأنف.')},12000);r.start()}catch{this.fail('تعذر بدء الميكروفون. اضغط استئناف أو استخدم الكتابة.')}
  }
  answer(text:string,voiceLoop=this.active){
   if(owner!==this){stopActiveVoiceSession();owner=this}
@@ -51,7 +51,7 @@ export class VoiceSession{
  private say(text:string,voiceLoop:boolean){
   this.generation++;this.clear();this.d.cancelSpeech();this.active=voiceLoop;
   const token=this.generation;let settled=false;this.d.update('generating-audio');
-  const success=this.d.speak(text,{onStart:()=>{if(token===this.generation)this.d.update('speaking')},onEnd:()=>{if(token!==this.generation||settled)return;settled=true;if(this.active)this.later(()=>this.listen());else this.d.update('idle')},onError:()=>{if(token===this.generation&&!settled){settled=true;this.fail('تعذر تشغيل الصوت. اضغط على صورتي لإغلاق المحادثة ثم حاول مرة أخرى.')}}});
+  const success=this.d.speak(text,{onStart:()=>{if(token===this.generation)this.d.update('speaking')},onEnd:()=>{if(token!==this.generation||settled)return;settled=true;if(this.active)this.later(()=>this.listen());else this.d.update('idle')},onError:(code)=>{if(token===this.generation&&!settled){settled=true;const messages:Record<string,string>={model_terms_required:'خدمة الصوت تنتظر تفعيل النموذج من حساب المعلم.',GROQ_NOT_CONFIGURED:'خدمة الصوت غير مهيأة في نسخة العرض.',TIMEOUT:'تأخر تجهيز الصوت. حاول مرة أخرى.',AUDIO_BLOCKED:'سمح المتصفح بتشغيل الصفحة لكنه منع الصوت. اضغط استئناف.',rate_limit_exceeded:'وصلت خدمة الصوت إلى حد الاستخدام المجاني. حاول لاحقًا.'};this.fail(messages[code||'']||'تعذر تشغيل الصوت. اضغط على صورتي لإغلاق المحادثة ثم حاول مرة أخرى.')}}});
   if(!success&&token===this.generation)this.fail('تعذر تجهيز الصوت. يمكنك استخدام الكتابة من الخيارات.');
  }
 }

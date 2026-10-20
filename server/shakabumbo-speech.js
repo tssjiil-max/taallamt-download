@@ -6,7 +6,8 @@ export default async function shakabumboSpeech(req,res){
       const text=String(body.text||'').trim();
       if(!text||text.length>200)return res.status(400).json({error:'TEXT_INVALID'});
       // Reuse the same lesson authorization as the tutor model; Quran is explicitly blocked.
-      await readTutorLesson(req,body);
+      const lesson=await readTutorLesson(req,body);
+      if(!['arabic','spelling','handwriting'].includes(lesson.subject))return res.status(403).json({error:'SUBJECT_BLOCKED'});
       if(!process.env.GROQ_API_KEY)return res.status(503).json({error:'GROQ_NOT_CONFIGURED'});
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
       try{
