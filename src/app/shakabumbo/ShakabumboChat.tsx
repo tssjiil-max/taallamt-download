@@ -10,6 +10,7 @@ const labels:Record<VoicePhase,string>={'requesting-permission':'جارٍ تشغ
 export function ShakabumboChat({open,onClose,blocked=false,onPhaseChange}:{open:boolean;onClose:()=>void;blocked?:boolean;onPhaseChange?:(phase:VoicePhase)=>void}){
  const ctxRef=React.useRef(getLessonContext()),hintRef=React.useRef(0),closeRef=React.useRef(onClose);closeRef.current=onClose;
  const [turns,setTurns]=React.useState<TutorTurn[]>([]),[draft,setDraft]=React.useState(''),[typing,setTyping]=React.useState(false);
+ const [bargeIn,setBargeIn]=React.useState(false);
  const [phase,setPhase]=React.useState<VoicePhase>('idle'),[notice,setNotice]=React.useState('');
  const requestRef=React.useRef<AbortController|null>(null);
  const historyRef=React.useRef<{role:string;content:string}[]>([]);
@@ -32,12 +33,14 @@ export function ShakabumboChat({open,onClose,blocked=false,onPhaseChange}:{open:
   <p className={`shakSimpleStatus shakPhase-${phase}`} role="status"><span aria-hidden="true"/> {labels[phase]}</p>
   {turns.length>1&&<p className="shakChatBubble shakChatBubbleShak">{turns[turns.length-1].text}</p>}
   {notice&&<p className="shakSimpleNotice" role="alert">{notice}</p>}
+  {(phase==='speaking'||phase==='generating-audio'||phase==='thinking')&&<button type="button" className="shakChatSend" onClick={()=>{setNotice('');session.interrupt()}}>قاطعني وتكلم</button>}
   <p className="shakTapHint">اضغط على صورتي مرة أخرى لإنهاء المحادثة</p>
   <details className="shakSimpleOptions"><summary>المحادثة والخيارات</summary>
    <div className="shakChatList" aria-live="polite">{turns.map((t,i)=><p key={i} className={`shakChatBubble ${t.from==='student'?'shakChatBubbleMe':'shakChatBubbleShak'}`}>{t.text}</p>)}</div>
+   <label><input type="checkbox" checked={bargeIn} onChange={e=>{setBargeIn(e.target.checked);session.setBargeIn(e.target.checked);setNotice(e.target.checked?'المقاطعة بالصوت تجريبية: استخدم سماعة، ويظل الميكروفون نشطًا أثناء الرد. يتوقف الصوت عند تعرف المتصفح على سؤالك.':'')}}/> مقاطعة صوتية تجريبية — يُفضّل بسماعة</label>
    <div className="shakVoiceControls"><button type="button" onClick={()=>session.stop('muted')}>كتم</button><button type="button" onClick={()=>{setNotice('');session.start()}}>استئناف</button><button type="button" onClick={onClose}>إنهاء</button><button type="button" aria-expanded={typing} onClick={()=>{session.stop();setTyping(v=>!v)}}>الكتابة بدل الصوت</button></div>
    {typing&&<form className="shakChatForm" onSubmit={e=>{e.preventDefault();const text=draft.trim();if(!text)return;setDraft('');setNotice('');session.stop();session.answer(text,false)}}><label className="shakChatInputLabel">سؤالك<input className="shakChatInput" value={draft} onChange={e=>setDraft(e.target.value)} maxLength={240}/></label><button className="shakChatSend" disabled={!draft.trim()}>إرسال</button></form>}
-   <small>قد يستخدم المتصفح خدمة عبر الإنترنت لفهم الكلام. لا يحفظ الموقع التسجيلات أو نص المحادثة بعد إغلاقها. المساعد مرتبط بدرسِك الحالي.</small>
+   <small>قد يستخدم المتصفح خدمة عبر الإنترنت لفهم الكلام. لا يحفظ الموقع التسجيلات أو نص المحادثة بعد إغلاقها. المساعد يبحث في المحتوى الموثق للمنصة؛ فهرس الدروس لا يعني توفر نصوص الكتب كاملة.</small>
   </details>
  </div>;
 }

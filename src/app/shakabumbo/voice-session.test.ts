@@ -68,3 +68,10 @@ describe('truthful audio and microphone phases',()=>{
 
 it('can retry after a failed voice service without reloading',()=>{const f=fixture();f.speak.mockReturnValueOnce(false);f.session.start('مرحبا');expect(f.update).toHaveBeenLastCalledWith('error',expect.any(String));f.session.start('مرحبا');expect(f.update).toHaveBeenLastCalledWith('speaking');f.end();vi.advanceTimersByTime(500);expect(f.records).toHaveLength(1);f.session.stop();expect(f.records[0].abort).toHaveBeenCalledOnce()});
 it('permission startup timeout closes recognition and exposes retry',()=>{const f=fixture();f.session.start();vi.advanceTimersByTime(12000);expect(f.records[0].abort).toHaveBeenCalledOnce();expect(f.update).toHaveBeenLastCalledWith('error',expect.stringContaining('الميكروفون'))});
+
+describe('interruptible voice output',()=>{
+ it('manual interruption cancels output and starts a fresh listening turn',()=>{const f=fixture();f.session.start('مرحبا');f.session.interrupt();expect(f.cancelSpeech).toHaveBeenCalled();expect(f.records).toHaveLength(1);f.end();vi.runOnlyPendingTimers();expect(f.records).toHaveLength(1)});
+ it('optional voice interruption ignores the spoken reply echo',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');expect(f.records).toHaveLength(1);f.records[0].onresult!({results:[[{transcript:'مرحبا يا بطل'}]]});expect(f.speak).toHaveBeenCalledTimes(1);expect(f.update).toHaveBeenLastCalledWith('speaking')});
+ it('a different spoken question cancels output and produces a new answer',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');const r=f.records[0];r.onresult!({results:[[{transcript:'اشرح درس الصديقان'}]]});expect(r.abort).toHaveBeenCalled();expect(f.speak).toHaveBeenCalledTimes(2);expect(f.speak.mock.calls[1][0]).toBe('شرح معتمد')});
+ it('closing during interruption prevents late recognized questions',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');const late=f.records[0].onresult!;f.session.stop();late({results:[[{transcript:'سؤال جديد'}]]});expect(f.speak).toHaveBeenCalledTimes(1)});
+});
