@@ -1,10 +1,11 @@
-import {riyadhDateString,riyadhWeekday,termPhase} from './learning-content.js';
+import {riyadhDateString,riyadhWeekday,termPhase,weekNumberForDate} from './learning-content.js';
 import {subjectKeyOf,weekRange} from './plan.js';
 import {validateContent,publicActivity,gradeAnswer,recordAttempt,selectActivity} from './learning-core.js';
 
 // Projection only: page refreshes never create lessons, homework, attempts or rewards.
 export function dailyLessons({plans=[],catalog=[],settings={},memory={},date=new Date(),teacher=false}){
  const today=riyadhDateString(date),day=riyadhWeekday(date),gaps=[],lessons=[],seen=new Set();
+ if(!plans.some(p=>p.publishStatus==='published'&&Number(p.weekNumber)===weekNumberForDate(date))&&day<5&&termPhase(date)==='during')gaps.push({id:'missing-current-week',message:'لا توجد خطة أسبوعية منشورة للأسبوع الحالي. استكمل التوزيع ومواعيد الدروس قبل إتاحتها للطلاب.'});
  for(const plan of plans){
   if(plan.publishStatus!=='published')continue;
   const subject=subjectKeyOf(plan.subject),week=Number(plan.weekNumber),range=weekRange(week);
@@ -21,13 +22,13 @@ export function dailyLessons({plans=[],catalog=[],settings={},memory={},date=new
    if(!teacher&&(settings.holidays?.includes(availableOn)||riyadhWeekday(availableDate)>4||termPhase(availableDate)!=='during'))continue;
    if(!teacher&&availableOn===today&&(settings.enabled===false||settings.holidays?.includes(today)||day>4||termPhase(date)!=='during'))continue;
    if(seen.has(id))continue;seen.add(id);
-   const title=String(plan.override?.lesson||plan.lesson||'');
+   const title=String(plan.override?.lesson||(subject==='quran'?slot.text:'')||plan.lesson||'');
    if(!title){gaps.push({id,message:'عنوان درس غير مكتمل'});continue}
-   const candidates=catalog.filter(t=>!String(t.id).includes('original-arabic-')&&subjectKeyOf(t.subject)===subject&&Number(t.weekNumber||t.learning?.weekNumber)===week&&t.learning?.status==='approved'&&((plan.targetIds||[]).includes(t.id)||[t.title,t.lesson,t.learning?.lessonTitle].includes(title)));
+   const candidates=catalog.filter(t=>!String(t.id).includes('original-arabic-')&&!String(t.learning?.reference||'').includes('نص وتدريب أصليان لفهم المقروء')&&subjectKeyOf(t.subject)===subject&&Number(t.weekNumber||t.learning?.weekNumber)===week&&t.learning?.status==='approved'&&((plan.targetIds||[]).includes(t.id)||[t.title,t.lesson,t.learning?.lessonTitle].includes(title)));
    const target=candidates.length===1?candidates[0]:null;
    let learning=null;
    try{if(target){learning=validateContent(target.learning);if(subject==='quran'||target.subject==='handwriting'||(subject==='islamic'&&!learning.rulingVerified))learning=null}}catch{learning=null}
-   if(!learning)gaps.push({id,message:'المحتوى التعليمي المعتمد أو ربطه بالدرس ناقص: '+title});
+   if(!learning&&subject!=='quran')gaps.push({id,message:'المحتوى التعليمي المعتمد أو ربطه بالدرس ناقص: '+title});
    const attempts=(memory.attempts||[]).filter(a=>a.targetId===target?.id),lastTests=(memory.selfTests||[]).filter(a=>a.lessonId===id),latest=lastTests.at(-1);
    if(!teacher&&lessons.some(l=>l.subject===subject&&l.title===title&&l.date===availableOn))continue;
    lessons.push({id,subject,title,unit:String(plan.override?.unit||plan.unit||''),skill:String(plan.override?.skill||plan.skill||''),date:availableOn,targetId:learning?target.id:null,explanation:learning?.explanation||'',reference:learning?.reference||'',questions:learning?learning.questions.slice(0,5).map(q=>({id:q.id,prompt:q.prompt,hint:''})):[],practice:learning?publicActivity(selectActivity({...target,learning},memory)):null,hidden:override.hidden===true,status:latest?.correct===latest?.total&&latest?'أتقن':latest?'يحتاج متابعة':attempts.length?'يتعلم':'لم يبدأ',today:availableOn===today});

@@ -208,7 +208,9 @@ test('audio repair Preview is allowed while Production and unrelated branches re
 
 // The daily flow reuses the same stable guardian access and isolated profile records.
 import {dailyRead,dailyWrite} from '../server/daily-learning-api.js';
+afterEach(()=>vi.useRealTimers());
 function seedDaily(){
+ vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-20T09:00:00Z'));
  const studentId='s2-4-02',invite='daily-test-invite-1234567890';
  const target={id:'daily-approved',subject:'arabic',weekNumber:8,title:'الصديقان',learning:{status:'approved',reference:'الكتاب',explanation:'شرح معتمد',weekNumber:8,questions:[1,2,3].map(i=>({id:'q'+i,prompt:'سؤال '+i,answers:['صحيح'],hint:'راجع الشرح'}))}};
  state.docs.set(`${root}/studentProfiles/${studentId}`,{guardianInviteToken:invite});

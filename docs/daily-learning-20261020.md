@@ -20,3 +20,8 @@ Configuration: workspaces/<workspace>/settings/dailyLearning. Results stay in ea
 Initial complete test suite: 190 Vitest tests plus 30 learning-core checks passed; initial build passed. Additional daily API tests are run with the final patch. Live Preview data availability and real mobile journeys must be checked after deployment; unit/API fixture tests are not evidence of actual curriculum completeness or physical Android behavior.
 
 Dependency audit reports four pre-existing high-severity Firebase/grpc advisories. This change adds no dependencies and does not alter the lockfile; dependency remediation is separate work.
+
+## Live Preview observation
+The first READY Preview loaded the existing student invite successfully and displayed the two scheduled subjects for 2026-10-20. Opening the Islamic lesson worked and preserved the existing text-only character. The current Islamic target has no usable approved question bank linked to that lesson, so practice/self-test are correctly disabled. Full real-student learn → practice → test acceptance is therefore blocked by missing approved content, not declared complete. Quran uses the published day segment and the existing reader.
+
+Final code checks: 196 Vitest tests and 30 learning-core checks; full build/TypeScript. Real Android, live teacher-session controls and a real student's graded self-test were not exercised; saving and isolation were verified against the API database fixture, avoiding fabricated achievements in a real child's record.
