@@ -1,3 +1,4 @@
+import {dailyRead,dailyWrite} from '../server/daily-learning-api.js';
 import shakabumboSpeech from '../server/shakabumbo-speech.js';
 import shakabumboModel from '../server/shakabumbo-model.js';
 import {studentProfilePatch} from '../server/student-profile-patch.js';
@@ -265,6 +266,8 @@ async function studentPwaManifest(req,res){
 export default async function handler(req,res){
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
+    if(req.method==='GET'&&req.query?.view==='daily-lessons')return await dailyRead(req,res);
+    if(req.method==='POST'&&jsonBody(req).action==='daily_self_test')return await dailyWrite(req,res,jsonBody(req));
     if(req.method==='GET'&&(['learning-pilot','learning-print','announcement-pilot','learning-quran','homework-photo','learning-portfolio'].includes(String(req.query?.view||''))||(req.query?.view==='home'&&req.query?.studentId==='__shakabumbo_demo__'&&req.query?.pilot==='1')))return await studentPilotRead(req,res);
     if(req.method==='POST'&&jsonBody(req).action==='shakabumbo_speech')return res.status(503).json({error:'SHAKABUMBO_UNDER_DEVELOPMENT',message:'شكابمبو تحت التطوير'});
     if(req.method==='POST'&&jsonBody(req).action==='shakabumbo_reply')return await shakabumboModel(req,res);

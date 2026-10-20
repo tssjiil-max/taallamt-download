@@ -1,3 +1,4 @@
+import {dailyEnabled,DailyLessonCards,DailyLessonPage} from './daily-lessons';
 import {HomeworkPhoto,SubmissionPortfolio} from './homework-photo';
 import {pilotRequested,StudentLearningPilot,StudentAnnouncementsPilot,usePilotAnnouncements} from './learning-pilot';
 import {ShakabumboCompanion} from './shakabumbo/ShakabumboCompanion';
@@ -99,7 +100,8 @@ export function StudentApp(){
   if(!data){
     body=<><Header title={title} subtitle={subtitle} hero={boy} avatarLabel="حسابي" onAvatar={()=>go('me')}/>
       {home.error?<Failure error={home.error} role="student" onRetry={()=>void home.reload()}/>:<CardsSkeleton/>}</>;
-  }else if(route==='learning'&&(pilotRequested||location.hostname.startsWith('taallamt-teacher-')))body=<StudentLearningPilot back={back}/>;
+  }else if(dailyEnabled&&route.startsWith('daily/'))body=<DailyLessonPage key={route} route={route} back={back}/>;
+  else if(route==='learning'&&(pilotRequested||location.hostname.startsWith('taallamt-teacher-')))body=<StudentLearningPilot back={back}/>;
   else if(pilotRequested&&route==='announcements')body=<StudentAnnouncementsPilot back={back} resource={announcements}/>;
   else if(route==='plan')body=<PlanPage home={data} back={back} go={go}/>;
   else if(route==='assessment')body=<AssessmentPage home={data} back={back} go={go}/>;
@@ -121,7 +123,7 @@ export function StudentApp(){
   else body=<HomeScreen home={data} go={go} reload={()=>void home.reload(true)} toast={showToast}/>;
 
   return <>
-    <Screen nav={nav}>{body}{route!=='learning'&&<ShakabumboCompanion routeIsQuran={route==='quran'||route==='quran-log'}/>}{toast}</Screen>
+    <Screen nav={nav}>{body}{route!=='learning'&&<ShakabumboCompanion routeIsQuran={route==='quran'||route==='quran-log'||(route.startsWith('daily/')&&route.includes('quran'))}/>}{toast}</Screen>
   </>;
 }
 
@@ -158,6 +160,7 @@ function HomeScreen({home,go,reload,toast}:{home:Home;go:Go;reload:()=>void;toas
       <button className={`tkMePhoto ${student.photo?'custom':''}`} type="button" onClick={photo.open} disabled={photo.busy} aria-label="تغيير صورتي"><img src={student.photo||SHAK.logo} alt=""/></button>
       {photo.field}
     </section>
+    {dailyEnabled&&<DailyLessonCards go={go}/>}
     <div className="tkTabs" role="tablist" aria-label="أقسام الصفحة الرئيسية">
       {([['plan','الخطة الأسبوعية',<TabPlan key="i"/>],['homework','الواجبات',<TabHomework key="i"/>],['assessment','التقييم',<TabAssess key="i"/>],['stars','النجوم',<TabStar key="i" on={tab==='stars'}/>]] as [HomeTab,string,React.ReactNode][]).map(([key,label,icon])=>
         <button key={key} type="button" role="tab" id={`tab-${key}`} aria-selected={tab===key} aria-controls="tkTabBody" className={`tkTab ${tab===key?'on':''}`} onClick={()=>setTab(key)}>{icon}<b>{label}</b></button>)}

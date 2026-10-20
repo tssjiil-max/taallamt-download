@@ -205,3 +205,18 @@ test('audio repair Preview is allowed while Production and unrelated branches re
  expect(()=>requirePilot({VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'fix/shakabumbo-audio-20261020'})).toThrow();
  expect(()=>requirePilot({VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'unrelated'})).toThrow();
 });
+
+// The daily flow reuses the same stable guardian access and isolated profile records.
+import {dailyRead,dailyWrite} from '../server/daily-learning-api.js';
+function seedDaily(){
+ const studentId='s2-4-02',invite='daily-test-invite-1234567890';
+ const target={id:'daily-approved',subject:'arabic',weekNumber:8,title:'الصديقان',learning:{status:'approved',reference:'الكتاب',explanation:'شرح معتمد',weekNumber:8,questions:[1,2,3].map(i=>({id:'q'+i,prompt:'سؤال '+i,answers:['صحيح'],hint:'راجع الشرح'}))}};
+ state.docs.set(`${root}/studentProfiles/${studentId}`,{guardianInviteToken:invite});
+ state.docs.set(`${root}/curriculumTargets/${target.id}`,target);
+ state.docs.set(`${root}/weeklyPlans/daily-plan`,{weekNumber:8,subject:'arabic',lesson:'الصديقان',targetIds:[target.id],publishStatus:'published',days:[{weekday:2}]});
+ return {studentId,invite,target};
+}
+test('daily student read denies another invite and strips teacher gaps, settings and answers',async()=>{const a=seedDaily();const response=res();await dailyRead({headers:{},query:{studentId:a.studentId,invite:a.invite}},response);expect(response.body.lessons.length).toBeGreaterThan(0);expect(JSON.stringify(response.body)).not.toContain('answers');expect(response.body.gaps).toBeUndefined();expect(response.body.settings).toBeUndefined();await expect(dailyRead({headers:{},query:{studentId:'s2-4-03',invite:a.invite}},res())).rejects.toMatchObject({code:'STUDENT_ACCESS_DENIED'})});
+test('daily self test writes own portfolio atomically and durable retry cannot award twice',async()=>{const a=seedDaily(),body={studentId:a.studentId,invite:a.invite,attemptId:'daily-attempt',lessonId:'daily-plan:d2',answers:{q1:'صحيح',q2:'صحيح',q3:'صحيح'}};const response=res();await dailyWrite({headers:{}},response,body);expect(response.body.correct).toBe(3);expect(response.body.official).toBe(false);const again=res();await dailyWrite({headers:{}},again,body);expect(again.body.duplicate).toBe(true);const memory=state.docs.get(`${root}/studentProfiles/${a.studentId}`).learningPilotMemory;expect(memory.selfTests).toHaveLength(1);expect(memory.learningStars).toHaveLength(1);expect([...state.docs.keys()].filter(k=>k.includes('/portfolioEvents/'))).toHaveLength(1);expect([...state.docs.keys()].some(k=>k.includes('/assessments/'))).toBe(false)});
+test('daily submission refuses hidden and unavailable lessons',async()=>{const a=seedDaily();state.docs.set(`${root}/settings/dailyLearning`,{overrides:{'daily-plan:d2':{hidden:true}}});await expect(dailyWrite({headers:{}},res(),{studentId:a.studentId,invite:a.invite,attemptId:'hidden-attempt',lessonId:'daily-plan:d2',answers:{}})).rejects.toMatchObject({code:'CONTENT_NOT_AVAILABLE'});expect(state.docs.get(`${root}/studentProfiles/${a.studentId}`).learningPilotMemory).toBeUndefined()});
+test('daily APIs remain unavailable in Production before any database reads',async()=>{process.env.VERCEL_ENV='production';await expect(dailyRead({headers:{},query:{studentId:'s2-4-02'}},res())).rejects.toMatchObject({code:'PILOT_NOT_AVAILABLE'});expect(state.reads).toBe(0)});
