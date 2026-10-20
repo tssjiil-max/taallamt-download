@@ -266,7 +266,7 @@ export default async function handler(req,res){
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
     if(req.method==='GET'&&(['learning-pilot','learning-print','announcement-pilot','learning-quran','homework-photo','learning-portfolio'].includes(String(req.query?.view||''))||(req.query?.view==='home'&&req.query?.studentId==='__shakabumbo_demo__'&&req.query?.pilot==='1')))return await studentPilotRead(req,res);
-    if(req.method==='POST'&&['shakabumbo_reply','shakabumbo_speech'].includes(jsonBody(req).action))return res.status(503).json({error:'SHAKABUMBO_UNDER_DEVELOPMENT',message:'شكابمبو تحت التطوير'});
+    if(req.method==='POST'&&jsonBody(req).action==='shakabumbo_speech')return res.status(503).json({error:'SHAKABUMBO_UNDER_DEVELOPMENT',message:'شكابمبو تحت التطوير'});
     if(req.method==='POST'&&jsonBody(req).action==='shakabumbo_reply')return await shakabumboModel(req,res);
     if(req.method==='POST'&&jsonBody(req).action==='shakabumbo_speech')return await shakabumboSpeech(req,res);
 
