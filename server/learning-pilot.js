@@ -20,7 +20,7 @@ import {buildLearningModel,validateContent,selectActivity,publicActivity,gradeAn
 import {visibleAnnouncements,isVisibleAnnouncement} from './announcement-policy.js';
 
 export const PILOT_BRANCH='preview/shakabumbo-pilot-20261013';
-const PILOT_PREVIEW_BRANCHES=new Set([PILOT_BRANCH,'preview/shakabumbo-p0-20261019','fix/shakabumbo-audio-20261020']);
+const PILOT_PREVIEW_BRANCHES=new Set(['feature/daily-learning-20261020',PILOT_BRANCH,'preview/shakabumbo-p0-20261019','fix/shakabumbo-audio-20261020']);
 export function requirePilot(environment=process.env){
   if(environment.VERCEL_ENV==='production'||(environment.VERCEL_ENV&&!PILOT_PREVIEW_BRANCHES.has(environment.VERCEL_GIT_COMMIT_REF)))throw new AccessError('PILOT_NOT_AVAILABLE',404);
 }
@@ -218,7 +218,7 @@ export async function teacherPilotRead(query){
   requirePilot();const db=adminDb(),base=workspaceRoot();
   const [targets,profiles,assessments,plans,papers,photos]=await Promise.all([db.collection(`${base}/curriculumTargets`).get(),db.collection(`${base}/studentProfiles`).get(),db.collection(`${base}/assessments`).get(),db.collection(`${base}/remediationPlans`).get(),db.collection(`${base}/homeworkEvidence`).where('kind','==','learning-pilot-paper').get(),db.collection(`${base}/homeworkEvidence`).where('photoSource','==','learning-pilot-photo').get()]);
   const catalog=safeCurriculum(foundationCatalog(rows(targets))),profilesRows=rows(profiles),assessmentRows=rows(assessments),planRows=rows(plans).filter(p=>p.source==='learning-pilot');
-  const students=ROSTER.map(student=>{const profile=profilesRows.find(p=>p.id===student.id)||{};const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),next:model.next,skills:model.skills}}).filter(Boolean);
+  const students=ROSTER.map(student=>{const profile=profilesRows.find(p=>p.id===student.id)||{};const model=buildLearningModel({studentId:student.id,targets:catalog,assessments:assessmentRows,memory:memoryOf(profile),now:now(),weekNumber:weekNumberForDate()});return {id:student.id,name:student.name,needsIntervention:isFocused(profile,'')||model.skills.some(s=>s.state==='needs_practice'),selfTests:memoryOf(profile).selfTests||[],readingProgram:['أحمد بسام الأحمد','أويس عادل المالكي','تميم ماجد الحجيلي','موسى رياض الأحمد','يمان أحمد الجهني'].includes(student.name)&&model.skills.some(s=>s.subject==='arabic'&&s.state==='needs_practice')?'أنا أقرأ':null,next:model.next,skills:model.skills}}).filter(Boolean);
   return {ok:true,photos:rows(photos).filter(p=>rosterStudent(p.studentId)).map(p=>({...p,image:p.photoImage,submittedAt:p.photoSubmittedAt,photoQuality:p.photoQuality||null})),contentTemplates:CONTENT_TEMPLATES,bookReference:TEACHER_BOOK_REFERENCE,students,targets:catalog,plans:planRows,papers:rows(papers).filter(p=>rosterStudent(p.studentId)),contentPending:catalog.filter(t=>t.learning?.status!=='approved').length};
 }
 export async function teacherPilotWrite(action,body){

@@ -1,3 +1,4 @@
+import {dailyTeacherRead,dailyTeacherWrite} from '../server/daily-learning-api.js';
 import {pilotHomeworkId,homeworkIdentity} from '../server/homework-identity.js';
 import {pilotDaySubjects} from '../server/pilot-schedule.js';
 import {teacherPilotRead,teacherPilotWrite} from '../server/learning-pilot.js';
@@ -272,6 +273,8 @@ export default async function handler(req,res){
     if(action==='preview')return res.status(200).json(await previewAutomation());
     // Everything below is a teacher tool: it needs the signed teacher session.
     requireTeacher(req,{write:req.method==='POST'});
+    if(req.method==='GET'&&action==='daily_lessons')return res.status(200).json(await dailyTeacherRead(req.query||{}));
+    if(req.method==='POST'&&action==='daily_lessons')return res.status(200).json(await dailyTeacherWrite(body));
     if(req.method==='GET'&&action==='learning_pilot')return res.status(200).json(await teacherPilotRead(req.query||{}));
     if(req.method==='POST'&&['learning_content','learning_plan','learning_paper_result','learning_photo_review','learning_photo_assess','learning_photo_read','learning_approve_reading'].includes(action))return res.status(200).json({ok:true,...await teacherPilotWrite(action,body)});
     if(req.method==='GET'){
