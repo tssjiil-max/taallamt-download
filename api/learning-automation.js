@@ -282,6 +282,27 @@ export default async function handler(req,res){
       return res.status(400).json({ok:false,error:'ACTION_INVALID'});
     }
     if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
+    if(action==='groq_smoke'){
+      // Teacher-only manual probe. Reuses this API to preserve the twelve-function budget.
+      if(process.env.VERCEL_ENV!=='preview')return res.status(404).json({ok:false,error:'PREVIEW_ONLY'});
+      const mode=body.mode;
+      if(!['chat','saudi-voice'].includes(mode))return res.status(400).json({ok:false,error:'INVALID_MODE'});
+      if(!process.env.GROQ_API_KEY)return res.status(503).json({ok:false,error:'GROQ_KEY_MISSING'});
+      const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),15000);
+      try{
+        const chat=mode==='chat';
+        const response=await fetch(chat?'https://api.groq.com/openai/v1/chat/completions':'https://api.groq.com/openai/v1/audio/speech',{
+          method:'POST',signal:abort.signal,
+          headers:{Authorization:`Bearer ${process.env.GROQ_API_KEY}`,'Content-Type':'application/json'},
+          body:JSON.stringify(chat?{model:'openai/gpt-oss-20b',max_completion_tokens:120,messages:[{role:'user',content:'اشرح التعاون لطفل في الصف الثاني في جملة واحدة.'}]}:{model:'canopylabs/orpheus-arabic-saudi',voice:'sultan',input:'أهلًا يا بطل، هيا نتعلم معًا.',response_format:'wav'})
+        });
+        if(!response.ok)return res.status(502).json({ok:false,error:'GROQ_UPSTREAM_ERROR',upstreamStatus:response.status,mode});
+        if(chat){const data=await response.json();return res.status(200).json({ok:true,mode,answer:String(data?.choices?.[0]?.message?.content||'').slice(0,700)})}
+        const bytes=Buffer.from(await response.arrayBuffer());
+        if(bytes.length>2_000_000)return res.status(502).json({ok:false,error:'AUDIO_TOO_LARGE'});
+        res.setHeader('Content-Type','audio/wav');return res.status(200).end(bytes);
+      }catch(e){return res.status(502).json({ok:false,error:e?.name==='AbortError'?'GROQ_TIMEOUT':'GROQ_REQUEST_FAILED'});}finally{clearTimeout(timer)}
+    }
     previewWriteGuard();
     if(action==='seed'){const curriculum=await seedCurriculum();const weekly=await publishWeeklyPlan(weekNumberForDate());return res.status(200).json({ok:true,curriculum,weekly})}
     if(action==='weekly')return res.status(200).json({ok:true,...await publishWeeklyPlan(Number(body.week)||weekNumberForDate(new Date(Date.now()+86400000))) });
