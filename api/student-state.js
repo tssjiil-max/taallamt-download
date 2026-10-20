@@ -1,3 +1,4 @@
+import {readTutorLesson} from '../server/learning-pilot.js';
 import shakabumboModel from '../server/shakabumbo-model.js';
 import {studentProfilePatch} from '../server/student-profile-patch.js';
 import {isVisibleAnnouncement} from '../server/announcement-policy.js';
@@ -266,6 +267,28 @@ export default async function handler(req,res){
     res.setHeader('Cache-Control','private, no-store, max-age=0');
     if(req.method==='GET'&&(['learning-pilot','learning-print','announcement-pilot','learning-quran','homework-photo','learning-portfolio'].includes(String(req.query?.view||''))||(req.query?.view==='home'&&req.query?.studentId==='__shakabumbo_demo__'&&req.query?.pilot==='1')))return await studentPilotRead(req,res);
     if(req.method==='POST'&&jsonBody(req).action==='shakabumbo_reply')return await shakabumboModel(req,res);
+    if(req.method==='POST'&&jsonBody(req).action==='shakabumbo_speech'){
+      if(process.env.VERCEL_ENV!=='preview')return res.status(404).json({error:'PREVIEW_ONLY'});
+      const body=jsonBody(req);
+      const text=String(body.text||'').trim();
+      if(!text||text.length>240)return res.status(400).json({error:'TEXT_INVALID'});
+      // Reuse the same lesson authorization as the tutor model; Quran is explicitly blocked.
+      await readTutorLesson(req,body);
+      if(!process.env.GROQ_API_KEY)return res.status(503).json({error:'GROQ_NOT_CONFIGURED'});
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+      try{
+        const upstream=await fetch('https://api.groq.com/openai/v1/audio/speech',{
+          method:'POST',signal:controller.signal,
+          headers:{authorization:`Bearer ${process.env.GROQ_API_KEY}`,'content-type':'application/json'},
+          body:JSON.stringify({model:'canopylabs/orpheus-arabic-saudi',voice:'sultan',input:text,response_format:'wav'})
+        });
+        if(!upstream.ok)return res.status(502).json({error:'GROQ_SPEECH_UNAVAILABLE',upstreamStatus:upstream.status});
+        const buffer=Buffer.from(await upstream.arrayBuffer());
+        if(buffer.length>2_000_000)return res.status(502).json({error:'AUDIO_TOO_LARGE'});
+        res.setHeader('Content-Type','audio/wav');res.setHeader('Cache-Control','private, no-store');return res.status(200).end(buffer);
+      }catch(e){return res.status(502).json({error:e?.name==='AbortError'?'GROQ_TIMEOUT':'GROQ_SPEECH_FAILED'});}finally{clearTimeout(timer)}
+    }
+
     if(req.method==='POST'&&jsonBody(req).action==='student_profile'&&jsonBody(req).studentId==='__shakabumbo_demo__'&&jsonBody(req).pilot===true)return await studentPilotWrite(req,res,jsonBody(req));
     if(req.method==='POST'&&['learning_attempt','announcement_read','quran_review','homework_photo','learning_activity_photo'].includes(String(jsonBody(req).action||'')))return await studentPilotWrite(req,res,jsonBody(req));
     if(req.method==='GET'&&String(req.query?.action||'')==='smoke'){requireTeacher(req);return res.status(200).json(await stagingSmoke())}
