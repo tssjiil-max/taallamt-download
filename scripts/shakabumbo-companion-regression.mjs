@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';import{readFileSync,existsSync,statSync}
 const read=p=>readFileSync(p,'utf8');
 const rig=read('src/app/shakabumbo/ShakabumboRig.tsx'),companion=read('src/app/shakabumbo/ShakabumboCompanion.tsx'),chat=read('src/app/shakabumbo/ShakabumboChat.tsx'),voice=read('src/app/shakabumbo/voice-session.ts'),speech=read('src/app/shakabumbo/speak.ts'),css=read('src/app/app.src.css');
 assert(rig.includes('shak-orange-microphone.webp')&&!rig.includes('shak-original-wave.webp')&&!rig.includes('<svg'),'exact complete original character only');
-assert(companion.includes('setOpen(v=>!v)'),'the same character tap must start and stop');
+assert(companion.includes('disabled')&&companion.includes('تحت التطوير')&&!companion.includes('ShakabumboChat')&&!companion.includes('primeArabicAudio'),'maintenance mascot cannot open chat or initialize audio');
 assert(chat.includes('session.start(WELCOME)')&&!chat.includes('<dialog'),'greet first in a small inline interaction');
 assert(!companion.includes('تحدث مع شكابمبو 🎙️'),'remove the duplicate main button');
 assert(chat.includes('{typing&&<form'),'writing stays secondary');
