@@ -14,7 +14,7 @@ export default async function shakabumboSpeech(req,res){
         const upstream=await fetch('https://api.groq.com/openai/v1/audio/speech',{
           method:'POST',signal:controller.signal,
           headers:{authorization:`Bearer ${process.env.GROQ_API_KEY}`,'content-type':'application/json'},
-          body:JSON.stringify({model:'canopylabs/orpheus-arabic-saudi',voice:'sultan',input:text,response_format:'wav'})
+          body:JSON.stringify({model:'canopylabs/orpheus-arabic-saudi',voice:'fahad',input:text,response_format:'wav'})
         });
         if(!upstream.ok){
           const detail=await upstream.json().catch(()=>({}));
