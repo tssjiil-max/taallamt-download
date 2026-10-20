@@ -29,7 +29,7 @@ export class VoiceSession{
  // Experimental recognition during playback is opt-in: headphones reduce acoustic echo.
  setBargeIn(enabled:boolean){this.bargeIn=enabled;if(!enabled&&this.playing)this.clear()}
  private playing=false;
- interrupt(){if(!this.active)return;this.generation++;this.playing=false;this.clear();this.d.cancelSpeech();this.listen()}
+ interrupt(){if(owner!==this)return;this.generation++;this.playing=false;this.clear();this.d.cancelSpeech();this.d.update('idle');this.active=true;this.listen()}
  private watchInterruption(spoken:string,token:number,attempt=0){
   if(!this.active||!this.bargeIn||token!==this.generation||attempt>=3)return;
   const r=this.d.recognition();if(!r)return;this.recognition=r;

@@ -75,3 +75,4 @@ describe('interruptible voice output',()=>{
  it('a different spoken question cancels output and produces a new answer',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');const r=f.records[0];r.onresult!({results:[[{transcript:'اشرح درس الصديقان'}]]});expect(r.abort).toHaveBeenCalled();expect(f.speak).toHaveBeenCalledTimes(2);expect(f.speak.mock.calls[1][0]).toBe('شرح معتمد')});
  it('closing during interruption prevents late recognized questions',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');const late=f.records[0].onresult!;f.session.stop();late({results:[[{transcript:'سؤال جديد'}]]});expect(f.speak).toHaveBeenCalledTimes(1)});
 });
+it('manual interruption can switch a typed reply to listening',()=>{const f=fixture();f.session.answer('سؤال',false);f.session.interrupt();expect(f.records).toHaveLength(1);f.session.stop()});
