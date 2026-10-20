@@ -1,3 +1,4 @@
+import {splitSpeech,playRemoteAudio,stopRemoteAudio} from './remote-speech';
 import {getLessonContext} from './context';
 import manifest from './voice-manifest.json';
 // Same-origin pre-generated Modern Standard Arabic audio comes first. No model download,
@@ -13,26 +14,31 @@ export function pickArabicVoice():SpeechSynthesisVoice|null{
 let generation=0,currentAudio:HTMLAudioElement|null=null,remoteAbort:AbortController|null=null;
 let onCancelled:(()=>void)|null=null;
 function clearAudio(){if(currentAudio){currentAudio.onplaying=currentAudio.onended=currentAudio.onerror=null;currentAudio.pause();currentAudio.removeAttribute('src');currentAudio.remove();currentAudio=null}}
-export function cancelArabicSpeech(){generation++;remoteAbort?.abort();remoteAbort=null;clearAudio();const stopped=onCancelled;onCancelled=null;stopped?.();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()}
+export function cancelArabicSpeech(){generation++;stopRemoteAudio();remoteAbort?.abort();remoteAbort=null;clearAudio();const stopped=onCancelled;onCancelled=null;stopped?.();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()}
 export function speakArabic(text:string,handlers?:{onStart?:()=>void;onEnd?:()=>void;onError?:()=>void;onCancel?:()=>void}):boolean{
  cancelArabicSpeech();if(getLessonContext()?.subject==='quran'){handlers?.onError?.();return false}
  const ctx=getLessonContext();
  if(ctx?.targetId&&ctx.subject!=='quran'&&location.hostname.endsWith('vercel.app')){
-  const token=generation,abort=new AbortController();remoteAbort=abort;
+  const token=generation,abort=new AbortController();remoteAbort=abort;onCancelled=handlers?.onCancel||null;
   const query=new URLSearchParams(location.search);
-  const fail=()=>{if(token===generation){remoteAbort=null;handlers?.onError?.()}};
-  const payload={action:'shakabumbo_speech',studentId:query.get('studentId')||(location.pathname==='/shakabumbo-demo'?'__shakabumbo_demo__':''),invite:query.get('invite')||query.get('inviteToken')||'',demoSession:query.get('demoSession')||'',targetId:ctx.targetId,questionId:ctx.questionId,assessment:ctx.assessment,text:text.slice(0,240)};
-  fetch('/api/student-state',{method:'POST',signal:abort.signal,headers:{'content-type':'application/json'},body:JSON.stringify(payload)}).then(async response=>{
-   if(!response.ok)throw Error('SPEECH_UNAVAILABLE');
-   return response.blob();
-  }).then(blob=>{
+  const timer=setTimeout(()=>abort.abort('TIMEOUT'),45000);
+  void(async()=>{
+   for(const chunk of splitSpeech(text)){
+    if(abort.signal.aborted||token!==generation)return;
+    const payload={action:'shakabumbo_speech',studentId:query.get('studentId')||(location.pathname==='/shakabumbo-demo'?'__shakabumbo_demo__':''),invite:query.get('invite')||query.get('inviteToken')||'',demoSession:query.get('demoSession')||'',targetId:ctx.targetId,questionId:ctx.questionId,assessment:ctx.assessment,text:chunk};
+    const response=await fetch('/api/student-state',{method:'POST',signal:abort.signal,headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+    if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.error||'SPEECH_UNAVAILABLE')}
+    if(!/^audio\//.test(response.headers.get('content-type')||''))throw Error('AUDIO_FORMAT_INVALID');
+    const blob=await response.blob();if(!blob.size)throw Error('AUDIO_EMPTY');
+    if(token!==generation||abort.signal.aborted)return;
+    await playRemoteAudio(blob,abort.signal,()=>{if(token===generation)handlers?.onStart?.()});
+   }
+   if(token===generation){remoteAbort=null;onCancelled=null;handlers?.onEnd?.()}
+  })().catch(error=>{
    if(token!==generation)return;
-   const url=URL.createObjectURL(blob),audio=new Audio(url);currentAudio=audio;audio.dataset.shakVoice='1';
-   audio.onplaying=()=>{if(token===generation)handlers?.onStart?.()};
-   audio.onended=()=>{URL.revokeObjectURL(url);if(token===generation){currentAudio=null;remoteAbort=null;handlers?.onEnd?.()}};
-   audio.onerror=()=>{URL.revokeObjectURL(url);fail()};
-   audio.play().catch(()=>{URL.revokeObjectURL(url);fail()});
-  }).catch(()=>{if(!abort.signal.aborted)fail()});
+   if(import.meta.env.DEV||location.hostname.endsWith('vercel.app'))console.warn('[shak-audio]',String(error?.message||'AUDIO_FAILED').replace(/[^A-Z_0-9 -]/g,'').slice(0,80));
+   remoteAbort=null;onCancelled=null;handlers?.onError?.();
+  }).finally(()=>clearTimeout(timer));
   return true;
  }
  const token=generation,segments=speechSegments(text),voice=pickArabicVoice();let index=0,started=false;

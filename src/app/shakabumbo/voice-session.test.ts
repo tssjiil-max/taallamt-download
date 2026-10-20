@@ -56,3 +56,12 @@ describe('asynchronous curriculum model',()=>{
  it('discards a model reply received after closing',async()=>{let resolve!:(value:string)=>void;const speak=vi.fn(()=>true),update=vi.fn();const session=new VoiceSession({recognition:()=>null,speak,cancelSpeech:vi.fn(),reply:()=>new Promise<string>(r=>{resolve=r}),update});session.answer('سؤال',false);expect(update).toHaveBeenLastCalledWith('thinking');session.stop();resolve('جواب متأخر');await Promise.resolve();expect(speak).not.toHaveBeenCalled()});
  it('speaks the actual resolved model answer',async()=>{const speak=vi.fn(()=>true);const session=new VoiceSession({recognition:()=>null,speak,cancelSpeech:vi.fn(),reply:async()=> 'الجواب من الدرس',update:vi.fn()});session.answer('سؤال',false);await Promise.resolve();expect(speak).toHaveBeenCalledWith('الجواب من الدرس',expect.any(Object));session.stop()});
 });
+
+describe('truthful audio and microphone phases',()=>{
+ it('waits for actual playback and actual recognition start',()=>{
+  const f=fixture();let h:any;f.speak.mockImplementation((_text,handlers)=>{h=handlers;return true});
+  f.session.start('مرحبا');expect(f.update).toHaveBeenLastCalledWith('generating-audio');
+  h.onStart();expect(f.update).toHaveBeenLastCalledWith('speaking');h.onEnd();vi.advanceTimersByTime(500);
+  expect(f.update).toHaveBeenLastCalledWith('requesting-permission');f.records[0].onstart!();expect(f.update).toHaveBeenLastCalledWith('listening');
+ });
+});
