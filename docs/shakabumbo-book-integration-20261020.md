@@ -8,4 +8,6 @@ Retrieval prioritizes exact lesson titles, can use the preceding user question f
 
 Experimental interruption now uses interim recognition: a distinct student utterance cancels output early, while response generation waits for final recognition or recognition end. Echo fragments are rejected. Repeated audio-chunk start callbacks cannot create parallel recognizers. Late playback completion cannot override an interrupted turn. Opt-in remains necessary; headphones are recommended and this is not acoustic echo cancellation. A real Android microphone test remains required.
 
-Validation before deployment: 175 Vitest tests, 30 learning-core tests, TypeScript, full build, and its 37 API checks passed. Live provider/browser checks are recorded in PR #12 after deployment; no physical Android success is claimed from unit tests.
+Validation before deployment: 177 Vitest tests, 30 learning-core tests, TypeScript, full build, and its 37 API checks passed. Live provider/browser checks are recorded in PR #12 after deployment; no physical Android success is claimed from unit tests.
+
+Live API checks initially caught the model disclosing the assessment answer despite its prompt. The server and isolated worker now bypass inference for assessment coaching; reading the published question is allowed, solving it is not. The failing route/worker regression tests were added before the fix. This is enforced for the assessment mode in the current tutor context; no new database or assessment-state system was introduced.
