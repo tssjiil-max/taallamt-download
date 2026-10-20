@@ -1,3 +1,4 @@
+import {buildTutorReferences} from './tutor-site-index.js';
 import {foundationCatalog,foundationSnapshot} from './foundation-content.js';
 import {photoFeedback} from './photo-feedback.js';
 import {processVisualPhoto,visualRevision,validateRegions} from './visual-photo.js';
@@ -19,7 +20,7 @@ import {buildLearningModel,validateContent,selectActivity,publicActivity,gradeAn
 import {visibleAnnouncements,isVisibleAnnouncement} from './announcement-policy.js';
 
 export const PILOT_BRANCH='preview/shakabumbo-pilot-20261013';
-const PILOT_PREVIEW_BRANCHES=new Set([PILOT_BRANCH,'preview/shakabumbo-p0-20261019']);
+const PILOT_PREVIEW_BRANCHES=new Set([PILOT_BRANCH,'preview/shakabumbo-p0-20261019','fix/shakabumbo-audio-20261020']);
 export function requirePilot(environment=process.env){
   if(environment.VERCEL_ENV==='production'||(environment.VERCEL_ENV&&!PILOT_PREVIEW_BRANCHES.has(environment.VERCEL_GIT_COMMIT_REF)))throw new AccessError('PILOT_NOT_AVAILABLE',404);
 }
@@ -348,5 +349,7 @@ export async function readTutorLesson(req,body){
  const question=target.learning.questions.find(q=>q.id===body.questionId);
  if(!question)throw new AccessError('QUESTION_CHANGED',409);
  const assessment=body.assessment!==false;
- return {subject:target.subject,title:activity.title,explanation:activity.explanation,prompt:question.prompt,hint:assessment?'':question.hint,assessment};
+ // Retrieve only approved public lesson explanations; never send answer keys or profiles.
+ const siteReferences=buildTutorReferences(context.catalog,body.question,body.history);
+ return {subject:target.subject,title:activity.title,explanation:activity.explanation,prompt:question.prompt,hint:assessment?'':question.hint,assessment,siteReferences};
 }

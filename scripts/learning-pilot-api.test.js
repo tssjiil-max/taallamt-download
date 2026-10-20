@@ -1,3 +1,4 @@
+import {requirePilot} from '../server/learning-pilot.js';
 import {beforeEach,afterEach,test,expect,vi} from 'vitest';
 const state=vi.hoisted(()=>({docs:new Map(),reads:0,beforeRead:null}));
 const clone=value=>value===undefined?undefined:structuredClone(value);
@@ -198,3 +199,9 @@ test('P0 isolated Preview branch is allowed but arbitrary and production branche
 test('real tutor context comes from the authorized catalog without answer keys',async()=>{const {readTutorLesson}=await import('../server/learning-pilot.js');const c=await readTutorLesson({headers:{}},{studentId:DEMO_STUDENT_ID,targetId:'pilot:kasr',questionId:'book',assessment:true});expect(c.subject).toBe('spelling');expect(c.explanation).toContain('تنوين الكسر');expect(c.hint).toBe('');expect(c.answers).toBeUndefined();expect(c.student).toBeUndefined();await expect(readTutorLesson({headers:{}},{studentId:DEMO_STUDENT_ID,targetId:'invented',questionId:'book'})).rejects.toMatchObject({code:'LESSON_NOT_FOUND'})});
 
 test('standalone model demo never uses the Firestore reserved bare demo id',async()=>{const paths=[];state.beforeRead=p=>paths.push(p);const {readTutorLesson}=await import('../server/learning-pilot.js');await readTutorLesson({headers:{}},{studentId:DEMO_STUDENT_ID,targetId:'pilot:kasr',questionId:'book',assessment:false,demoSession:''});expect(paths.some(p=>p.endsWith('/__shakabumbo_demo__'))).toBe(false)});
+
+test('audio repair Preview is allowed while Production and unrelated branches remain blocked',()=>{
+ expect(()=>requirePilot({VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'fix/shakabumbo-audio-20261020'})).not.toThrow();
+ expect(()=>requirePilot({VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'fix/shakabumbo-audio-20261020'})).toThrow();
+ expect(()=>requirePilot({VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'unrelated'})).toThrow();
+});

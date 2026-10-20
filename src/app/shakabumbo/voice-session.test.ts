@@ -16,7 +16,7 @@ describe('free voice turn lifecycle',()=>{
  it('rejects a late speech callback after closing, muting or Quran',()=>{const f=fixture();f.session.start();f.records[0].onresult!({results:[[{transcript:'اشرح'}]]});f.session.stop('muted');f.end();vi.runAllTimers();expect(f.records).toHaveLength(1);expect(f.update).toHaveBeenLastCalledWith('muted')});
  it('ignores recognition results after stop',()=>{const f=fixture();f.session.start();const late=f.records[0].onresult!;f.session.stop();late({results:[[{transcript:'متأخر'}]]});expect(f.speak).not.toHaveBeenCalled()});
  it('does not loop permission failures',()=>{const f=fixture();f.session.start();f.records[0].onerror!({error:'not-allowed'});vi.runAllTimers();expect(f.records).toHaveLength(1);expect(f.update).toHaveBeenLastCalledWith('error',expect.stringContaining('الميكروفون'))});
- it('restarts after silence with a bounded retry count',()=>{const f=fixture();f.session.start();for(let i=0;i<3;i++){f.records[i].onend!();vi.runAllTimers()}expect(f.records).toHaveLength(3);expect(f.update).toHaveBeenLastCalledWith('error',expect.any(String))});
+ it('restarts after silence with a bounded retry count',()=>{const f=fixture();f.session.start();for(let i=0;i<3;i++){f.records[i].onstart!();f.records[i].onend!();vi.advanceTimersByTime(500)}expect(f.records).toHaveLength(3);expect(f.update).toHaveBeenLastCalledWith('error',expect.any(String))});
  it('does not resume when speech fails',()=>{const f=fixture();f.speak.mockReturnValue(false);f.session.start();f.records[0].onresult!({results:[[{transcript:'اشرح'}]]});vi.runAllTimers();expect(f.records).toHaveLength(1);expect(f.update).toHaveBeenLastCalledWith('error',expect.any(String))});
  it('reads typed text once without opening microphone',()=>{const f=fixture();f.session.answer('سؤال',false);f.end();vi.runAllTimers();expect(f.records).toHaveLength(0)});
 });
@@ -56,3 +56,28 @@ describe('asynchronous curriculum model',()=>{
  it('discards a model reply received after closing',async()=>{let resolve!:(value:string)=>void;const speak=vi.fn(()=>true),update=vi.fn();const session=new VoiceSession({recognition:()=>null,speak,cancelSpeech:vi.fn(),reply:()=>new Promise<string>(r=>{resolve=r}),update});session.answer('سؤال',false);expect(update).toHaveBeenLastCalledWith('thinking');session.stop();resolve('جواب متأخر');await Promise.resolve();expect(speak).not.toHaveBeenCalled()});
  it('speaks the actual resolved model answer',async()=>{const speak=vi.fn(()=>true);const session=new VoiceSession({recognition:()=>null,speak,cancelSpeech:vi.fn(),reply:async()=> 'الجواب من الدرس',update:vi.fn()});session.answer('سؤال',false);await Promise.resolve();expect(speak).toHaveBeenCalledWith('الجواب من الدرس',expect.any(Object));session.stop()});
 });
+
+describe('truthful audio and microphone phases',()=>{
+ it('waits for actual playback and actual recognition start',()=>{
+  const f=fixture();let h:any;f.speak.mockImplementation((_text,handlers)=>{h=handlers;return true});
+  f.session.start('مرحبا');expect(f.update).toHaveBeenLastCalledWith('generating-audio');
+  h.onStart();expect(f.update).toHaveBeenLastCalledWith('speaking');h.onEnd();vi.advanceTimersByTime(500);
+  expect(f.update).toHaveBeenLastCalledWith('requesting-permission');f.records[0].onstart!();expect(f.update).toHaveBeenLastCalledWith('listening');
+ });
+});
+
+it('can retry after a failed voice service without reloading',()=>{const f=fixture();f.speak.mockReturnValueOnce(false);f.session.start('مرحبا');expect(f.update).toHaveBeenLastCalledWith('error',expect.any(String));f.session.start('مرحبا');expect(f.update).toHaveBeenLastCalledWith('speaking');f.end();vi.advanceTimersByTime(500);expect(f.records).toHaveLength(1);f.session.stop();expect(f.records[0].abort).toHaveBeenCalledOnce()});
+it('permission startup timeout closes recognition and exposes retry',()=>{const f=fixture();f.session.start();vi.advanceTimersByTime(12000);expect(f.records[0].abort).toHaveBeenCalledOnce();expect(f.update).toHaveBeenLastCalledWith('error',expect.stringContaining('الميكروفون'))});
+
+describe('interruptible voice output',()=>{
+ it('manual interruption cancels output and starts a fresh listening turn',()=>{const f=fixture();f.session.start('مرحبا');f.session.interrupt();expect(f.cancelSpeech).toHaveBeenCalled();expect(f.records).toHaveLength(1);f.end();vi.runOnlyPendingTimers();expect(f.records).toHaveLength(1)});
+ it('optional voice interruption ignores the spoken reply echo',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');expect(f.records).toHaveLength(1);f.records[0].onresult!({results:[[{transcript:'مرحبا يا بطل'}]]});expect(f.speak).toHaveBeenCalledTimes(1);expect(f.update).toHaveBeenLastCalledWith('speaking')});
+ it('a different spoken question cancels output and produces a new answer',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');const r=f.records[0];r.onresult!({results:[[{transcript:'اشرح درس الصديقان'}]]});expect(r.abort).toHaveBeenCalled();expect(f.speak).toHaveBeenCalledTimes(2);expect(f.speak.mock.calls[1][0]).toBe('شرح معتمد')});
+ it('closing during interruption prevents late recognized questions',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');const late=f.records[0].onresult!;f.session.stop();late({results:[[{transcript:'سؤال جديد'}]]});expect(f.speak).toHaveBeenCalledTimes(1)});
+});
+it('manual interruption can switch a typed reply to listening',()=>{const f=fixture();f.session.answer('سؤال',false);f.session.interrupt();expect(f.records).toHaveLength(1);f.session.stop()});
+it('voice interruption stops on interim speech but waits for the final question before replying',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('غضب عمار لأن القطار تكسر');const r=f.records[0],partial=Object.assign([{transcript:'لماذا غضب عمار'}],{isFinal:false});const cancels=f.cancelSpeech.mock.calls.length;r.onresult!({results:[partial]});expect(f.cancelSpeech.mock.calls.length).toBeGreaterThan(cancels);expect(f.speak).toHaveBeenCalledTimes(1);expect(f.update).toHaveBeenLastCalledWith('listening',expect.any(String));r.onresult!({results:[Object.assign([{transcript:'لماذا غضب عمار من خالد'}],{isFinal:true})]});expect(f.speak).toHaveBeenCalledTimes(2)});
+it('a partial echo cannot stop the reply',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('غضب عمار لأن القطار تكسر');const count=f.cancelSpeech.mock.calls.length;f.records[0].onresult!({results:[Object.assign([{transcript:'لأن القطار تكسر'}],{isFinal:false})]});expect(f.cancelSpeech).toHaveBeenCalledTimes(count);expect(f.update).toHaveBeenLastCalledWith('speaking')});
+it('turning interruption on during playback opens recognition immediately',()=>{const f=fixture();f.session.start('مرحبا يا بطل');expect(f.records).toHaveLength(0);f.session.setBargeIn(true);expect(f.records).toHaveLength(1)});
+it('chunk playback cannot open two interruption recognizers',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');f.speak.mock.calls[0][1].onStart();expect(f.records).toHaveLength(1)});
+it('completion of the cancelled output cannot take over an interim interruption',()=>{const f=fixture();f.session.setBargeIn(true);f.session.start('مرحبا يا بطل');const r=f.records[0];r.onresult!({results:[Object.assign([{transcript:'اشرح الصديقان'}],{isFinal:false})]});f.end();vi.advanceTimersByTime(500);expect(r.abort).not.toHaveBeenCalled();expect(f.records).toHaveLength(1);f.session.stop();expect(r.abort).toHaveBeenCalledOnce()});

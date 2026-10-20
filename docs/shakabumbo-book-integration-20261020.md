@@ -1,0 +1,13 @@
+# Preview: reviewed book references and earlier interruption
+
+Sources are the teacher's uploaded Ministry of Education part-one PDFs: Lughati (160 PDF pages) and Islamic Studies (80 PDF pages), both showing edition 1447 on their covers. The 35-page item named 1448 is a worksheet collection, not the complete textbook, and was excluded. Source hashes and exact PDF page references are recorded in shakabumbo-book-sources.json; PDF page numbers must not be confused with printed page numbers in the Islamic file.
+
+The tutor now retrieves eight reviewed core reading passages from Lughati and nineteen reviewed Islamic lesson summaries. This covers the core lessons of the provided first part, not all textbook activities, poems, appendices, or other parts of the school year. Arabic reference transcriptions do not claim complete vocalization; original PDFs and existing vowel-sensitive educational text are unchanged. Islamic quotations of Quran and the solved activity answer keys were deliberately not imported. The Quran player and recitation data were not modified.
+
+Retrieval prioritizes exact lesson titles, can use the preceding user question for follow-up context, includes a bounded full passage instead of cutting every explanation at 350 characters, and respects withdrawn teacher revisions. Arabic payload size is checked in UTF-8 bytes (32 KB cap), avoiding rejection of a valid multibyte reference context. References remain server-side; no PDFs or answer keys were added to the browser bundle.
+
+Experimental interruption now uses interim recognition: a distinct student utterance cancels output early, while response generation waits for final recognition or recognition end. Echo fragments are rejected. Repeated audio-chunk start callbacks cannot create parallel recognizers. Late playback completion cannot override an interrupted turn. Opt-in remains necessary; headphones are recommended and this is not acoustic echo cancellation. A real Android microphone test remains required.
+
+Validation before deployment: 177 Vitest tests, 30 learning-core tests, TypeScript, full build, and its 37 API checks passed. Live provider/browser checks are recorded in PR #12 after deployment; no physical Android success is claimed from unit tests.
+
+Live API checks initially caught the model disclosing the assessment answer despite its prompt. The server and isolated worker now bypass inference for assessment coaching; reading the published question is allowed, solving it is not. The failing route/worker regression tests were added before the fix. This is enforced for the assessment mode in the current tutor context; no new database or assessment-state system was introduced.

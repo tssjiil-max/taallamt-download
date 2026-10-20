@@ -47,7 +47,7 @@ describe('voice integration: session → tutor → real audio adapter',()=>{
    session.start();
    for(const [i,question]of ['اقرأ السؤال','انطق كلمة كسرتين','اشرح'].entries()){
     const r=input[i];r.onresult!({results:[[{transcript:question}]]});
-    expect(r.abort).toHaveBeenCalledOnce();expect(phases.at(-1)).toBe('speaking');
+    expect(r.abort).toHaveBeenCalledOnce();expect(phases.at(-1)).toBe('generating-audio');FakeAudio.instances.at(-1)!.onplaying!();expect(phases.at(-1)).toBe('speaking');
     let count=0;
     while(FakeAudio.instances.at(-1)?.onended){if(++count>5)throw new Error('unexpected audio loop');FakeAudio.instances.at(-1)!.onended!()}
     expect(input).toHaveLength(i+1);vi.advanceTimersByTime(500);expect(input).toHaveLength(i+2);

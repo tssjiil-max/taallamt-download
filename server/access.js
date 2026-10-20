@@ -66,7 +66,9 @@ function cookieHeader(req,value,maxAge){return `${TEACHER_COOKIE}=${value}; Path
 
 export function isTeacher(req){const gate=teacherGate();return gate.configured&&validSession(readCookie(req,TEACHER_COOKIE),gate)}
 export class AccessError extends Error{constructor(code,status){super(code);this.code=code;this.status=status}}
+export function passwordlessTeacherPreview(){return !IS_PRODUCTION&&process.env.VERCEL_ENV==='preview'&&process.env.VERCEL_GIT_COMMIT_REF==='fix/shakabumbo-audio-20261020'&&process.env.TEACHER_PREVIEW_PASSWORDLESS==='enabled'}
 export function requireTeacher(req,{write=false}={}){
+  if(passwordlessTeacherPreview()){if(write&&!sameOrigin(req))throw new AccessError('ORIGIN_INVALID',403);return true}
   const gate=teacherGate();
   if(!gate.configured)throw new AccessError('TEACHER_GATE_NOT_CONFIGURED',503);
   if(!validSession(readCookie(req,TEACHER_COOKIE),gate))throw new AccessError('TEACHER_AUTH_REQUIRED',401);
@@ -115,6 +117,7 @@ async function registerAttempt(req){
 }
 
 export function sessionStatus(req){
+  if(passwordlessTeacherPreview())return {ok:true,teacher:true,gateConfigured:true,gateSource:"preview-passwordless",gateReason:null,environment:"staging"};
   const gate=teacherGate();
   return {ok:true,teacher:gate.configured&&validSession(readCookie(req,TEACHER_COOKIE),gate),gateConfigured:gate.configured,gateSource:gate.configured?gate.source:null,gateReason:gate.configured?null:gate.reason,environment:IS_PRODUCTION?'production':'staging'};
 }

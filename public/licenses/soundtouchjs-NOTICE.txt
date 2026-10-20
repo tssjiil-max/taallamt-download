@@ -1,0 +1,5 @@
+SoundTouchJS 0.3.0 (unmodified dependency), LGPL-2.1.
+Copyright holders and license: see soundtouchjs-LGPL-2.1.txt and the distributed package.
+Source: https://www.npmjs.com/package/soundtouchjs/v/0.3.0
+Upstream: https://github.com/cutterbl/SoundTouchJS
+The application uses its public SoundTouch / SimpleFilter interface.
