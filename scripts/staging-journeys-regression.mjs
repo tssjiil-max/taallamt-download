@@ -12,6 +12,8 @@ class FakeDate extends RealDate{constructor(...args){if(args.length)super(...arg
 globalThis.Date=FakeDate;
 const setNow=iso=>{nowMs=RealDate.parse(iso)};
 
+// These journeys exercise normal protected mode; passwordless preview has separate tests.
+process.env.TEACHER_PREVIEW_PASSWORDLESS='disabled';
 process.env.VERCEL_ENV='preview';
 process.env.FIREBASE_PROJECT_ID='fake';process.env.FIREBASE_CLIENT_EMAIL='fake@fake';process.env.FIREBASE_PRIVATE_KEY='fake-private-key';
 const TEACHER_CODE='journey-test-code-2468';
