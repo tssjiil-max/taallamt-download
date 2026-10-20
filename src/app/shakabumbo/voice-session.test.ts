@@ -65,3 +65,6 @@ describe('truthful audio and microphone phases',()=>{
   expect(f.update).toHaveBeenLastCalledWith('requesting-permission');f.records[0].onstart!();expect(f.update).toHaveBeenLastCalledWith('listening');
  });
 });
+
+it('can retry after a failed voice service without reloading',()=>{const f=fixture();f.speak.mockReturnValueOnce(false);f.session.start('مرحبا');expect(f.update).toHaveBeenLastCalledWith('error',expect.any(String));f.session.start('مرحبا');expect(f.update).toHaveBeenLastCalledWith('speaking');f.end();vi.advanceTimersByTime(500);expect(f.records).toHaveLength(1);f.session.stop();expect(f.records[0].abort).toHaveBeenCalledOnce()});
+it('permission startup timeout closes recognition and exposes retry',()=>{const f=fixture();f.session.start();vi.advanceTimersByTime(12000);expect(f.records[0].abort).toHaveBeenCalledOnce();expect(f.update).toHaveBeenLastCalledWith('error',expect.stringContaining('الميكروفون'))});
