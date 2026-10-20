@@ -35,12 +35,12 @@ export function ShakabumboChat({open,onClose,blocked=false,onPhaseChange}:{open:
   {notice&&<p className="shakSimpleNotice" role="alert">{notice}</p>}
   {(phase==='speaking'||phase==='generating-audio'||phase==='thinking')&&<button type="button" className="shakChatSend" onClick={()=>{setNotice('');session.interrupt()}}>قاطعني وتكلم</button>}
   <p className="shakTapHint">اضغط على صورتي مرة أخرى لإنهاء المحادثة</p>
-  <details className="shakSimpleOptions"><summary>المحادثة والخيارات</summary>
+  <div className="shakSimpleOptions">
    <div className="shakChatList" aria-live="polite">{turns.map((t,i)=><p key={i} className={`shakChatBubble ${t.from==='student'?'shakChatBubbleMe':'shakChatBubbleShak'}`}>{t.text}</p>)}</div>
    <label><input type="checkbox" checked={bargeIn} onChange={e=>{setBargeIn(e.target.checked);session.setBargeIn(e.target.checked);setNotice(e.target.checked?'المقاطعة بالصوت تجريبية: استخدم سماعة، ويظل الميكروفون نشطًا أثناء الرد. يتوقف الصوت عند التعرف المبدئي على كلامك، ثم أنتظر اكتمال سؤالك.':'')}}/> مقاطعة صوتية تجريبية — يُفضّل بسماعة</label>
    <div className="shakVoiceControls"><button type="button" onClick={()=>session.stop('muted')}>كتم</button><button type="button" onClick={()=>{setNotice('');session.start()}}>استئناف</button><button type="button" onClick={onClose}>إنهاء</button><button type="button" aria-expanded={typing} onClick={()=>{session.stop();setTyping(v=>!v)}}>الكتابة بدل الصوت</button></div>
    {typing&&<form className="shakChatForm" onSubmit={e=>{e.preventDefault();const text=draft.trim();if(!text)return;setDraft('');setNotice('');session.stop();session.answer(text,false)}}><label className="shakChatInputLabel">سؤالك<input className="shakChatInput" value={draft} onChange={e=>setDraft(e.target.value)} maxLength={240}/></label><button className="shakChatSend" disabled={!draft.trim()}>إرسال</button></form>}
    <small>قد يستخدم المتصفح خدمة عبر الإنترنت لفهم الكلام. لا يحفظ الموقع التسجيلات أو نص المحادثة بعد إغلاقها. المساعد يبحث في المحتوى الموثق للمنصة؛ تتوفر مراجع دروس الجزء الأول من لغتي والدراسات الإسلامية؛ الأجزاء الأخرى غير مضافة.</small>
-  </details>
+  </div>
  </div>;
 }
