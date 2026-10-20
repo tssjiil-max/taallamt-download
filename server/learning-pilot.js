@@ -348,5 +348,11 @@ export async function readTutorLesson(req,body){
  const question=target.learning.questions.find(q=>q.id===body.questionId);
  if(!question)throw new AccessError('QUESTION_CHANGED',409);
  const assessment=body.assessment!==false;
- return {subject:target.subject,title:activity.title,explanation:activity.explanation,prompt:question.prompt,hint:assessment?'':question.hint,assessment};
+ // Retrieve only approved public lesson explanations; never send answer keys or profiles.
+ const terms=String(body.question||'').normalize('NFKD').replace(/[ً-ٰٟ]/g,'').split(/\s+/).filter(w=>w.length>2);
+ const candidates=safeCurriculum(context.catalog).filter(t=>['arabic','spelling','handwriting'].includes(t.subject)&&t.learning?.status==='approved');
+ const normalize=s=>String(s||'').normalize('NFKD').replace(/[ً-ٰٟ]/g,'');
+ const ranked=candidates.map(t=>({t,score:terms.reduce((n,w)=>n+(normalize(t.title+' '+t.learning.explanation).includes(w)?1:0),0)})).sort((a,b)=>b.score-a.score);
+ const siteReferences=ranked.slice(0,8).map(({t})=>({title:t.title,subject:t.subject,explanation:String(t.learning.explanation||'').slice(0,600)}));
+ return {subject:target.subject,title:activity.title,explanation:activity.explanation,prompt:question.prompt,hint:assessment?'':question.hint,assessment,siteReferences:JSON.stringify(siteReferences).slice(0,6000)};
 }
