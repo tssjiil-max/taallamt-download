@@ -474,23 +474,7 @@ function SettingsPage({home,back,go,reload,toast}:{home:Home;back:()=>void;go:Go
       <button className="tkRow" type="button" onClick={()=>go('hobbies')}><span className="tkRowIcon green" aria-hidden="true"><IconHeart/></span><span className="tkGrow"><b>هواياتي</b><small>{student.hobbies.length?student.hobbies.join(' · '):'لم تختر هواياتك بعد'}</small></span><IconChevron/></button>
       <div className="tkRow"><span className="tkGrow"><b>الاسم والصف والمدرسة</b><small>{student.name} · {student.classShort} · {student.school}</small><small>يعدّلها المعلم فقط.</small></span></div>
     </div>
-    <h2 className="tkH">حركة شكابمبو</h2>
-    <ShakabumboMotionSetting/>
     <p className="tkMeta">{home.role==='teacher'?'أنت تعاين صفحة الطالب بجلسة المعلم.':'هذه الصفحة تُفتح من رابط الطالب الخاص. لا تشارك الرابط مع غير ولي الأمر.'}</p>
-  </div>;
-}
-function ShakabumboMotionSetting(){
-  const [pref,setPref]=React.useState<MotionPref>(()=>getMotionPref());
-  const OPTIONS:{key:MotionPref;label:string;hint:string}[]=[
-    {key:'full',label:'تشغيل',hint:'يسقط ويمشي ويتفاعل بصورة كاملة'},
-    {key:'reduced',label:'تقليل',hint:'يظهر في مكانه دون مشي أو سقوط متحرك'},
-    {key:'off',label:'إيقاف',hint:'مخفي، مع إمكانية إظهاره مؤقتًا من الزر العائم'}
-  ];
-  return <div className="tkSubjectChoices" role="radiogroup" aria-label="حركة شكابمبو">
-    {OPTIONS.map(option=><button key={option.key} type="button" className="tkSubjectChoice" aria-pressed={pref===option.key}
-      onClick={()=>{setMotionPref(option.key);setPref(option.key)}}>
-      <b>{option.label}</b><br/><small>{option.hint}</small>
-    </button>)}
   </div>;
 }
 function HobbiesPage({home,back,reload,toast}:{home:Home;back:()=>void;reload:()=>void;toast:(text:string,bad?:boolean)=>void}){
