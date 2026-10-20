@@ -1,3 +1,4 @@
+import type {VoiceOptions} from './voice-preview-settings';
 // Unlock Web Audio within the image tap, before React effects or network awaits.
 let context:AudioContext|null=null,source:AudioBufferSourceNode|null=null;
 export function primeArabicAudio(){
@@ -9,7 +10,7 @@ export function splitSpeech(text:string):string[]{
  for(const word of words){if(word.length>200)throw Error('TEXT_INVALID');if(current.length+word.length+1>200){chunks.push(current);current=word}else current+=(current?' ':'')+word}
  if(current)chunks.push(current);return chunks;
 }
-export async function prepareVoiceBuffer(buffer:AudioBuffer,signal:AbortSignal):Promise<Float32Array>{
+export async function prepareVoiceBuffer(buffer:AudioBuffer,signal:AbortSignal,options?:VoiceOptions):Promise<Float32Array>{
  if(signal.aborted)throw Error('CANCELLED');
  const samples=new Float32Array(buffer.length);
  for(let c=0;c<buffer.numberOfChannels;c++){const channel=buffer.getChannelData(c);for(let i=0;i<samples.length;i++)samples[i]+=channel[i]/buffer.numberOfChannels}
@@ -21,17 +22,17 @@ export async function prepareVoiceBuffer(buffer:AudioBuffer,signal:AbortSignal):
   signal.addEventListener('abort',abort,{once:true});
   worker.onmessage=event=>{cleanup();if(event.data.error)reject(Error('AUDIO_TRANSFORM_FAILED'));else resolve(event.data.samples)};
   worker.onerror=()=>{cleanup();reject(Error('AUDIO_TRANSFORM_FAILED'))};
-  worker.postMessage({samples,sampleRate:buffer.sampleRate},[samples.buffer]);
+  worker.postMessage({samples,sampleRate:buffer.sampleRate,pitch:options?.pitch,speed:options?.speed},[samples.buffer]);
  });
 }
-export async function playRemoteAudio(blob:Blob,signal:AbortSignal,started:()=>void):Promise<void>{
+export async function playRemoteAudio(blob:Blob,signal:AbortSignal,started:()=>void,options?:VoiceOptions):Promise<void>{
  primeArabicAudio();
  if(!context)throw Error('AUDIO_PROCESSING_UNSUPPORTED');
  const decoded=await context.decodeAudioData(await blob.arrayBuffer());
- const samples=await prepareVoiceBuffer(decoded,signal);
+ const samples=options?.processed===false?null:await prepareVoiceBuffer(decoded,signal,options);
  if(signal.aborted)throw Error('CANCELLED');
- const buffer=context.createBuffer(1,samples.length,decoded.sampleRate);buffer.getChannelData(0).set(samples);
- await context.resume();if(context.state!=='running')throw Error('AUDIO_BLOCKED');
+ const buffer=samples?context.createBuffer(1,samples.length,decoded.sampleRate):decoded;if(samples)buffer.getChannelData(0).set(samples);
+ await context.resume();if(signal.aborted)throw Error('CANCELLED');if(context.state!=='running')throw Error('AUDIO_BLOCKED');
  return new Promise((resolve,reject)=>{
   const node=context!.createBufferSource();source=node;node.buffer=buffer;node.connect(context!.destination);
   const abort=()=>{node.onended=null;try{node.stop()}catch{}node.disconnect();if(source===node)source=null;reject(Error('CANCELLED'))};

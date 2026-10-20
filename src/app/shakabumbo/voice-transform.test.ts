@@ -7,3 +7,4 @@ it('raises pitch by 1.12 independently of 0.96 speed',()=>{
  expect(crossings).toBeCloseTo(400*VOICE_PITCH,-1);expect(result.every(Number.isFinite)).toBe(true);
 });
 it('rejects empty and oversized audio instead of silently using an old voice',()=>{expect(()=>transformVoice(new Float32Array(),24000)).toThrow();expect(()=>transformVoice(new Float32Array(24000*46),24000)).toThrow()});
+it('preview parameters control duration, and extreme or non-finite inputs fail',()=>{const input=new Float32Array(24000);expect(transformVoice(input,24000,1.04,1.02)).toHaveLength(Math.ceil(input.length/1.02));expect(()=>transformVoice(input,24000,1.65,1)).toThrow();expect(()=>transformVoice(input,24000,NaN,1)).toThrow()});

@@ -1,3 +1,5 @@
+import {readPreviewVoice} from './voice-preview-settings';
+import {WELCOME} from './phrases';
 import {splitSpeech,playRemoteAudio,stopRemoteAudio} from './remote-speech';
 import {getLessonContext} from './context';
 import manifest from './voice-manifest.json';
@@ -14,24 +16,24 @@ export function pickArabicVoice():SpeechSynthesisVoice|null{
 let generation=0,currentAudio:HTMLAudioElement|null=null,remoteAbort:AbortController|null=null;
 let onCancelled:(()=>void)|null=null;
 function clearAudio(){if(currentAudio){currentAudio.onplaying=currentAudio.onended=currentAudio.onerror=null;currentAudio.pause();currentAudio.removeAttribute('src');currentAudio.remove();currentAudio=null}}
-export function cancelArabicSpeech(){generation++;stopRemoteAudio();remoteAbort?.abort();remoteAbort=null;clearAudio();const stopped=onCancelled;onCancelled=null;stopped?.();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()}
+export function cancelArabicSpeech(){if(typeof window!=='undefined')window.dispatchEvent(new Event('shak-audio-stop'));generation++;stopRemoteAudio();remoteAbort?.abort();remoteAbort=null;clearAudio();const stopped=onCancelled;onCancelled=null;stopped?.();if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel()}
 export function speakArabic(text:string,handlers?:{onStart?:()=>void;onEnd?:()=>void;onError?:(code?:string)=>void;onCancel?:()=>void}):boolean{
  cancelArabicSpeech();if(getLessonContext()?.subject==='quran'){handlers?.onError?.();return false}
  const ctx=getLessonContext();
  if(ctx?.targetId&&ctx.subject!=='quran'&&location.hostname.endsWith('vercel.app')){
   const token=generation,abort=new AbortController();remoteAbort=abort;onCancelled=handlers?.onCancel||null;
-  const query=new URLSearchParams(location.search);
+  const query=new URLSearchParams(location.search),settings=readPreviewVoice();
   const timer=setTimeout(()=>abort.abort('TIMEOUT'),45000);
   void(async()=>{
    for(const chunk of splitSpeech(text)){
     if(abort.signal.aborted||token!==generation)return;
-    const payload={action:'shakabumbo_speech',studentId:query.get('studentId')||(location.pathname==='/shakabumbo-demo'?'__shakabumbo_demo__':''),invite:query.get('invite')||query.get('inviteToken')||'',demoSession:query.get('demoSession')||'',targetId:ctx.targetId,questionId:ctx.questionId,assessment:ctx.assessment,text:chunk};
+    const payload={action:'shakabumbo_speech',studentId:query.get('studentId')||(location.pathname==='/shakabumbo-demo'?'__shakabumbo_demo__':''),invite:query.get('invite')||query.get('inviteToken')||'',demoSession:query.get('demoSession')||'',targetId:ctx.targetId,questionId:ctx.questionId,assessment:ctx.assessment,text:chunk,voice:settings?.voice,greeting:text===WELCOME};
     const response=await fetch('/api/student-state',{method:'POST',signal:abort.signal,headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
     if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.providerCode||data.error||'SPEECH_UNAVAILABLE')}
     if(!/^audio\//.test(response.headers.get('content-type')||''))throw Error('AUDIO_FORMAT_INVALID');
     const blob=await response.blob();if(!blob.size)throw Error('AUDIO_EMPTY');
     if(token!==generation||abort.signal.aborted)return;
-    await playRemoteAudio(blob,abort.signal,()=>{if(token===generation)handlers?.onStart?.()});
+    await playRemoteAudio(blob,abort.signal,()=>{if(token===generation)handlers?.onStart?.()},settings||undefined);
    }
    if(token===generation){remoteAbort=null;onCancelled=null;handlers?.onEnd?.()}
   })().catch(error=>{
