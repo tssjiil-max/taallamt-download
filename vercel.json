@@ -65,7 +65,8 @@
     "deploymentEnabled": {
       "preview/student-teacher-staging-20261006": true,
       "preview/shakabumbo-pilot-20261013": true,
-      "preview/shakabumbo-p0-20261019": true
+      "preview/shakabumbo-p0-20261019": true,
+      "fix/shakabumbo-audio-20261020": true
     }
   }
 }
