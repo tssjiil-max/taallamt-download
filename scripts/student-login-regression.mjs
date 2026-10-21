@@ -15,7 +15,7 @@ const invite='old-student-invitation-secret-123';fakeStore.set(`${root}/studentP
 const before=JSON.stringify([...fakeStore].filter(([k])=>!k.includes('teacherGateAttempts')));
 assert.equal((await call({action:'issue',studentId:sid},teacher)).statusCode,409);
 assert.equal((await call({action:'issue',studentId:sid})).statusCode,401);
-const backup=await call({action:'backup'},teacher);assert.equal(backup.statusCode,200);assert.ok(backup.body.count>=3);
+let backup=await call({action:'backup'},teacher);while(backup.statusCode===200&&!backup.body.complete)backup=await call({action:'backup',backupId:backup.body.backupId},teacher);assert.equal(backup.statusCode,200);assert.ok(backup.body.count>=3);
 const issue=await call({action:'issue',studentId:sid,backupId:backup.body.backupId},teacher);assert.equal(issue.statusCode,200);assert.match(issue.body.pin,/^\d{6}$/);const pin=issue.body.pin;
 assert.ok(!JSON.stringify(fakeStore.get(`${root}/studentLoginCredentials/${sid}`)).includes(`"${pin}"`));
 assert.equal((await call({studentId:sid,pin:pin==='000000'?'000001':'000000'})).statusCode,401);

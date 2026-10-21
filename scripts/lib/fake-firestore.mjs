@@ -26,6 +26,7 @@ const compare=(value,op,expected)=>{
 function query(collectionPath,filters=[],fields=null){
   if(collectionPath.split('/').length%2!==1)throw new Error('Invalid collection path: '+collectionPath);
   return {
+    path:collectionPath,
     where:(field,op,value)=>{if(value===undefined)throw new Error('where() value undefined for '+field);return query(collectionPath,[...filters,[field,op,value]],fields)},
     select:(...names)=>query(collectionPath,filters,names),
     doc:id=>docRef(`${collectionPath}/${id}`),
