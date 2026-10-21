@@ -70,7 +70,7 @@
           const data=await accessPost(studentId,'access_share',{});
           const invite=String(data.inviteToken||'');
           if(!invite)throw new Error('ACCESS_INVITE_MISSING');
-          const url=`${location.origin}/student?studentId=${encodeURIComponent(studentId)}&invite=${encodeURIComponent(invite)}`;
+          const url=data.shareUrl;if(!url)throw new Error('STUDENT_PUBLIC_ORIGIN_REQUIRED');
           const shareData={title:'متابعة الطالب',text:'رابط متابعة الطالب في تعلّمت',url};
           if(navigator.share){try{await navigator.share(shareData);}catch(error){if(error?.name!=='AbortError')throw error;}}
           else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);alert('تم نسخ رابط الطالب.');}

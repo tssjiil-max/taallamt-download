@@ -43,8 +43,11 @@
       document.head.appendChild(appleTitle);
     })();
   </script>
+  <link rel="stylesheet" href="/site-splash.css"/>
 </head>
 <body>
+  <div id="site-splash" role="status" aria-label="جارٍ فتح تعلّمت"><img src="/shakabumbo-splash.png" width="1312" height="1199" alt="شكابمبو يحمل الكأس الذهبي" fetchpriority="high"/></div>
+  <script>setTimeout(function(){document.getElementById("site-splash")?.remove()},6000)</script>
   <div id="root"></div>
   <script type="module" src="/src/app/main.tsx"></script>
   <script src="/pwa-install.js" defer></script>

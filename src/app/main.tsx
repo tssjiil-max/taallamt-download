@@ -9,6 +9,7 @@ import {TeacherApp} from './teacher';
 // The path is read once at start: the static staging copy rewrites the address bar right after boot.
 const path=location.pathname.replace(/\/+$/,'')||'/';
 function App(){
+  React.useEffect(()=>{const splash=document.getElementById("site-splash"),img=splash?.querySelector("img");const done=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>splash?.remove()));if(img&&!img.complete)img.addEventListener("load",done,{once:true});else done();return ()=>img?.removeEventListener("load",done)},[]);
   if(path==='/shakabumbo-demo')return <ShakabumboDemo/>;
   if(path.startsWith('/student'))return <StudentApp/>;
   if(path==='/teacher/quran-followup')return <TeacherApp initialRoute="assess/quran"/>;

@@ -77,7 +77,7 @@ export function requireTeacher(req,{write=false}={}){
 }
 
 export function validInviteShape(value){return typeof value==='string'&&value.length>=20&&value.length<=200}
-export function inviteMatches(profile,invite){const stored=String(profile?.guardianInviteToken||'');return validInviteShape(invite)&&Boolean(stored)&&safeEqual(stored,invite)}
+export function inviteMatches(profile,invite){const stored=String(profile?.guardianInviteToken||'');return !profile?.guardianAccessRevokedAt&&validInviteShape(invite)&&Boolean(stored)&&safeEqual(stored,invite)}
 export function inviteFrom(req,body){return String(req.query?.inviteToken||req.query?.invite||body?.inviteToken||body?.invite||header(req,'x-student-invite')||'').trim()}
 // Returns 'teacher' or 'guardian'. A guardian link only ever opens the one student it was issued for.
 export async function requireStudentAccess(req,studentId,body,{write=false}={}){

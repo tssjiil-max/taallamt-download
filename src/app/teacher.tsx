@@ -1,3 +1,4 @@
+import {PermanentLinks} from './permanent-links';
 import {pilotRequested,TeacherLearningPilot} from './learning-pilot';
 // Teacher pages in the same identity as the student pages. The teacher's usual work is one screen: the quick assessment
 // ("أتقن بقية الطلاب" + individual results for the focused follow-up list). Plan and homework publish themselves.
@@ -455,8 +456,9 @@ function StudentFilePage({home,studentId,section,back,go,refresh,toast,setHome}:
     catch(caught){toast(`تعذر الحفظ (${asApiError(caught).code}).`,true)}finally{setBusy(false)}
   };
   const link=async()=>{
-    const result=await api<{inviteToken:string}>('/api/student-state',{method:'POST',body:{studentId:student.id,action:'access_share'}});
-    return `${location.origin}/student?studentId=${encodeURIComponent(student.id)}&invite=${encodeURIComponent(result.inviteToken)}`;
+    const result=await api<{inviteToken:string;shareUrl?:string}>('/api/student-state',{method:'POST',body:{studentId:student.id,action:'access_share'}});
+    if(!result.shareUrl)throw new Error('STUDENT_PUBLIC_ORIGIN_REQUIRED');
+    return result.shareUrl;
   };
   const act=async(mode:'open'|'share')=>{
     if(busy)return;setBusy(true);
@@ -483,7 +485,7 @@ function StudentFilePage({home,studentId,section,back,go,refresh,toast,setHome}:
       <div className="tkStActions" style={{marginTop:'calc(var(--u)*7)'}}><StarButtons student={student} goal={home.stars.goal} busy={stars.busy} adjust={(target,delta)=>void stars.adjust(target,delta)}/></div>
       <p className="tkMeta" style={{textAlign:'right'}}>المتابعة المركزة وصف خاص بالمعلم، لا يظهر للطالب ولا لولي أمره.</p>
     </section>
-    <h2 className="tkH">التواصل وصفحة الطالب</h2>
+    <PermanentLinks studentId={student.id}/><h2 className="tkH">التواصل وصفحة الطالب</h2>
     <div className="tkStActions">
       <button className="tkAct primary" type="button" onClick={()=>go(`chat/${student.id}`)}>محادثة ولي الأمر</button>
       <button className="tkAct" type="button" disabled={busy} onClick={()=>void act('open')}>معاينة صفحة الطالب</button>

@@ -222,3 +222,20 @@ test('daily student read denies another invite and strips teacher gaps, settings
 test('daily self test writes own portfolio atomically and durable retry cannot award twice',async()=>{const a=seedDaily(),body={studentId:a.studentId,invite:a.invite,attemptId:'daily-attempt',lessonId:'daily-plan:d2',answers:{q1:'صحيح',q2:'صحيح',q3:'صحيح'}};const response=res();await dailyWrite({headers:{}},response,body);expect(response.body.correct).toBe(3);expect(response.body.official).toBe(false);const again=res();await dailyWrite({headers:{}},again,body);expect(again.body.duplicate).toBe(true);const memory=state.docs.get(`${root}/studentProfiles/${a.studentId}`).learningPilotMemory;expect(memory.selfTests).toHaveLength(1);expect(memory.learningStars).toHaveLength(1);expect([...state.docs.keys()].filter(k=>k.includes('/portfolioEvents/'))).toHaveLength(1);expect([...state.docs.keys()].some(k=>k.includes('/assessments/'))).toBe(false)});
 test('daily submission refuses hidden and unavailable lessons',async()=>{const a=seedDaily();state.docs.set(`${root}/settings/dailyLearning`,{overrides:{'daily-plan:d2':{hidden:true}}});await expect(dailyWrite({headers:{}},res(),{studentId:a.studentId,invite:a.invite,attemptId:'hidden-attempt',lessonId:'daily-plan:d2',answers:{}})).rejects.toMatchObject({code:'CONTENT_NOT_AVAILABLE'});expect(state.docs.get(`${root}/studentProfiles/${a.studentId}`).learningPilotMemory).toBeUndefined()});
 test('daily APIs remain unavailable in Production before any database reads',async()=>{process.env.VERCEL_ENV='production';await expect(dailyRead({headers:{},query:{studentId:'s2-4-02'}},res())).rejects.toMatchObject({code:'PILOT_NOT_AVAILABLE'});expect(state.reads).toBe(0)});
+
+test('permanent share survives two deployment changes without touching profile or achievements',async()=>{
+ const studentId='s2-4-02',token='permanent-test-token-1234567890';
+ const profile={studentId,guardianInviteToken:token,name:'fixture',learningPilotMemory:{stars:7}};
+ state.docs.set(`${root}/studentProfiles/${studentId}`,profile);
+ state.docs.set(`${root}/portfolioEvents/e1`,{studentId,title:'fixture evidence'});
+ const before=clone([...state.docs]);
+ process.env.TEACHER_PREVIEW_PASSWORDLESS='enabled';process.env.VERCEL_GIT_COMMIT_REF='fix/shakabumbo-audio-20261020';process.env.STUDENT_PUBLIC_ORIGIN='https://school.example';
+ const urls=[];for(const host of ['first.vercel.app','second.vercel.app','third.vercel.app']){const response=res();await studentState({method:'POST',query:{},headers:{host,origin:`https://${host}`},body:{action:'access_share',studentId}},response);expect(response.code).toBe(200);urls.push(response.body.shareUrl)}
+ expect(new Set(urls).size).toBe(1);expect(new URL(urls[0]).host).toBe('school.example');expect([...state.docs]).toEqual(before);
+});
+test('access status is private and revocation refuses writes before backup',async()=>{
+ const studentId='s2-4-02';state.docs.set(`${root}/studentProfiles/${studentId}`,{guardianInviteToken:'a'.repeat(32)});const before=clone([...state.docs]);
+ const denied=res();await studentState({method:'GET',query:{studentId,view:'access-status'},headers:{}},denied);expect(denied.code).toBe(401);
+ process.env.TEACHER_PREVIEW_PASSWORDLESS='enabled';process.env.VERCEL_GIT_COMMIT_REF='fix/shakabumbo-audio-20261020';delete process.env.STUDENT_ACCESS_BACKUP_ID;
+ const response=res();await studentState({method:'POST',query:{},headers:{host:'school.example',origin:'https://school.example'},body:{action:'access_revoke',studentId}},response);expect(response.body.error).toBe('RESTORABLE_BACKUP_REQUIRED');expect([...state.docs]).toEqual(before);
+});
