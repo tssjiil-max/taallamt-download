@@ -21,7 +21,8 @@ const issue=await call({action:'issue',studentId:sid,backupId:backup.body.backup
 assert.ok(!JSON.stringify(fakeStore.get(`${root}/studentLoginCredentials/${sid}`)).includes(`"${pin}"`));
 assert.equal((await call({studentId:sid,pin:pin==='000000'?'000001':'000000'})).statusCode,401);
 assert.equal((await call({studentId:sid,pin:'abcdef'})).statusCode,401);
-const login=await call({studentId:sid,pin});assert.equal(login.statusCode,200);const cookie=login.headers['Set-Cookie'];assert.match(cookie,/HttpOnly; Secure; SameSite=Lax/);assert.match(cookie,/Max-Age=15552000/);
+const arabicPin=pin.replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[Number(d)]);
+const login=await call({studentId:sid,pin:arabicPin});assert.equal(login.statusCode,200);const cookie=login.headers['Set-Cookie'];assert.match(cookie,/HttpOnly; Secure; SameSite=Lax/);assert.match(cookie,/Max-Age=15552000/);
 assert.equal((await studentSession(req({},cookie))).studentId,sid);
 const messageRes={statusCode:200,setHeader(){},status(n){this.statusCode=n;return this},json(data){this.body=data;return this}};
 await stateHandler(req({},cookie,'GET',{view:'messages',studentId:sid}),messageRes);assert.equal(messageRes.statusCode,200);assert.equal(messageRes.body.canSend,true);

@@ -780,6 +780,7 @@ function MorePage({home,environment,back,go,onSignedOut}:{home:TeacherHome;envir
   const links:[string,string,string][]=[['/teacher/students','ملفات الطلاب والتواصل','الملاحظات، الرسائل، السلوك، ملف كل طالب'],['/teacher/followup','يحتاجون متابعة','الطلاب الذين يحتاجون متابعة وأسبابها'],['/teacher/announcements','الإعلانات','إنشاء ومراجعة إعلانات الفصل'],['/teacher/settings','الإعدادات','بيانات الفصل والمواد']];
   return <div className="tkPage">
     <PageHead title="المزيد" subtitle={`${home.teacher.name} · ${home.teacher.school}`} onBack={back}/>
+    <button className="tkBtn wide" onClick={()=>go('student-codes')}>رموز دخول الطلاب</button>
     <div className="tkList">
       <button className="tkRow" type="button" onClick={()=>go('messages')}><span className="tkRowIcon" aria-hidden="true"><IconMessage/></span><span className="tkGrow"><b>الرسائل</b><small>محادثات أولياء الأمور</small></span>{home.summary.messages>0&&<span className="tkUnread num">{home.summary.messages}</span>}<IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('library')}><span className="tkRowIcon green" aria-hidden="true"><IconFolder/></span><span className="tkGrow"><b>الكتب والمكتبة</b><small>الكتب، أوراق العمل، الخطط العلاجية، ملف الإنجاز</small></span><IconChevron/></button>
