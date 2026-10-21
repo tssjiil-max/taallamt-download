@@ -40,9 +40,9 @@ assert.ok(studentApi.includes('studentId=')&&studentApi.includes('&invite=')&&st
 const studentUi=readFileSync('src/app/student.tsx','utf8');
 assert.ok(studentUi.includes('حفظ الصفحة على الجوال'),'student save-to-home-screen button missing');
 
-const html=readFileSync('index.html','utf8');
-assert.ok(html.includes('/pwa/teacher-apple-touch-icon.png'));
-assert.ok(html.includes('/pwa/student-apple-touch-icon.png'));
+const html=readFileSync('public/pwa-identity.js','utf8');
+assert.ok(html.includes("role+'-apple-touch-icon-'"));
+assert.ok(html.includes("role=student?'student':'teacher'"));
 assert.ok(existsSync('public/pwa/teacher-shakabumbo-group.webp'));
 assert.ok(existsSync('public/pwa/student-shakabumbo-trophy.png'));
 

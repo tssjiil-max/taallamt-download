@@ -588,6 +588,17 @@ check('library: upload with each sharing option; a student sees only what is sha
   assert.equal((await call(libraryFiles,{query:{role:'teacher'}})).status,401);
 });
 
+check('PWA manifest retains the authenticated student identity and never writes student data',async()=>{
+ const before=JSON.stringify([...fakeStore.entries()]);
+ const response=await call(studentState,{query:{view:'pwa-manifest',studentId:s1,invite:invites[s1]}});
+ assert.equal(response.status,200);const manifest=JSON.parse(response.body),start=new URL(manifest.start_url,'https://school.test');
+ assert.equal(start.searchParams.get('studentId'),s1);assert.equal(start.searchParams.get('invite'),invites[s1]);assert.equal(manifest.id,`/student?studentId=${s1}`);assert.equal(manifest.scope,'/student');
+ assert.ok(manifest.icons.every(icon=>icon.src.includes('20261022')));assert.equal(manifest.background_color,'#e0f4ff');
+ assert.equal((await call(studentState,{query:{view:'pwa-manifest',studentId:s2,invite:invites[s1]}})).status,403);
+ assert.equal((await call(studentState,{query:{view:'pwa-manifest',studentId:s1}})).status,401);
+ assert.equal(JSON.stringify([...fakeStore.entries()]),before);
+});
+
 let failed=0;
 for(const [name,fn] of checks){
   try{await fn();console.log(`ok   ${name}`)}

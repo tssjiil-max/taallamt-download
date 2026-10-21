@@ -252,14 +252,14 @@ async function studentPwaManifest(req,res){
     display:'standalone',
     display_override:['standalone','minimal-ui'],
     orientation:'portrait-primary',
-    background_color:'#f6f8fb',
-    theme_color:'#167e5e',
+    background_color:'#e0f4ff',
+    theme_color:'#e0f4ff',
     prefer_related_applications:false,
     categories:['education'],
     icons:[
-      {src:'/pwa/student-icon-192.png?v=20261009',sizes:'192x192',type:'image/png',purpose:'any'},
-      {src:'/pwa/student-icon-512.png?v=20261009',sizes:'512x512',type:'image/png',purpose:'any'},
-      {src:'/pwa/student-icon-maskable-512.png?v=20261009',sizes:'512x512',type:'image/png',purpose:'maskable'}
+      {src:'/pwa/student-icon-192-20261022.png',sizes:'192x192',type:'image/png',purpose:'any'},
+      {src:'/pwa/student-icon-512-20261022.png',sizes:'512x512',type:'image/png',purpose:'any'},
+      {src:'/pwa/student-icon-maskable-512-20261022.png',sizes:'512x512',type:'image/png',purpose:'maskable'}
     ]
   };
   res.setHeader('Content-Type','application/manifest+json; charset=utf-8');

@@ -1,36 +1,15 @@
 import sharp from 'sharp';
-
-const studentSource='public/pwa/student-shakabumbo-trophy.png';
-const teacherSource='public/pwa/teacher-shakabumbo-group.webp';
-
-async function makeIcon(source, output, target, contentScale, background) {
-  const inner=Math.max(1, Math.round(target*contentScale));
-  const padBefore=Math.floor((target-inner)/2);
-  const padAfter=target-inner-padBefore;
-  await sharp(source)
-    .resize(inner, inner, {
-      fit:'contain',
-      background
-    })
-    .extend({
-      top:padBefore,
-      bottom:padAfter,
-      left:padBefore,
-      right:padAfter,
-      background
-    })
-    .png({compressionLevel:9, palette:true, colours:128})
-    .toFile(output);
+import {copyFile} from 'node:fs/promises';
+const version='20261022',source=`public/pwa/shakabumbo-source-${version}.png`;
+for(const role of ['teacher','student']){
+ for(const [kind,size,scale,opaque] of [['icon-192',192,.88,false],['icon-512',512,.88,false],['icon-maskable-512',512,.56,true],['apple-touch-icon',180,.74,true]]){
+  const inner=Math.round(size*scale),before=Math.floor((size-inner)/2),after=size-inner-before;
+  const background=opaque?{r:224,g:244,b:255,alpha:1}:{r:0,g:0,b:0,alpha:0};
+  const output=`public/pwa/${role}-${kind}-${version}.png`;
+  let pipeline=sharp(source).resize(inner,inner,{fit:'contain',background}).extend({top:before,bottom:after,left:before,right:after,background});
+  if(opaque)pipeline=pipeline.flatten({background:{r:224,g:244,b:255}});
+  await pipeline.png({compressionLevel:9}).toFile(output);
+  await copyFile(output,`public/pwa/${role}-${kind}.png`);
+ }
 }
-
-async function buildRole(prefix, source, background) {
-  await makeIcon(source, `public/pwa/${prefix}-icon-192.png`, 192, 0.74, background);
-  await makeIcon(source, `public/pwa/${prefix}-icon-512.png`, 512, 0.74, background);
-  await makeIcon(source, `public/pwa/${prefix}-icon-maskable-512.png`, 512, 0.60, background);
-  await makeIcon(source, `public/pwa/${prefix}-apple-touch-icon.png`, 180, 0.74, background);
-}
-
-await buildRole('student', studentSource, {r:246,g:248,b:251,alpha:1});
-await buildRole('teacher', teacherSource, {r:224,g:244,b:255,alpha:1});
-
-console.log('PWA icons generated from permanent tracked sources with protected safe margins.');
+console.log('PWA icons: exact approved source, transparent any icons, light-blue maskable safe zone.');

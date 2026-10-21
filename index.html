@@ -3,60 +3,22 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-  <meta name="theme-color" content="#155e9b"/>
+  <meta name="theme-color" content="#e0f4ff"/>
   <meta name="application-name" content="تعلّمت"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="format-detection" content="telephone=no"/>
   <title>تعلّمت</title>
-  <script>
-    (function () {
-      var student = location.pathname.replace(/\/+$/, '').startsWith('/student');
-      var query = new URLSearchParams(location.search);
-      var studentId = query.get('studentId') || '';
-      var invite = query.get('invite') || query.get('inviteToken') || '';
-      var manifest = student && studentId && invite
-        ? '/api/student-state?view=pwa-manifest&studentId=' + encodeURIComponent(studentId) + '&invite=' + encodeURIComponent(invite)
-        : (student ? '/manifest-student.webmanifest' : '/manifest-teacher.webmanifest');
-      var icon = student ? '/pwa/student-apple-touch-icon.png?v=20261009' : '/pwa/teacher-apple-touch-icon.png?v=20261009c';
-      var theme = student ? '#167e5e' : '#155e9b';
-      var title = student ? 'تعلّمت - الطالب' : 'تعلّمت - المعلم';
 
-      document.title = title;
-      var themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) themeMeta.setAttribute('content', theme);
-
-      var manifestLink = document.createElement('link');
-      manifestLink.rel = 'manifest';
-      manifestLink.href = manifest;
-      document.head.appendChild(manifestLink);
-
-      var touchIcon = document.createElement('link');
-      touchIcon.rel = 'apple-touch-icon';
-      touchIcon.href = icon;
-      document.head.appendChild(touchIcon);
-
-      var appleTitle = document.createElement('meta');
-      appleTitle.name = 'apple-mobile-web-app-title';
-      appleTitle.content = title;
-      document.head.appendChild(appleTitle);
-    })();
-  </script>
-  <link rel="stylesheet" href="/site-splash.css"/>
-</head>
+  <link rel="stylesheet" href="/site-splash.css?v=20261022"/>
+<link rel="icon" href="/pwa/favicon-20261022.ico"/><link rel="apple-touch-icon" href="/pwa/teacher-apple-touch-icon-20261022.png"/><script src="/pwa-identity.js?v=20261022" defer></script></head>
 <body>
-  <div id="site-splash" role="status" aria-label="جارٍ فتح تعلّمت"><img src="/shakabumbo-splash.png" width="1312" height="1199" alt="شكابمبو يحمل الكأس الذهبي" fetchpriority="high"/></div>
-  <script>setTimeout(function(){document.getElementById("site-splash")?.remove()},6000)</script>
+  <div id="site-splash" role="status" aria-label="جارٍ فتح تعلّمت"><img src="/pwa/shakabumbo-source-20261022.png" width="1312" height="1199" alt="شكابمبو يحمل الكأس الذهبي" fetchpriority="high"/></div>
+
   <div id="root"></div>
   <script type="module" src="/src/app/main.tsx"></script>
   <script src="/pwa-install.js" defer></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
-      });
-    }
-  </script>
+
 </body>
 </html>
