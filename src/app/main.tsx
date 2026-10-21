@@ -1,3 +1,4 @@
+import {finishSplash} from './splash';
 import {ShakabumboDemo} from './shakabumbo/ShakabumboDemo';
 // Entry of the new teacher and student pages (reference design). Legacy teacher tools keep their own entry (legacy.html).
 import React from 'react';
@@ -9,6 +10,7 @@ import {TeacherApp} from './teacher';
 // The path is read once at start: the static staging copy rewrites the address bar right after boot.
 const path=location.pathname.replace(/\/+$/,'')||'/';
 function App(){
+  React.useEffect(()=>{if(path==='/shakabumbo-demo')finishSplash()},[]);
   if(path==='/shakabumbo-demo')return <ShakabumboDemo/>;
   if(path.startsWith('/student'))return <StudentApp/>;
   if(path==='/teacher/quran-followup')return <TeacherApp initialRoute="assess/quran"/>;

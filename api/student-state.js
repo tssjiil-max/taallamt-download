@@ -1,3 +1,4 @@
+import {guardianShareUrl} from '../server/permanent-links.js';
 import {dailyRead,dailyWrite} from '../server/daily-learning-api.js';
 import shakabumboSpeech from '../server/shakabumbo-speech.js';
 import shakabumboModel from '../server/shakabumbo-model.js';
@@ -8,7 +9,7 @@ import {randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
 import {createAutoGradingConfig,gradeHomeworkAnswer,gradingSecretFromEnv,publicAutoGradingConfig} from '../server/homework-autograde.js';
-import {accessFailure,isTeacher,requireGuardianLink,requireStudentAccess,requireTeacher} from '../server/access.js';
+import {accessFailure,inviteMatches,isTeacher,requireGuardianLink,requireStudentAccess,requireTeacher} from '../server/access.js';
 import {markThreadRead,sendMessage} from '../server/messages.js';
 import {handleGuardianMessage} from '../server/guardian-assistant.js';
 import {rosterStudent} from '../server/roster.js';
@@ -82,10 +83,12 @@ async function shareGuardianAccess(studentId,body){
   const db=adminDb(),ref=db.doc(`${base()}/studentProfiles/${studentId}`),timestamp=now();
   return db.runTransaction(async tx=>{
     const snap=await tx.get(ref),profile=snap.exists?snap.data():{};
+    if(profile?.guardianAccessRevokedAt)throw new Error('STUDENT_ACCESS_REVOKED');
     const current=String(profile?.guardianInviteToken||'');
+    if(!current&&!process.env.STUDENT_ACCESS_BACKUP_ID)throw new Error('RESTORABLE_BACKUP_REQUIRED');
     const invite=current||requested||accessToken();
     if(!current)tx.set(ref,{studentId,guardianInviteToken:invite,guardianAccessUpdatedAt:timestamp,updatedAt:timestamp},{merge:true});
-    return {inviteToken:invite};
+    return {inviteToken:invite,...(process.env.STUDENT_PUBLIC_ORIGIN?{shareUrl:guardianShareUrl(studentId,invite)}:{})};
   });
 }
 
@@ -94,7 +97,7 @@ async function verifyGuardianInvite(studentId,inviteToken){
   if(!validAccessToken(invite))throw new Error('ACCESS_INVITE_INVALID');
   const snap=await adminDb().doc(`${base()}/studentProfiles/${studentId}`).get();
   const stored=String((snap.exists?snap.data():{})?.guardianInviteToken||'');
-  if(!stored||stored!==invite)throw new Error('ACCESS_INVITE_INVALID');
+  if(!inviteMatches(snap.exists?snap.data():{},invite))throw new Error('ACCESS_INVITE_INVALID');
   return {verified:true};
 }
 
@@ -249,14 +252,14 @@ async function studentPwaManifest(req,res){
     display:'standalone',
     display_override:['standalone','minimal-ui'],
     orientation:'portrait-primary',
-    background_color:'#f6f8fb',
-    theme_color:'#167e5e',
+    background_color:'#e0f4ff',
+    theme_color:'#e0f4ff',
     prefer_related_applications:false,
     categories:['education'],
     icons:[
-      {src:'/pwa/student-icon-192.png?v=20261009',sizes:'192x192',type:'image/png',purpose:'any'},
-      {src:'/pwa/student-icon-512.png?v=20261009',sizes:'512x512',type:'image/png',purpose:'any'},
-      {src:'/pwa/student-icon-maskable-512.png?v=20261009',sizes:'512x512',type:'image/png',purpose:'maskable'}
+      {src:'/pwa/student-icon-192-20261022.png',sizes:'192x192',type:'image/png',purpose:'any'},
+      {src:'/pwa/student-icon-512-20261022.png',sizes:'512x512',type:'image/png',purpose:'any'},
+      {src:'/pwa/student-icon-maskable-512-20261022.png',sizes:'512x512',type:'image/png',purpose:'maskable'}
     ]
   };
   res.setHeader('Content-Type','application/manifest+json; charset=utf-8');
@@ -282,6 +285,11 @@ export default async function handler(req,res){
     const body=req.method==='GET'?{}:jsonBody(req);
     const studentId=String((req.method==='GET'?req.query?.studentId:body.studentId)||'');
     const student=getStudent(studentId);if(!student)return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
+    if(req.method==='GET'&&req.query?.view==='access-status'){
+      requireTeacher(req);
+      const snap=await adminDb().doc(`${base()}/studentProfiles/${studentId}`).get(),profile=snap.exists?snap.data():{},token=String(profile.guardianInviteToken||'');
+      return res.status(200).json({ok:true,active:Boolean(token)&&!profile.guardianAccessRevokedAt,shareUrl:token&&process.env.STUDENT_PUBLIC_ORIGIN?guardianShareUrl(studentId,token):null,backupReady:Boolean(process.env.STUDENT_ACCESS_BACKUP_ID)});
+    }
     if(req.method==='GET'){
       // A student's record opens only for the teacher session or for the holder of that student's invite link.
       const role=await requireStudentAccess(req,studentId,null);
@@ -301,7 +309,13 @@ export default async function handler(req,res){
     // Only the student's own profile (photo, hobbies) can be changed with an invite link; everything else is a teacher action.
     if(action==='student_profile')role=await requireStudentAccess(req,studentId,body,{write:true});
     else requireTeacher(req,{write:true});
-    if(action==='access_share')result=await shareGuardianAccess(studentId,body);
+    if(action==='access_revoke'){
+      // A verified full database backup must be taken out of band before enabling this operation.
+      if(!process.env.STUDENT_ACCESS_BACKUP_ID)throw new Error('RESTORABLE_BACKUP_REQUIRED');
+      const db=adminDb(),ref=db.doc(`${base()}/studentProfiles/${studentId}`),stamp=now();
+      result=await db.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists)return {revoked:true};tx.set(db.doc(`${base()}/studentAccessBackups/${uid('access')}`),{studentId,profile:snap.data(),createdAt:stamp,backupId:process.env.STUDENT_ACCESS_BACKUP_ID});tx.set(ref,{guardianAccessRevokedAt:stamp},{merge:true});return {revoked:true}});
+    }
+    else if(action==='access_share')result=await shareGuardianAccess(studentId,body);
     else if(action==='star')result=await addStar(studentId);
     else if(action==='assessment')result=await saveAssessment(studentId,body);
     else if(action==='behavior')result=await saveBehavior(studentId,body);

@@ -15,6 +15,8 @@ const setNow=iso=>{nowMs=RealDate.parse(iso)};
 // These journeys exercise normal protected mode; passwordless preview has separate tests.
 process.env.TEACHER_PREVIEW_PASSWORDLESS='disabled';
 process.env.VERCEL_ENV='preview';
+// The journey suite uses an isolated in-memory database; this marks its disposable backup fixture.
+process.env.STUDENT_ACCESS_BACKUP_ID='synthetic-journey-backup-fixture';
 process.env.FIREBASE_PROJECT_ID='fake';process.env.FIREBASE_CLIENT_EMAIL='fake@fake';process.env.FIREBASE_PRIVATE_KEY='fake-private-key';
 const TEACHER_CODE='journey-test-code-2468';
 process.env.TEACHER_ACCESS_CODE=TEACHER_CODE;
@@ -584,6 +586,17 @@ check('library: upload with each sharing option; a student sees only what is sha
   assert.deepEqual(await titles(s1),['لطالب واحد','للجميع']);assert.deepEqual(await titles(s2),['للجميع']);
   assert.equal((await call(libraryFiles,{query:{role:'teacher'},cookie:teacher})).body.files.length,3);
   assert.equal((await call(libraryFiles,{query:{role:'teacher'}})).status,401);
+});
+
+check('PWA manifest retains the authenticated student identity and never writes student data',async()=>{
+ const before=JSON.stringify([...fakeStore.entries()]);
+ const response=await call(studentState,{query:{view:'pwa-manifest',studentId:s1,invite:invites[s1]}});
+ assert.equal(response.status,200);const manifest=JSON.parse(response.body),start=new URL(manifest.start_url,'https://school.test');
+ assert.equal(start.searchParams.get('studentId'),s1);assert.equal(start.searchParams.get('invite'),invites[s1]);assert.equal(manifest.id,`/student?studentId=${s1}`);assert.equal(manifest.scope,'/student');
+ assert.ok(manifest.icons.every(icon=>icon.src.includes('20261022')));assert.equal(manifest.background_color,'#e0f4ff');
+ assert.equal((await call(studentState,{query:{view:'pwa-manifest',studentId:s2,invite:invites[s1]}})).status,403);
+ assert.equal((await call(studentState,{query:{view:'pwa-manifest',studentId:s1}})).status,401);
+ assert.equal(JSON.stringify([...fakeStore.entries()]),before);
 });
 
 let failed=0;

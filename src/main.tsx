@@ -62,6 +62,7 @@ function SubjectIcon({kind}:{kind:'quran'|'islamic'|'lughati'|'writing'}){
 function Mascot({className=''}:{className?:string}){return <img className={`mascot ${className}`} src={asset('student-assets/student-main-logo.webp')} alt="شكابمبو"/>}
 
 function App(){
+  React.useEffect(()=>{document.getElementById("site-splash")?.remove()},[]);
  if(location.pathname.startsWith('/student'))return <Student/>;
  if(location.pathname==='/teacher/quran-followup')return <TeacherQuranFollowup/>;
  if(location.pathname==='/teacher/students')return <TeacherStudents/>;

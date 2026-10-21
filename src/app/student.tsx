@@ -1,3 +1,4 @@
+import {finishSplash} from './splash';
 import {dailyEnabled,DailyLessonCards,DailyLessonPage} from './daily-lessons';
 import {HomeworkPhoto,SubmissionPortfolio} from './homework-photo';
 import {pilotRequested,StudentLearningPilot,StudentAnnouncementsPilot,usePilotAnnouncements} from './learning-pilot';
@@ -52,6 +53,7 @@ export function StudentApp(){
   const [toast,showToast]=useToast();
   const announcements=usePilotAnnouncements();
   const home=useRemote<Home>(STUDENT_ID?`home:${STUDENT_ID}`:null,()=>api<Home>(`/api/student-state?view=home&${accessQuery}`));
+  React.useEffect(()=>{if(!STUDENT_ID||home.data||home.error)finishSplash()},[home.data,home.error]);
   const [busy,setBusy]=React.useState<string>('');
   // Moving between pages picks up what changed on the other site, without reloading on every tap.
   const refreshIfOlder=home.refreshIfOlder;

@@ -20,7 +20,7 @@ import {buildLearningModel,validateContent,selectActivity,publicActivity,gradeAn
 import {visibleAnnouncements,isVisibleAnnouncement} from './announcement-policy.js';
 
 export const PILOT_BRANCH='preview/shakabumbo-pilot-20261013';
-const PILOT_PREVIEW_BRANCHES=new Set(['feature/daily-learning-20261020',PILOT_BRANCH,'preview/shakabumbo-p0-20261019','fix/shakabumbo-audio-20261020']);
+const PILOT_PREVIEW_BRANCHES=new Set(['fix/splash-permanent-links-20261021','feature/daily-learning-20261020',PILOT_BRANCH,'preview/shakabumbo-p0-20261019','fix/shakabumbo-audio-20261020']);
 export function requirePilot(environment=process.env){
   if(environment.VERCEL_ENV==='production'||(environment.VERCEL_ENV&&!PILOT_PREVIEW_BRANCHES.has(environment.VERCEL_GIT_COMMIT_REF)))throw new AccessError('PILOT_NOT_AVAILABLE',404);
 }
