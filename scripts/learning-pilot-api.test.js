@@ -239,3 +239,8 @@ test('access status is private and revocation refuses writes before backup',asyn
  process.env.TEACHER_PREVIEW_PASSWORDLESS='enabled';process.env.VERCEL_GIT_COMMIT_REF='fix/shakabumbo-audio-20261020';delete process.env.STUDENT_ACCESS_BACKUP_ID;
  const response=res();await studentState({method:'POST',query:{},headers:{host:'school.example',origin:'https://school.example'},body:{action:'access_revoke',studentId}},response);expect(response.body.error).toBe('RESTORABLE_BACKUP_REQUIRED');expect([...state.docs]).toEqual(before);
 });
+
+test('first access token cannot be created without a restorable backup',async()=>{
+ process.env.TEACHER_PREVIEW_PASSWORDLESS='enabled';process.env.VERCEL_GIT_COMMIT_REF='fix/shakabumbo-audio-20261020';delete process.env.STUDENT_ACCESS_BACKUP_ID;
+ const response=res();await studentState({method:'POST',query:{},headers:{host:'school.example',origin:'https://school.example'},body:{action:'access_share',studentId:'s2-4-02'}},response);expect(response.body.error).toBe('RESTORABLE_BACKUP_REQUIRED');expect(state.docs.size).toBe(0);
+});

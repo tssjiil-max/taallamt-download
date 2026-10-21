@@ -15,6 +15,8 @@ const setNow=iso=>{nowMs=RealDate.parse(iso)};
 // These journeys exercise normal protected mode; passwordless preview has separate tests.
 process.env.TEACHER_PREVIEW_PASSWORDLESS='disabled';
 process.env.VERCEL_ENV='preview';
+// The journey suite uses an isolated in-memory database; this marks its disposable backup fixture.
+process.env.STUDENT_ACCESS_BACKUP_ID='synthetic-journey-backup-fixture';
 process.env.FIREBASE_PROJECT_ID='fake';process.env.FIREBASE_CLIENT_EMAIL='fake@fake';process.env.FIREBASE_PRIVATE_KEY='fake-private-key';
 const TEACHER_CODE='journey-test-code-2468';
 process.env.TEACHER_ACCESS_CODE=TEACHER_CODE;

@@ -9,6 +9,8 @@ class FakeDate extends RealDate{constructor(...args){if(args.length)super(...arg
 globalThis.Date=FakeDate;
 
 process.env.VERCEL_ENV='preview';
+// Isolated fake Firestore: no live backup or data is used.
+process.env.STUDENT_ACCESS_BACKUP_ID='synthetic-guardian-backup-fixture';
 process.env.FIREBASE_PROJECT_ID='fake';
 process.env.FIREBASE_CLIENT_EMAIL='fake@fake';
 process.env.FIREBASE_PRIVATE_KEY='fake-private-key';

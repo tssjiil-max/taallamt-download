@@ -85,6 +85,7 @@ async function shareGuardianAccess(studentId,body){
     const snap=await tx.get(ref),profile=snap.exists?snap.data():{};
     if(profile?.guardianAccessRevokedAt)throw new Error('STUDENT_ACCESS_REVOKED');
     const current=String(profile?.guardianInviteToken||'');
+    if(!current&&!process.env.STUDENT_ACCESS_BACKUP_ID)throw new Error('RESTORABLE_BACKUP_REQUIRED');
     const invite=current||requested||accessToken();
     if(!current)tx.set(ref,{studentId,guardianInviteToken:invite,guardianAccessUpdatedAt:timestamp,updatedAt:timestamp},{merge:true});
     return {inviteToken:invite,...(process.env.STUDENT_PUBLIC_ORIGIN?{shareUrl:guardianShareUrl(studentId,invite)}:{})};

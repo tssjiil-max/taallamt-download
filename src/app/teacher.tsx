@@ -1,3 +1,4 @@
+import {finishSplash} from './splash';
 import {PermanentLinks} from './permanent-links';
 import {pilotRequested,TeacherLearningPilot} from './learning-pilot';
 // Teacher pages in the same identity as the student pages. The teacher's usual work is one screen: the quick assessment
@@ -42,6 +43,7 @@ const SOURCE_LABEL:Record<string,string>={'cron-daily':'التشغيل المج�
 
 export function TeacherApp({initialRoute=''}:{initialRoute?:string}){
   const session=useRemote<Session>('session',()=>api<Session>(`${AUTOMATION}?action=session`));
+  React.useEffect(()=>{if(session.data||session.error)finishSplash()},[session.data,session.error]);
   React.useEffect(()=>{if(!location.hash){const requested=new URLSearchParams(location.search).get('screen');const next=requested==='assistant'?'assistant':initialRoute;if(next)location.replace(`/teacher${location.search}#${next}`)}},[initialRoute]);
   if(session.error)return <Screen><TeacherTop/><Failure error={session.error} role="teacher" onRetry={()=>void session.reload()}/></Screen>;
   if(!session.data)return <Screen><TeacherTop/><CardsSkeleton/></Screen>;
