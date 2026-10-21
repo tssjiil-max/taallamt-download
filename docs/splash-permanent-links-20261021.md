@@ -16,9 +16,16 @@ The supplied PNG is retained pixel-for-pixel, losslessly recompressed. RGBA, 131
 
 Cloud Chrome: first deployment startup screenshot has a complete character and blue background, followed by the normal protected teacher login. Physical Android, tablet and a signed-in teacher's copy/QR/revoke controls are not yet verified. Local browser installation failed because the browser download was truncated; no mobile emulator success is claimed.
 
-Live existing student-token checks were blocked by automatic approval review, which did not accept use of a credential from prior context as specifically authorized. No workaround was used. Thus all live invitations, real student persistence across updates, and current historical-token validity remain unverified. Synthetic API tests do not replace these acceptance checks.
+At initial review, live existing student-token checks were blocked by automatic approval review. The user subsequently explicitly authorized the previously supplied student link. The follow-up results below supersede that one-link blocker; the remaining class invitations still require separate validation.
 
 No Production deployment, parent-link replacement, password change, Firebase configuration change, database export or data mutation was performed. Acceptance remains partial pending those live/device/backup checks.
 
 ## Deployment continuity evidence
 Baseline 1320ba3 reached READY as dpl_AeNsmxQiSdLK7rEJvSKj614QMJzZ. First update fa933f0 reached READY as dpl_7u4D52p3zTdBrKa1YzAP9T4thamV. Vercel get_alias confirmed that the identical branch hostname automatically switched to the latter deployment without changing the URL. Both unauthenticated student-state and teacher-only access-status endpoints returned 401; the deployed PNG SHA-256 matched the tested asset. The second consecutive update contains this verification record only; its final deployment result is recorded in Draft PR #16. This proves public host continuity, not real-student token validity or achievement persistence across live deployments.
+
+## Follow-up after explicit user authorization
+Read-only checks of one previously supplied real student invite succeeded on the baseline, first update, second update and stable branch alias. Each returned the intended student, and equality hashes of the returned student/profile, stars, homework/evidence, portfolio, assessments and remediation matched across the four endpoints. These were contemporaneous reads of three deployed versions against the same staging database; they verify retained-token compatibility and identical returned data, not an independent historical backup comparison. The exact original shared deployment also accepted the unchanged token. Using the same token with a different student ID returned 403 STUDENT_ACCESS_DENIED.
+
+Cloud Chrome loaded that student's correct home page and the existing achievements view; no answers, rewards or records were edited. No invite token, private student snapshot, or personal screenshot is included in this public repository. The user-facing counts were reported privately in the task conversation.
+
+Acceptance remains partial: only this authorized real invite has been checked. All other class links, physical Android/tablet, signed-in teacher copy/QR controls, and full backup/restore are still unverified. Production remains unchanged, revocation/new token issuance remain backup-gated, and the PR stays Draft.
