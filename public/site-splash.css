@@ -1,0 +1,2 @@
+#site-splash{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#e0f4ff;pointer-events:none}
+#site-splash img{display:block;width:min(76vw,520px);height:76vh;height:76svh;object-fit:contain}
