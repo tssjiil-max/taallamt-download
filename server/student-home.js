@@ -1,3 +1,4 @@
+import {studentSession} from './student-session.js';
 // Student / guardian read model for the new student pages. One payload feeds the home cards and their detail sheets,
 // so a summary and its details can never disagree. It carries only this student's own data: no class lists and
 // nothing about the teacher's focused follow-up list.
@@ -142,12 +143,12 @@ export async function buildStudentWeek(weekValue,date=new Date()){
 export async function studentViewHandler(req,res,{ensureFresh}={}){
   const studentId=String(req.query?.studentId||''),view=String(req.query?.view||'home');
   if(!rosterStudent(studentId))return res.status(404).json({ok:false,error:'STUDENT_NOT_FOUND'});
-  const teacher=isTeacher(req),invite=inviteFrom(req,null);
-  if(!teacher&&!validInviteShape(invite))throw new AccessError('STUDENT_ACCESS_REQUIRED',401);
+  const teacher=isTeacher(req),invite=inviteFrom(req,null),session=await studentSession(req),ownSession=session?.studentId===studentId;
+  if(!teacher&&!ownSession&&!validInviteShape(invite))throw new AccessError('STUDENT_ACCESS_REQUIRED',401);
   const snap=await adminDb().doc(`${workspaceRoot()}/studentProfiles/${studentId}`).get(),profile=snap.exists?snap.data():null;
-  if(!teacher&&!inviteMatches(profile,invite))throw new AccessError('STUDENT_ACCESS_DENIED',403);
+  if(!teacher&&!ownSession&&!inviteMatches(profile,invite))throw new AccessError('STUDENT_ACCESS_DENIED',403);
   // Messages can be written only with the student's own link; a teacher previewing the page reads the thread.
-  const guardianLink=inviteMatches(profile,invite);
+  const guardianLink=ownSession||inviteMatches(profile,invite);
   if(view==='messages')return res.status(200).json({ok:true,...await readThread(studentId,'guardian'),canSend:guardianLink,role:teacher?'teacher':'guardian'});
   if(view==='week')return res.status(200).json({...await buildStudentWeek(req.query?.week),role:teacher?'teacher':'guardian'});
   if(ensureFresh)await ensureFresh();

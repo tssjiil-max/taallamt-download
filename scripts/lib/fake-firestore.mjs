@@ -15,7 +15,7 @@ function setDoc(path,data,options){
   store.set(path,{...previous,...clone(data)});stats.writes++;
 }
 class DocSnap{constructor(path,data){this.id=path.split('/').pop();this.ref=docRef(path);this._data=data;this.exists=data!==undefined}data(){return this._data===undefined?undefined:clone(this._data)}}
-function docRef(path){return {path,id:path.split('/').pop(),get:async()=>{stats.reads++;return new DocSnap(path,store.get(path))},set:async(data,options)=>setDoc(path,data,options),delete:async()=>{store.delete(path);stats.writes++}}}
+function docRef(path){return {path,id:path.split('/').pop(),collection:name=>query(path+'/'+name),listCollections:async()=>[...new Set([...store.keys()].filter(k=>k.startsWith(path+'/')).map(k=>k.slice(path.length+1).split('/')[0]))].map(name=>query(path+'/'+name)),get:async()=>{stats.reads++;return new DocSnap(path,store.get(path))},set:async(data,options)=>setDoc(path,data,options),delete:async()=>{store.delete(path);stats.writes++}}}
 const compare=(value,op,expected)=>{
   if(op==='==')return value===expected;
   if(value===undefined||value===null)return false;
@@ -23,9 +23,13 @@ const compare=(value,op,expected)=>{
   if(op==='in')return expected.includes(value);
   throw new Error('unsupported operator '+op);
 };
-function query(collectionPath,filters=[],fields=null){
+function query(collectionPath,filters=[],fields=null,options={}){
   if(collectionPath.split('/').length%2!==1)throw new Error('Invalid collection path: '+collectionPath);
   return {
+    path:collectionPath,
+    orderBy:()=>query(collectionPath,filters,fields,{...options,ordered:true}),
+    startAfter:after=>query(collectionPath,filters,fields,{...options,after}),
+    limit:limit=>query(collectionPath,filters,fields,{...options,limit}),
     where:(field,op,value)=>{if(value===undefined)throw new Error('where() value undefined for '+field);return query(collectionPath,[...filters,[field,op,value]],fields)},
     select:(...names)=>query(collectionPath,filters,names),
     doc:id=>docRef(`${collectionPath}/${id}`),
@@ -41,7 +45,7 @@ function query(collectionPath,filters=[],fields=null){
         let visible=data;if(fields){visible={};for(const name of fields)if(name in data)visible[name]=data[name]}
         docs.push(new DocSnap(path,visible));stats.reads++;
       }
-      return {docs,size:docs.length,empty:!docs.length};
+      const result=options.ordered?docs.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0):docs;const page=result.filter(d=>!options.after||d.id>options.after).slice(0,options.limit??result.length);return {docs:page,size:page.length,empty:!page.length};
     }
   };
 }

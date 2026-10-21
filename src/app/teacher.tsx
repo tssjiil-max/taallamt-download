@@ -1,3 +1,4 @@
+import {StudentCodes} from './student-login';
 // Teacher pages in the same identity as the student pages. The teacher's usual work is one screen: the quick assessment
 // ("أتقن بقية الطلاب" + individual results for the focused follow-up list). Plan and homework publish themselves.
 import React from 'react';
@@ -106,7 +107,8 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   else if(route==='assess'||route.startsWith('assess/'))body=<AssessPage home={data} subjectKey={(route.slice(7)||firstOpenSubject(data)) as SubjectKey} back={back} go={go} refresh={refresh} toast={showToast}/>;
   else if(route==='homework')body=<HomeworkPage home={data} back={back} refresh={refresh} toast={showToast}/>;
   else if(route==='stars')body=<StarsPage home={data} back={back} go={go} refresh={refresh} toast={showToast} setHome={home.setData}/>;
-  else if(route==='students')body=<StudentsPage home={data} back={back} go={go}/>;
+  else if(route==='students')body=<><button className="tkBtn" onClick={()=>go('student-codes')}>رموز دخول الطلاب</button><StudentsPage home={data} back={back} go={go}/></>;
+  else if(route==='student-codes')body=<><PageHead title="رموز دخول الطلاب" onBack={back}/><StudentCodes/></>;
   else if(route.startsWith('student/'))body=<StudentFilePage home={data} studentId={route.split('/')[1]||''} section={route.split('/')[2]||''} back={back} go={go} refresh={refresh} toast={showToast} setHome={home.setData}/>;
   else if(route.startsWith('chat/'))body=<TeacherChatPage home={data} studentId={route.slice(5)} back={back} refresh={refresh}/>;
   else if(route==='library')body=<LibraryPage home={data} back={back} go={go} toast={showToast}/>;
@@ -778,6 +780,7 @@ function MorePage({home,environment,back,go,onSignedOut}:{home:TeacherHome;envir
   const links:[string,string,string][]=[['/teacher/students','ملفات الطلاب والتواصل','الملاحظات، الرسائل، السلوك، ملف كل طالب'],['/teacher/followup','يحتاجون متابعة','الطلاب الذين يحتاجون متابعة وأسبابها'],['/teacher/announcements','الإعلانات','إنشاء ومراجعة إعلانات الفصل'],['/teacher/settings','الإعدادات','بيانات الفصل والمواد']];
   return <div className="tkPage">
     <PageHead title="المزيد" subtitle={`${home.teacher.name} · ${home.teacher.school}`} onBack={back}/>
+    <button className="tkBtn wide" onClick={()=>go('student-codes')}>رموز دخول الطلاب</button>
     <div className="tkList">
       <button className="tkRow" type="button" onClick={()=>go('messages')}><span className="tkRowIcon" aria-hidden="true"><IconMessage/></span><span className="tkGrow"><b>الرسائل</b><small>محادثات أولياء الأمور</small></span>{home.summary.messages>0&&<span className="tkUnread num">{home.summary.messages}</span>}<IconChevron/></button>
       <button className="tkRow" type="button" onClick={()=>go('library')}><span className="tkRowIcon green" aria-hidden="true"><IconFolder/></span><span className="tkGrow"><b>الكتب والمكتبة</b><small>الكتب، أوراق العمل، الخطط العلاجية، ملف الإنجاز</small></span><IconChevron/></button>
