@@ -5,7 +5,8 @@ process.env.VERCEL_ENV='preview';process.env.FIREBASE_PRIVATE_KEY='fake-private-
 const {fakeStore}=await import('./lib/fake-firestore.mjs');
 const handler=(await import('../server/student-login.js')).default;
 const {teacherLogin,requireStudentAccess,requireGuardianLink}=await import('../server/access.js');
-const {studentSession}=await import('../server/student-session.js');
+const {studentSession,digest}=await import('../server/student-session.js');
+const stateHandler=(await import('../api/student-state.js')).default;
 const {WORKSPACE_ID}=await import('../server/class-roster.js');
 const host='test.example',root=`workspaces/${WORKSPACE_ID}`,sid='s2-4-02',other='s2-4-03';
 const req=(body,cookie='',method='POST',query={})=>({method,body,query,headers:{host,origin:`https://${host}`,cookie,'x-real-ip':'test'}});
@@ -22,11 +23,18 @@ assert.equal((await call({studentId:sid,pin:pin==='000000'?'000001':'000000'})).
 assert.equal((await call({studentId:sid,pin:'abcdef'})).statusCode,401);
 const login=await call({studentId:sid,pin});assert.equal(login.statusCode,200);const cookie=login.headers['Set-Cookie'];assert.match(cookie,/HttpOnly; Secure; SameSite=Lax/);assert.match(cookie,/Max-Age=15552000/);
 assert.equal((await studentSession(req({},cookie))).studentId,sid);
+const messageRes={statusCode:200,setHeader(){},status(n){this.statusCode=n;return this},json(data){this.body=data;return this}};
+await stateHandler(req({},cookie,'GET',{view:'messages',studentId:sid}),messageRes);assert.equal(messageRes.statusCode,200);assert.equal(messageRes.body.canSend,true);
+await assert.rejects(()=>requireStudentAccess({...req({},cookie),headers:{host,cookie}},sid,null,{write:true}));
+assert.equal(await studentSession(req({},cookie.replace(/taallamt_student=./,'taallamt_student=!'))),null);
+
 assert.equal(await requireStudentAccess(req({},cookie),sid,null),'guardian');await assert.rejects(()=>requireStudentAccess(req({},cookie),other,null));
 assert.equal(await requireGuardianLink(req({},cookie),sid,null),'guardian');
 // A new deployment/ref has no effect on the stored session.
 process.env.VERCEL_GIT_COMMIT_REF='test-second-deployment';assert.equal((await studentSession(req({},cookie))).studentId,sid);
 assert.equal((await call({},cookie,'GET')).body.session.studentId,sid);
+const token=cookie.split(';')[0].split('=')[1],sessionPath=`${root}/studentLoginSessions/${digest(token)}`,savedSession=fakeStore.get(sessionPath);fakeStore.set(sessionPath,{...savedSession,expiresAt:Date.now()-1});assert.equal(await studentSession(req({},cookie)),null);fakeStore.set(sessionPath,savedSession);
+
 const status=await call({},teacher,'GET',{loginView:'manage'});assert.equal(status.statusCode,200);assert.ok(!JSON.stringify(status.body).includes(pin));assert.ok(!JSON.stringify(status.body).includes('hash'));
 const backupDocs=[...fakeStore].filter(([k])=>k.startsWith(`studentLoginBackups/${WORKSPACE_ID}/snapshots/${backup.body.backupId}/documents/`));assert.equal(backupDocs.length,backup.body.count);assert.deepEqual(backupDocs.find(([,v])=>v.path===`${root}/studentProfiles/${sid}`)[1].data,{guardianInviteToken:invite,stars:12});
 const reset=await call({action:'issue',reset:true,studentId:sid,backupId:backup.body.backupId},teacher);assert.equal(reset.statusCode,200);assert.equal(await studentSession(req({},cookie)),null);
@@ -34,4 +42,4 @@ assert.equal(await requireStudentAccess({...req({}),query:{invite}},sid,null),'g
 const login2=await call({studentId:sid,pin:reset.body.pin});assert.equal(login2.statusCode,200);await call({action:'logout'},login2.headers['Set-Cookie']);assert.equal(await studentSession(req({},login2.headers['Set-Cookie'])),null);
 assert.equal(before,JSON.stringify([...fakeStore].filter(([k])=>k===`${root}/studentProfiles/${sid}`||k===`${root}/portfolioEvents/event`||k===`${root}/homeworkEvidence/work`)));
 for(let i=0;i<8;i++)await call({studentId:other,pin:'123456'});assert.equal((await call({studentId:other,pin:'123456'})).statusCode,429);
-console.log('Student PIN: 22 security, backup, session, legacy-link and data-retention checks passed');
+console.log('Student PIN: 26 security, backup, session, legacy-link and data-retention checks passed');

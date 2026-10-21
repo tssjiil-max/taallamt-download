@@ -28,11 +28,11 @@ async function backup(existingId){
  }
  const queue=[...state.queue];
  if(queue.length){
-  const task=queue.shift(),all=(await db.collection(task.path).get()).docs.sort((a,b)=>(a.id<b.id?-1:a.id>b.id?1:0)),docs=all.filter(d=>d.id>task.after).slice(0,20);
+  const task=queue.shift();let page=db.collection(task.path).orderBy('__name__');if(task.after)page=page.startAfter(task.after);const docs=(await page.limit(100).get()).docs;
   const children=await Promise.all(docs.map(d=>d.ref.listCollections()));
   const batch=db.batch();for(const doc of docs)batch.set(target.collection('documents').doc(digest(doc.ref.path)),{path:doc.ref.path,data:doc.data()});
   for(const list of children)for(const c of list)queue.push({path:c.path,after:''});
-  if(docs.length===20)queue.unshift({path:task.path,after:docs[docs.length-1].id});
+  if(docs.length===100)queue.unshift({path:task.path,after:docs[docs.length-1].id});
   state={...state,count:state.count+docs.length,queue,complete:queue.length===0};
   if(state.count>10000)fail('BACKUP_TOO_LARGE',503);batch.set(target,state);await batch.commit();
  }else{state={...state,complete:true};await target.set(state)}
@@ -40,6 +40,7 @@ async function backup(existingId){
 }
 async function verifiedBackup(id){if(!/^[a-f0-9]{32}$/.test(String(id||'')))fail('RESTORABLE_BACKUP_REQUIRED',409);const s=await adminDb().doc(`studentLoginBackups/${WORKSPACE_ID}/snapshots/${id}`).get();if(!s.exists||!s.data().complete||s.data().workspaceId!==WORKSPACE_ID||Date.now()-s.data().createdAt>24*60*60*1000)fail('RESTORABLE_BACKUP_REQUIRED',409)}
 export default async function handler(req,res){
+ res.setHeader('X-Taallamt-Student-Login','20261022.2');
  res.setHeader('Cache-Control','private, no-store');res.setHeader('Referrer-Policy','no-referrer');
  try{
   if(req.method==='GET'){

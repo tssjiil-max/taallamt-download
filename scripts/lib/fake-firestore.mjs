@@ -23,10 +23,13 @@ const compare=(value,op,expected)=>{
   if(op==='in')return expected.includes(value);
   throw new Error('unsupported operator '+op);
 };
-function query(collectionPath,filters=[],fields=null){
+function query(collectionPath,filters=[],fields=null,options={}){
   if(collectionPath.split('/').length%2!==1)throw new Error('Invalid collection path: '+collectionPath);
   return {
     path:collectionPath,
+    orderBy:()=>query(collectionPath,filters,fields,{...options,ordered:true}),
+    startAfter:after=>query(collectionPath,filters,fields,{...options,after}),
+    limit:limit=>query(collectionPath,filters,fields,{...options,limit}),
     where:(field,op,value)=>{if(value===undefined)throw new Error('where() value undefined for '+field);return query(collectionPath,[...filters,[field,op,value]],fields)},
     select:(...names)=>query(collectionPath,filters,names),
     doc:id=>docRef(`${collectionPath}/${id}`),
@@ -42,7 +45,7 @@ function query(collectionPath,filters=[],fields=null){
         let visible=data;if(fields){visible={};for(const name of fields)if(name in data)visible[name]=data[name]}
         docs.push(new DocSnap(path,visible));stats.reads++;
       }
-      return {docs,size:docs.length,empty:!docs.length};
+      const result=options.ordered?docs.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0):docs;const page=result.filter(d=>!options.after||d.id>options.after).slice(0,options.limit??result.length);return {docs:page,size:page.length,empty:!page.length};
     }
   };
 }
