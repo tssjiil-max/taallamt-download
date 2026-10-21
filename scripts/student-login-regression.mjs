@@ -35,6 +35,7 @@ process.env.VERCEL_GIT_COMMIT_REF='test-second-deployment';assert.equal((await s
 assert.equal((await call({},cookie,'GET')).body.session.studentId,sid);
 const token=cookie.split(';')[0].split('=')[1],sessionPath=`${root}/studentLoginSessions/${digest(token)}`,savedSession=fakeStore.get(sessionPath);fakeStore.set(sessionPath,{...savedSession,expiresAt:Date.now()-1});assert.equal(await studentSession(req({},cookie)),null);fakeStore.set(sessionPath,savedSession);
 
+assert.equal((await call({},teacher,'GET')).body.teacher,true);
 const status=await call({},teacher,'GET',{loginView:'manage'});assert.equal(status.statusCode,200);assert.ok(!JSON.stringify(status.body).includes(pin));assert.ok(!JSON.stringify(status.body).includes('hash'));
 const backupDocs=[...fakeStore].filter(([k])=>k.startsWith(`studentLoginBackups/${WORKSPACE_ID}/snapshots/${backup.body.backupId}/documents/`));assert.equal(backupDocs.length,backup.body.count);assert.deepEqual(backupDocs.find(([,v])=>v.path===`${root}/studentProfiles/${sid}`)[1].data,{guardianInviteToken:invite,stars:12});
 const reset=await call({action:'issue',reset:true,studentId:sid,backupId:backup.body.backupId},teacher);assert.equal(reset.statusCode,200);assert.equal(await studentSession(req({},cookie)),null);

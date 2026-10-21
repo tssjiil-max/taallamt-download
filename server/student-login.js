@@ -3,7 +3,7 @@ import {promisify} from 'node:util';
 import {adminDb,previewWriteGuard} from './firebase-admin.js';
 import {WORKSPACE_ID} from './class-roster.js';
 import {ROSTER,rosterStudent} from './roster.js';
-import {AccessError,accessFailure,requireTeacher,sameOrigin,header} from './access.js';
+import {AccessError,accessFailure,requireTeacher,isTeacher,sameOrigin,header} from './access.js';
 import {authRoot,digest,equal,studentCookie,studentSession,sessionToken,STUDENT_SESSION_SECONDS} from './student-session.js';
 const scrypt=promisify(scryptCallback),WINDOW=15*60*1000;
 export const normalizePin=value=>String(value??'').normalize('NFKC').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
@@ -45,7 +45,7 @@ export default async function handler(req,res){
  try{
   if(req.method==='GET'){
    if(req.query?.loginView==='manage'){requireTeacher(req);const students=await Promise.all(ROSTER.map(async s=>{const c=await cred(s.id).get(),v=c.exists?c.data():{};return {id:s.id,name:s.name,active:Boolean(v.active),lastLoginAt:v.lastLoginAt||null}}));return res.status(200).json({ok:true,students})}
-   const session=await studentSession(req);return res.status(200).json({ok:true,session,students:ROSTER.map(({id,name})=>({id,name}))});
+   const session=await studentSession(req);return res.status(200).json({ok:true,session,teacher:isTeacher(req),students:ROSTER.map(({id,name})=>({id,name}))});
   }
   if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
   if(!sameOrigin(req))fail('ORIGIN_INVALID',403);

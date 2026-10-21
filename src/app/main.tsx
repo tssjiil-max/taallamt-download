@@ -17,11 +17,11 @@ function App(){
 }
 function StudentEntry(){
  const query=new URLSearchParams(location.search),legacy=Boolean(query.get('invite')||query.get('inviteToken'));
- const [ready,setReady]=React.useState(legacy),[denied,setDenied]=React.useState(false);
- React.useEffect(()=>{if(legacy)return;void api<{session:{studentId:string}|null}>('/api/student-state?view=student-login').then(r=>{if(r.session?.studentId===query.get('studentId'))setReady(true);else setDenied(true)}).catch(()=>setDenied(true))},[]);
+ const [ready,setReady]=React.useState(legacy),[denied,setDenied]=React.useState(false),[teacherPreview,setTeacherPreview]=React.useState(false);
+ React.useEffect(()=>{if(legacy)return;void api<{session:{studentId:string}|null;teacher:boolean}>('/api/student-state?view=student-login').then(r=>{if(r.teacher){setTeacherPreview(true);setReady(true)}else if(r.session?.studentId===query.get('studentId'))setReady(true);else setDenied(true)}).catch(()=>setDenied(true))},[]);
  if(denied)return <StudentLogin/>;
  if(!ready)return <p dir="rtl" role="status">جارٍ استعادة دخولك…</p>;
- return <>{!legacy&&<button className="tkAct" onClick={()=>void api('/api/student-state?view=student-login',{method:'POST',body:{action:'logout'}}).then(()=>location.replace('/student-login'))}>تسجيل الخروج</button>}<StudentApp/></>;
+ return <>{!legacy&&!teacherPreview&&<button className="tkAct" onClick={()=>void api('/api/student-state?view=student-login',{method:'POST',body:{action:'logout'}}).then(()=>location.replace('/student-login'))}>تسجيل الخروج</button>}<StudentApp/></>;
 }
 document.documentElement.lang='ar';document.documentElement.dir='rtl';
 createRoot(document.getElementById('root')!).render(<App/>);
