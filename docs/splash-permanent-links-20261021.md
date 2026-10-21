@@ -19,3 +19,6 @@ Cloud Chrome: first deployment startup screenshot has a complete character and b
 Live existing student-token checks were blocked by automatic approval review, which did not accept use of a credential from prior context as specifically authorized. No workaround was used. Thus all live invitations, real student persistence across updates, and current historical-token validity remain unverified. Synthetic API tests do not replace these acceptance checks.
 
 No Production deployment, parent-link replacement, password change, Firebase configuration change, database export or data mutation was performed. Acceptance remains partial pending those live/device/backup checks.
+
+## Deployment continuity evidence
+Baseline 1320ba3 reached READY as dpl_AeNsmxQiSdLK7rEJvSKj614QMJzZ. First update fa933f0 reached READY as dpl_7u4D52p3zTdBrKa1YzAP9T4thamV. Vercel get_alias confirmed that the identical branch hostname automatically switched to the latter deployment without changing the URL. Both unauthenticated student-state and teacher-only access-status endpoints returned 401; the deployed PNG SHA-256 matched the tested asset. The second consecutive update contains this verification record only; its final deployment result is recorded in Draft PR #16. This proves public host continuity, not real-student token validity or achievement persistence across live deployments.
