@@ -1,6 +1,6 @@
 // One installation identity for the existing teacher/student routes. Never rewrites page URLs or invitation tokens.
 (function(){
-  var version='20261022',student=location.pathname.replace(/\/+$/,'').startsWith('/student'),role=student?'student':'teacher';
+  var version='20261022',student=location.pathname==='/'||location.pathname.replace(/\/+$/,'').startsWith('/student'),role=student?'student':'teacher';
   var query=new URLSearchParams(location.search),studentId=query.get('studentId')||'',invite=query.get('invite')||query.get('inviteToken')||'';
   function link(rel,href){var el=document.querySelector('link[rel="'+rel+'"]')||document.createElement('link');el.rel=rel;el.href=href;document.head.appendChild(el)}
   link('manifest',student&&studentId&&invite?'/api/student-state?view=pwa-manifest&studentId='+encodeURIComponent(studentId)+'&invite='+encodeURIComponent(invite):'/manifest-'+role+'.webmanifest');

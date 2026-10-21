@@ -1,0 +1,58 @@
+import {randomBytes,randomInt,scrypt as scryptCallback} from 'node:crypto';
+import {promisify} from 'node:util';
+import {adminDb,previewWriteGuard} from './firebase-admin.js';
+import {WORKSPACE_ID} from './class-roster.js';
+import {ROSTER,rosterStudent} from './roster.js';
+import {AccessError,accessFailure,requireTeacher,sameOrigin,header} from './access.js';
+import {authRoot,digest,equal,studentCookie,studentSession,sessionToken,STUDENT_SESSION_SECONDS} from './student-session.js';
+const scrypt=promisify(scryptCallback),WINDOW=15*60*1000;
+export const normalizePin=value=>String(value??'').normalize('NFKC').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+const fail=(code,status)=>{throw new AccessError(code,status)};
+const cred=id=>adminDb().doc(`${authRoot()}/studentLoginCredentials/${id}`);
+async function attempt(req,id){
+ const db=adminDb(),ip=header(req,'x-real-ip')||header(req,'x-forwarded-for').split(',')[0]||'unknown';
+ const refs=[db.doc(`${authRoot()}/studentLoginAttempts/${digest(`ip:${ip}`)}`),db.doc(`${authRoot()}/studentLoginAttempts/${digest(`student:${id}`)}`)];
+ await db.runTransaction(async tx=>{const snaps=await Promise.all(refs.map(r=>tx.get(r)));const rows=snaps.map(s=>(s.exists?s.data().attempts||[]:[]).filter(t=>t>Date.now()-WINDOW));if(rows.some((r,i)=>r.length>=(i===0?30:8)))fail('STUDENT_LOGIN_LOCKED',429);rows.forEach((r,i)=>tx.set(refs[i],{attempts:[...r,Date.now()]}))});
+}
+// A complete recursive, restorable copy is finalized before credential mutations are allowed.
+async function backup(){
+ const db=adminDb(),id=randomBytes(16).toString('hex'),root=db.doc(authRoot()),documents=[];
+ async function walk(ref){const snap=await ref.get();if(snap.exists)documents.push({path:ref.path,data:snap.data()});if(documents.length>10000)fail('BACKUP_TOO_LARGE',503);for(const collection of await ref.listCollections()){const docs=(await collection.get()).docs;for(let offset=0;offset<docs.length;offset+=20)await Promise.all(docs.slice(offset,offset+20).map(doc=>walk(doc.ref)))}}
+ await walk(root);
+ const target=db.doc(`studentLoginBackups/${WORKSPACE_ID}/snapshots/${id}`);
+ for(let offset=0;offset<documents.length;offset+=200){const batch=db.batch();for(const row of documents.slice(offset,offset+200))batch.set(target.collection('documents').doc(digest(row.path)),row);await batch.commit()}
+ await target.set({workspaceId:WORKSPACE_ID,complete:true,count:documents.length,createdAt:Date.now()});
+ return {backupId:id,count:documents.length};
+}
+async function verifiedBackup(id){if(!/^[a-f0-9]{32}$/.test(String(id||'')))fail('RESTORABLE_BACKUP_REQUIRED',409);const s=await adminDb().doc(`studentLoginBackups/${WORKSPACE_ID}/snapshots/${id}`).get();if(!s.exists||!s.data().complete||s.data().workspaceId!==WORKSPACE_ID||Date.now()-s.data().createdAt>24*60*60*1000)fail('RESTORABLE_BACKUP_REQUIRED',409)}
+export default async function handler(req,res){
+ res.setHeader('Cache-Control','private, no-store');res.setHeader('Referrer-Policy','no-referrer');
+ try{
+  if(req.method==='GET'){
+   if(req.query?.loginView==='manage'){requireTeacher(req);const students=await Promise.all(ROSTER.map(async s=>{const c=await cred(s.id).get(),v=c.exists?c.data():{};return {id:s.id,name:s.name,active:Boolean(v.active),lastLoginAt:v.lastLoginAt||null}}));return res.status(200).json({ok:true,students})}
+   const session=await studentSession(req);return res.status(200).json({ok:true,session,students:ROSTER.map(({id,name})=>({id,name}))});
+  }
+  if(req.method!=='POST')return res.status(405).json({ok:false,error:'METHOD_NOT_ALLOWED'});
+  if(!sameOrigin(req))fail('ORIGIN_INVALID',403);
+  const body=typeof req.body==='string'?JSON.parse(req.body):req.body||{},action=String(body.action||'login');
+  if(action==='logout'){const token=sessionToken(req);if(/^[A-Za-z0-9_-]{43}$/.test(token))await adminDb().doc(`${authRoot()}/studentLoginSessions/${digest(token)}`).set({revoked:true},{merge:true});res.setHeader('Set-Cookie',studentCookie(req,'',0));return res.status(200).json({ok:true})}
+  if(['backup','issue','revoke'].includes(action)){
+   requireTeacher(req,{write:true});previewWriteGuard();
+   if(action==='backup')return res.status(200).json({ok:true,...await backup()});
+   if(!rosterStudent(body.studentId))fail('STUDENT_NOT_FOUND',404);
+   await verifiedBackup(body.backupId);
+   const ref=cred(body.studentId),pin=String(randomInt(0,1000000)).padStart(6,'0'),salt=randomBytes(16).toString('hex'),hash=(await scrypt(pin,salt,32,{N:16384,r:8,p:1})).toString('hex');
+   await adminDb().runTransaction(async tx=>{const before=await tx.get(ref);if(action==='issue'&&before.exists&&before.data().active&&!body.reset)fail('PIN_ALREADY_ACTIVE',409);tx.set(adminDb().doc(`${authRoot()}/studentLoginAudit/${randomBytes(16).toString('hex')}`),{studentId:body.studentId,action,backupId:body.backupId,before:before.exists?before.data():null,at:Date.now()});tx.set(ref,{studentId:body.studentId,active:action==='issue',salt,hash,revision:randomBytes(16).toString('hex'),updatedAt:Date.now()})});
+   return res.status(200).json({ok:true,studentId:body.studentId,...(action==='issue'?{pin}:{})});
+  }
+  if(action!=='login')fail('ACTION_INVALID',400);
+  const id=String(body.studentId||''),pin=normalizePin(body.pin);
+  if(!rosterStudent(id)||!/^\d{6}$/.test(pin))fail('STUDENT_CODE_INVALID',401);
+  await attempt(req,id);
+  const c=await cred(id).get(),v=c.exists?c.data():{},hash=(await scrypt(pin,v.salt||'unconfigured-student',32,{N:16384,r:8,p:1})).toString('hex');
+  if(!v.active||!equal(hash,v.hash||''))fail('STUDENT_CODE_INVALID',401);
+  const token=randomBytes(32).toString('base64url'),expiresAt=Date.now()+STUDENT_SESSION_SECONDS*1000;
+  await adminDb().runTransaction(async tx=>{const current=await tx.get(cred(id));if(!current.exists||!current.data().active||current.data().revision!==v.revision)fail('STUDENT_CODE_INVALID',401);tx.set(adminDb().doc(`${authRoot()}/studentLoginSessions/${digest(token)}`),{studentId:id,revision:v.revision,expiresAt,createdAt:Date.now()});tx.set(cred(id),{lastLoginAt:Date.now()},{merge:true})});
+  res.setHeader('Set-Cookie',studentCookie(req,token));return res.status(200).json({ok:true,studentId:id,expiresAt});
+ }catch(error){if(accessFailure(res,error))return;console.error('student-login',error?.code||'INTERNAL_ERROR');return res.status(500).json({ok:false,error:'STUDENT_LOGIN_UNAVAILABLE'})}
+}

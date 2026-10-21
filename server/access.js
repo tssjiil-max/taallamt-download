@@ -1,3 +1,4 @@
+import {studentSession} from './student-session.js';
 // Access control for the teacher tools and the per-student pages.
 // - Teacher: signs in once with the teacher code, then carries an HttpOnly signed session cookie.
 // - Student / guardian: can only read (and mark homework for) the one student whose invite token they hold.
@@ -79,6 +80,8 @@ export async function requireStudentAccess(req,studentId,body,{write=false}={}){
     if(write&&!sameOrigin(req))throw new AccessError('ORIGIN_INVALID',403);
     return 'teacher';
   }
+  const session=await studentSession(req);
+  if(session?.studentId===studentId){if(write&&!sameOrigin(req))throw new AccessError('ORIGIN_INVALID',403);return 'guardian'}
   const invite=inviteFrom(req,body);
   if(!validInviteShape(invite))throw new AccessError('STUDENT_ACCESS_REQUIRED',401);
   const snap=await adminDb().doc(`workspaces/${WORKSPACE_ID}/studentProfiles/${studentId}`).get();
@@ -89,6 +92,8 @@ export async function requireStudentAccess(req,studentId,body,{write=false}={}){
 // Writing as the guardian (a message to the teacher) needs that student's own invite link, checked on the server.
 // A teacher session alone is not enough here, so nobody can post in a guardian's name without the guardian's link.
 export async function requireGuardianLink(req,studentId,body){
+  const session=await studentSession(req);
+  if(session?.studentId===studentId){if(!sameOrigin(req))throw new AccessError('ORIGIN_INVALID',403);return 'guardian'}
   const invite=inviteFrom(req,body);
   if(!validInviteShape(invite))throw new AccessError(isTeacher(req)?'GUARDIAN_LINK_REQUIRED':'STUDENT_ACCESS_REQUIRED',isTeacher(req)?403:401);
   const snap=await adminDb().doc(`workspaces/${WORKSPACE_ID}/studentProfiles/${studentId}`).get();

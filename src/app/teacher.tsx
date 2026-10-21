@@ -1,3 +1,4 @@
+import {StudentCodes} from './student-login';
 // Teacher pages in the same identity as the student pages. The teacher's usual work is one screen: the quick assessment
 // ("أتقن بقية الطلاب" + individual results for the focused follow-up list). Plan and homework publish themselves.
 import React from 'react';
@@ -106,7 +107,8 @@ function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:
   else if(route==='assess'||route.startsWith('assess/'))body=<AssessPage home={data} subjectKey={(route.slice(7)||firstOpenSubject(data)) as SubjectKey} back={back} go={go} refresh={refresh} toast={showToast}/>;
   else if(route==='homework')body=<HomeworkPage home={data} back={back} refresh={refresh} toast={showToast}/>;
   else if(route==='stars')body=<StarsPage home={data} back={back} go={go} refresh={refresh} toast={showToast} setHome={home.setData}/>;
-  else if(route==='students')body=<StudentsPage home={data} back={back} go={go}/>;
+  else if(route==='students')body=<><button className="tkBtn" onClick={()=>go('student-codes')}>رموز دخول الطلاب</button><StudentsPage home={data} back={back} go={go}/></>;
+  else if(route==='student-codes')body=<><PageHead title="رموز دخول الطلاب" onBack={back}/><StudentCodes/></>;
   else if(route.startsWith('student/'))body=<StudentFilePage home={data} studentId={route.split('/')[1]||''} section={route.split('/')[2]||''} back={back} go={go} refresh={refresh} toast={showToast} setHome={home.setData}/>;
   else if(route.startsWith('chat/'))body=<TeacherChatPage home={data} studentId={route.slice(5)} back={back} refresh={refresh}/>;
   else if(route==='library')body=<LibraryPage home={data} back={back} go={go} toast={showToast}/>;

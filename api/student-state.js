@@ -1,3 +1,4 @@
+import studentLogin from '../server/student-login.js';
 import {randomBytes} from 'node:crypto';
 import {adminDb,previewWriteGuard} from '../server/firebase-admin.js';
 import {getStudent,WORKSPACE_ID,CLASS_ID} from '../server/class-roster.js';
@@ -251,6 +252,7 @@ async function studentPwaManifest(req,res){
 
 
 export default async function handler(req,res){
+  if(req.query?.view==='student-login')return studentLogin(req,res);
   try{
     res.setHeader('Cache-Control','private, no-store, max-age=0');
     if(req.method==='GET'&&String(req.query?.view||'')==='pwa-manifest')return await studentPwaManifest(req,res);

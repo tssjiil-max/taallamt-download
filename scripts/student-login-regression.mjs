@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import {register} from 'node:module';
+register('./lib/fake-firebase-hooks.mjs',import.meta.url);
+process.env.VERCEL_ENV='preview';process.env.FIREBASE_PRIVATE_KEY='fake-private-key';process.env.TEACHER_ACCESS_CODE='test-teacher-code';
+const {fakeStore}=await import('./lib/fake-firestore.mjs');
+const handler=(await import('../server/student-login.js')).default;
+const {teacherLogin,requireStudentAccess,requireGuardianLink}=await import('../server/access.js');
+const {studentSession}=await import('../server/student-session.js');
+const {WORKSPACE_ID}=await import('../server/class-roster.js');
+const host='test.example',root=`workspaces/${WORKSPACE_ID}`,sid='s2-4-02',other='s2-4-03';
+const req=(body,cookie='',method='POST',query={})=>({method,body,query,headers:{host,origin:`https://${host}`,cookie,'x-real-ip':'test'}});
+async function call(body,cookie='',method='POST',query={}){const res={statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.statusCode=n;return this},json(v){this.body=v;return this}};await handler(req(body,cookie,method,query),res);return res}
+const teacherRes={setHeader(k,v){this.cookie=v}};await teacherLogin(req({}),teacherRes,{code:'test-teacher-code'});const teacher=teacherRes.cookie;
+const invite='old-student-invitation-secret-123';fakeStore.set(`${root}/studentProfiles/${sid}`,{guardianInviteToken:invite,stars:12});fakeStore.set(`${root}/portfolioEvents/event`,{studentId:sid,title:'achievement'});fakeStore.set(`${root}/homeworkEvidence/work`,{studentId:sid,done:true});
+const before=JSON.stringify([...fakeStore].filter(([k])=>!k.includes('teacherGateAttempts')));
+assert.equal((await call({action:'issue',studentId:sid},teacher)).statusCode,409);
+assert.equal((await call({action:'issue',studentId:sid})).statusCode,401);
+const backup=await call({action:'backup'},teacher);assert.equal(backup.statusCode,200);assert.ok(backup.body.count>=3);
+const issue=await call({action:'issue',studentId:sid,backupId:backup.body.backupId},teacher);assert.equal(issue.statusCode,200);assert.match(issue.body.pin,/^\d{6}$/);const pin=issue.body.pin;
+assert.ok(!JSON.stringify(fakeStore.get(`${root}/studentLoginCredentials/${sid}`)).includes(`"${pin}"`));
+assert.equal((await call({studentId:sid,pin:pin==='000000'?'000001':'000000'})).statusCode,401);
+assert.equal((await call({studentId:sid,pin:'abcdef'})).statusCode,401);
+const login=await call({studentId:sid,pin});assert.equal(login.statusCode,200);const cookie=login.headers['Set-Cookie'];assert.match(cookie,/HttpOnly; Secure; SameSite=Lax/);assert.match(cookie,/Max-Age=15552000/);
+assert.equal((await studentSession(req({},cookie))).studentId,sid);
+assert.equal(await requireStudentAccess(req({},cookie),sid,null),'guardian');await assert.rejects(()=>requireStudentAccess(req({},cookie),other,null));
+assert.equal(await requireGuardianLink(req({},cookie),sid,null),'guardian');
+// A new deployment/ref has no effect on the stored session.
+process.env.VERCEL_GIT_COMMIT_REF='test-second-deployment';assert.equal((await studentSession(req({},cookie))).studentId,sid);
+assert.equal((await call({},cookie,'GET')).body.session.studentId,sid);
+const status=await call({},teacher,'GET',{loginView:'manage'});assert.equal(status.statusCode,200);assert.ok(!JSON.stringify(status.body).includes(pin));assert.ok(!JSON.stringify(status.body).includes('hash'));
+const backupDocs=[...fakeStore].filter(([k])=>k.startsWith(`studentLoginBackups/${WORKSPACE_ID}/snapshots/${backup.body.backupId}/documents/`));assert.equal(backupDocs.length,backup.body.count);assert.deepEqual(backupDocs.find(([,v])=>v.path===`${root}/studentProfiles/${sid}`)[1].data,{guardianInviteToken:invite,stars:12});
+const reset=await call({action:'issue',reset:true,studentId:sid,backupId:backup.body.backupId},teacher);assert.equal(reset.statusCode,200);assert.equal(await studentSession(req({},cookie)),null);
+assert.equal(await requireStudentAccess({...req({}),query:{invite}},sid,null),'guardian');
+const login2=await call({studentId:sid,pin:reset.body.pin});assert.equal(login2.statusCode,200);await call({action:'logout'},login2.headers['Set-Cookie']);assert.equal(await studentSession(req({},login2.headers['Set-Cookie'])),null);
+assert.equal(before,JSON.stringify([...fakeStore].filter(([k])=>k===`${root}/studentProfiles/${sid}`||k===`${root}/portfolioEvents/event`||k===`${root}/homeworkEvidence/work`)));
+for(let i=0;i<8;i++)await call({studentId:other,pin:'123456'});assert.equal((await call({studentId:other,pin:'123456'})).statusCode,429);
+console.log('Student PIN: 22 security, backup, session, legacy-link and data-retention checks passed');
