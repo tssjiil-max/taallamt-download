@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {advanceBackup} from '../src/app/backup-progress.ts';
+const id='a'.repeat(32),saved=new Map();
+const storage={getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)};
+let calls=0;
+const post=async body=>{calls++;if(calls===1){assert.equal(body.backupId,undefined);return {backupId:id,count:0,complete:false}}assert.equal(body.backupId,id);if(calls===2)throw new Error('RESOURCE_EXHAUSTED');return {backupId:id,count:100,complete:true}};
+assert.equal((await advanceBackup(post,storage,'backup')).complete,false);
+assert.equal(calls,1,'one click must make only one request');
+await assert.rejects(()=>advanceBackup(post,storage,'backup'),/RESOURCE_EXHAUSTED/);
+assert.equal(saved.get('backup'),id,'retain checkpoint after quota failure');
+assert.equal((await advanceBackup(post,storage,'backup')).complete,true);
+assert.equal(calls,3);
+let requested=false;
+await assert.rejects(()=>advanceBackup(async()=>{requested=true}, {getItem:()=>null,setItem:()=>{throw new Error('storage blocked')}},'backup'));
+assert.equal(requested,false,'do not create a backup when persistence is unavailable');
+console.log('PASS: bounded requests, quota failure checkpoint, resume after reload, storage failure safety');
