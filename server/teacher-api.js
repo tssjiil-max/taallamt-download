@@ -1,6 +1,8 @@
 // Teacher read models and exceptional edits for the new teacher pages. Called only from api/learning-automation.js
 // after the teacher session has been verified there.
 import {adminDb,previewWriteGuard} from './firebase-admin.js';
+import {readStarLedgerAudit} from './star-ledger-audit.js';
+import {readClassStarAudit} from './star-class-report.js';
 import {CLASS_ID} from './class-roster.js';
 import {riyadhDateString,weekNumberForDate,TERM_WEEKS} from './learning-content.js';
 import {SUBJECTS,SUBJECT_KEYS,buildPlan,clampWeek,nextSchoolDay,planDocId,planWeekForDate,readWeekPlan,subjectKeyOf,todayInfo,weekKeyFor,weekRange,workspaceRoot} from './plan.js';
@@ -73,6 +75,8 @@ export async function teacherHome(date=new Date()){
 
 export async function teacherRead(action,query={},date=new Date()){
   if(action==='teacher_home')return teacherHome(date);
+  if(action==='stars_audit')return readStarLedgerAudit(String(query.studentId||''),date);
+  if(action==='stars_audit_all')return readClassStarAudit(date);
   if(action==='assess_view')return assessView(query,date);
   if(action==='plan_week'){
     const current=planWeekForDate(date),week=clampWeek(query.week||current),plan=await readWeekPlan(adminDb(),week);
