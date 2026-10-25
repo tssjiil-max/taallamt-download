@@ -1,0 +1,25 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
+      { "source": "/manifest-*.webmanifest", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
+      { "source": "/pwa-identity.js", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
+      { "source": "/**", "headers": [{ "key": "Referrer-Policy", "value": "no-referrer" }, { "key": "X-Content-Type-Options", "value": "nosniff" }] }
+    ],
+    "rewrites": [
+      { "source": "/api/**", "run": { "serviceId": "REPLACE_WITH_VERIFIED_STAGING_API_SERVICE", "region": "REPLACE_WITH_VERIFIED_REGION" } },
+      { "source": "/teacher/student/**", "destination": "/legacy.html" },
+      { "source": "/teacher/students", "destination": "/legacy.html" },
+      { "source": "/teacher/library", "destination": "/legacy.html" },
+      { "source": "/teacher/settings", "destination": "/legacy.html" },
+      { "source": "/teacher/announcements", "destination": "/legacy.html" },
+      { "source": "/teacher/tasks", "destination": "/legacy.html" },
+      { "source": "/teacher/followup", "destination": "/legacy.html" },
+      { "source": "/teacher/messages", "destination": "/legacy.html" },
+      { "source": "/teacher/stars", "destination": "/legacy.html" },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  }
+}

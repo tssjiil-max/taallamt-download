@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+gha-creds-*.json
+migration-evidence/
+__pycache__/
+*.pyc
