@@ -1,0 +1,36 @@
+name: Firebase migration staging guard
+on:
+  pull_request:
+    paths:
+      - 'deployment/firebase.staging.template.json'
+      - '.github/workflows/firebase-staging-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-staging-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate safe staging-only Firebase template
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const p = 'deployment/firebase.staging.template.json';
+          const c = JSON.parse(fs.readFileSync(p, 'utf8'));
+          assert.equal(c.hosting.public, 'dist');
+          assert.ok(!('project' in c), 'Do not hardcode a Firebase project');
+          assert.ok(!fs.existsSync('firebase.json'), 'Do not add deployable Firebase config until the actual project is verified');
+          const rules = c.hosting.rewrites;
+          assert.deepEqual(rules[0].source, '/api/**');
+          assert.ok(rules[0].run.serviceId.startsWith('REPLACE_WITH_VERIFIED_'));
+          assert.ok(rules[0].run.region.startsWith('REPLACE_WITH_VERIFIED_'));
+          for (const path of ['/teacher/student/**','/teacher/students','/teacher/library','/teacher/settings','/teacher/announcements','/teacher/tasks','/teacher/followup','/teacher/messages','/teacher/stars']) {
+            assert.equal(rules.find(r => r.source === path)?.destination, '/legacy.html', path);
+          }
+          assert.deepEqual(rules.at(-1), {source:'**',destination:'/index.html'});
+          assert.ok(!('functions' in c), 'Backend not yet configured; do not imply migration complete');
+          console.log('Staging-only routing template checks passed. No deployment authorized.');
+          NODE
