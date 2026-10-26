@@ -1,4 +1,4 @@
-import {StudentCodes} from './student-login';
+import {StudentCodes,StudentLogin} from './student-login';
 // Teacher pages in the same identity as the student pages. The teacher's usual work is one screen: the quick assessment
 // ("أتقن بقية الطلاب" + individual results for the focused follow-up list). Plan and homework publish themselves.
 import React from 'react';
@@ -48,36 +48,8 @@ export function TeacherApp({initialRoute=''}:{initialRoute?:string}){
   return <TeacherPages environment={session.data.environment} onSignedOut={()=>void session.reload()}/>;
 }
 
-function loginMessage(error:ApiError){
-  if(error.code==='TEACHER_CODE_INVALID'){const left=Number(error.data?.attemptsLeft);return `رمز المعلم غير صحيح.${Number.isFinite(left)?` بقي ${left} من المحاولات قبل الإيقاف المؤقت.`:''}`}
-  if(error.code==='TEACHER_LOGIN_LOCKED')return 'محاولات كثيرة غير صحيحة. أُوقف الدخول مؤقتًا؛ حاول بعد 15 دقيقة.';
-  if(error.code==='TEACHER_GATE_NOT_CONFIGURED')return 'بوابة المعلم غير مهيأة في هذه البيئة: لم يُضبط رمز المعلم (TEACHER_ACCESS_CODE) في إعدادات الخادم.';
-  if(error.code==='TEACHER_CODE_REQUIRED')return 'اكتب رمز المعلم أولًا.';
-  if(error.code==='ORIGIN_INVALID')return 'رُفض الطلب لأنه لم يصدر من صفحة الموقع نفسها. افتح الموقع مباشرة ثم حاول.';
-  if(error.kind==='offline')return 'تعذر الاتصال بالخادم. تحقق من الإنترنت ثم حاول.';
-  if(error.kind==='nobackend')return 'هذه النسخة بلا خادم بيانات، فلا يمكن التحقق من الرمز هنا. افتح رابط Staging الكامل.';
-  if(error.code==='FIREBASE_ADMIN_NOT_CONFIGURED')return 'قاعدة البيانات غير مهيأة في هذه البيئة، فلا يمكن إتمام الدخول.';
-  return `تعذر إتمام الدخول (${error.code}).`;
-}
-function Login({session,onDone}:{session:Session;onDone:()=>void}){
-  const [code,setCode]=React.useState(''),[busy,setBusy]=React.useState(false),[message,setMessage]=React.useState('');
-  const submit=async(event:React.FormEvent)=>{
-    event.preventDefault();if(busy)return;setBusy(true);setMessage('');
-    try{await post('login',{code});onDone()}catch(caught){setMessage(loginMessage(asApiError(caught)))}finally{setBusy(false)}
-  };
-  return <Screen>
-    <TeacherTop/>
-    <form className="tkLogin" onSubmit={submit}>
-      <h2>دخول المعلم</h2>
-      <p>أدوات المعلم وبيانات الصف لا تُفتح إلا برمز المعلم. يبقى الدخول محفوظًا على هذا الجهاز 30 يومًا.</p>
-      {!session.gateConfigured?<div className="tkAlert">{session.gateReason==='TEACHER_CODE_TOO_SHORT'?'بوابة المعلم غير مهيأة: رمز المعلم المضبوط في الخادم أقصر من 8 خانات. اضبط رمزًا أطول في TEACHER_ACCESS_CODE.':'بوابة المعلم غير مهيأة في هذه البيئة: لم يُضبط رمز المعلم (TEACHER_ACCESS_CODE) في إعدادات الخادم.'}</div>:<>
-        <label className="tkField">رمز المعلم<input type="password" inputMode="text" autoComplete="current-password" autoCapitalize="characters" value={code} onChange={event=>setCode(event.target.value)} placeholder="XXXX-XXXX-XXXX" aria-label="رمز المعلم"/></label>
-        <button className="tkBtn wide" type="submit" disabled={busy||!code.trim()}>{busy?'جارٍ التحقق…':'دخول'}</button>
-      </>}
-      {message&&<div className="tkAlert" role="alert">{message}</div>}
-      {session.environment==='staging'&&<div className="tkAlert info">نسخة Staging: بياناتها منفصلة عن الموقع الأساسي.</div>}
-    </form>
-  </Screen>;
+function Login({onDone}:{session:Session;onDone:()=>void}){
+  return <StudentLogin initialRole="teacher" onTeacherDone={onDone}/>;
 }
 
 function TeacherPages({environment,onSignedOut}:{environment:string;onSignedOut:()=>void}){

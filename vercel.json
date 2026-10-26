@@ -1,4 +1,5 @@
 {
+  "git": {"deploymentEnabled": {"fix/unified-login-safe-updates-20261026": false}},
   "crons": [
     {
       "path": "/api/cron-daily",
