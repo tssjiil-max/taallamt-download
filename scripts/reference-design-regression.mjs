@@ -54,7 +54,8 @@ const studentHome=read('server/student-home.js');
 assert.ok(!studentHome.includes('assessmentGroup')&&!studentHome.includes('focusBySubject'),'the student payload carries no grouping');
 for(const file of ['student.tsx','teacher.tsx','kit.tsx','main.tsx'])assert.ok(!/localStorage|sessionStorage/.test(read(`src/app/${file}`)),`${file}: no browser storage as a data source`);
 assert.ok(kit.includes("'offline'|'nobackend'|'unauthorized'|'forbidden'|'notfound'")&&kit.includes('CardsSkeleton'),'loading, no data, connection failure and no permission are separate states');
-assert.ok(teacher.includes('TEACHER_CODE_INVALID')&&teacher.includes('TEACHER_GATE_NOT_CONFIGURED')&&teacher.includes('TEACHER_LOGIN_LOCKED')&&!teacher.includes('تعذر التحقق من رمز المعلم'),'sign-in failures are reported precisely');
+const sharedLogin=read('src/app/student-login.tsx');
+assert.ok(teacher.includes('<StudentLogin initialRole="teacher"')&&sharedLogin.includes('TEACHER_CODE_INVALID')&&sharedLogin.includes('TEACHER_GATE_NOT_CONFIGURED')&&sharedLogin.includes('TEACHER_LOGIN_LOCKED')&&!sharedLogin.includes('تعذر التحقق من رمز المعلم'),'shared sign-in failures are reported precisely');
 
 // Permissions are enforced on the server for every data endpoint; the project stays within 12 functions.
 const apiFiles=readdirSync('api').filter(name=>name.endsWith('.js'));

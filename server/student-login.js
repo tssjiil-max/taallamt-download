@@ -25,6 +25,8 @@ async function backup(existingId){
   const root=db.doc(authRoot()),snapshot=await root.get(),collections=await root.listCollections();
   state={workspaceId:WORKSPACE_ID,complete:false,count:snapshot.exists?1:0,createdAt:Date.now(),queue:collections.map(c=>({path:c.path,after:''}))};
   const batch=db.batch();if(snapshot.exists)batch.set(target.collection('documents').doc(digest(root.path)),{path:root.path,data:snapshot.data()});batch.set(target,state);await batch.commit();
+  // Return the checkpoint before reading the first page, so the client can retain it.
+  return {backupId:id,count:state.count,complete:false};
  }
  const queue=[...state.queue];
  if(queue.length){
