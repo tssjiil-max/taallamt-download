@@ -52,8 +52,8 @@ export function StudentLogin({initialRole='student',onTeacherDone}:{initialRole?
   <header><h1>تعلّمت</h1><p>الثاني الابتدائي / ٤</p></header>
   <section className="studentLoginWelcome"><img src="/pwa/shakabumbo-source-20261022.png" alt="صديقك شكابمبو يحمل الكأس الذهبي" width="1312" height="1199"/><h2>مرحبًا بك في تعلّمت</h2><p>أنا شكابمبو، جاهز نتعلّم معًا؟</p></section>
   <div className="loginRoles" role="group" aria-label="نوع الدخول">
-   <button type="button" aria-pressed={role==='student'} disabled={busy} onClick={()=>choose('student')}>دخول الطالب</button>
-   <button type="button" aria-pressed={role==='teacher'} disabled={busy} onClick={()=>choose('teacher')}>دخول المعلم</button>
+   <button type="button" aria-pressed={role==='student'} disabled={busy} onClick={()=>choose('student')}><strong>دخول الطالب</strong><small>اسمي ورمزي الخاص</small></button>
+   <button type="button" aria-pressed={role==='teacher'} disabled={busy} onClick={()=>choose('teacher')}><strong>دخول المعلم</strong><small>إدارة صفي ومتابعته</small></button>
   </div>
   {role==='student'?<>
    <label>اختر اسمك<select value={id} onChange={e=>setId(e.target.value)} required disabled={loading||busy}><option value="">{loading?'جارٍ تحميل الأسماء…':'اختر اسم الطالب'}</option>{students.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>

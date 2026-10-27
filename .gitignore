@@ -7,3 +7,5 @@ gha-creds-*.json
 migration-evidence/
 __pycache__/
 *.pyc
+
+firebase.staging.generated.json

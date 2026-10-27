@@ -1,0 +1,10 @@
+.git
+node_modules
+dist
+.env
+.env.*
+gha-creds-*.json
+migration-evidence
+upload
+*.pem
+*.key

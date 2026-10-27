@@ -2,3 +2,4 @@
 .studentLogin select{height:60px;line-height:normal;padding:0 16px}.studentLogin input{height:60px;line-height:normal;padding:0 16px}
 
 .studentLogin .loginRoles{display:flex;gap:10px;margin:18px 0}.studentLogin .loginRoles button{flex:1;min-width:0;font-size:18px;padding:12px;background:#e7f2fc;color:#173b59;border:2px solid transparent}.studentLogin .loginRoles button[aria-pressed=true]{background:#126fcd;color:#fff;border-color:#07549d}.studentLogin button:focus-visible{outline:3px solid #07549d;outline-offset:3px}
+.studentLogin .loginRoles button{display:grid;gap:8px;align-content:center;min-height:92px;border-radius:18px;box-shadow:0 3px 12px #164f790c}.studentLogin .loginRoles small{font-size:13px;font-weight:400;line-height:1.5}.studentLogin .loginRoles strong{font-size:18px}

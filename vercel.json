@@ -1,5 +1,5 @@
 {
-  "git": {"deploymentEnabled": {"fix/unified-login-safe-updates-20261026": false}},
+  "git": {"deploymentEnabled": {"fix/unified-login-safe-updates-20261026": false, "migration/firebase-runtime-staging-20261027": false}},
   "crons": [
     {
       "path": "/api/cron-daily",

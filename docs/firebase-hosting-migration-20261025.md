@@ -1,3 +1,5 @@
+> تحديث 27 أكتوبر: طبقة تشغيل Cloud Run والجلسات المعزولة نُفذت محليًا في `docs/firebase-runtime-staging-20261027-ar.md`. لم يحدث نشر سحابي أو إثبات لسلامة بيانات الإنتاج؛ المتطلبات أدناه تسجل مرحلة التدقيق السابقة.
+
 # Firebase Hosting migration — staging gate (2026-10-25; updated 2026-10-26)
 
 Status: KEYLESS AUDIT PIPELINE IMPLEMENTED; OWNER IAM SETUP REQUIRED. The user authorized continued migration and staging work through GitHub Actions. No production cutover or data changes have occurred. The pipeline currently has no deployment steps.

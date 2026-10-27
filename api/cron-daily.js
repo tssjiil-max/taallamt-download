@@ -1,11 +1,11 @@
 import {runScheduled} from './learning-automation.js';
 import {syncRemediationPlans} from '../server/remediation-automation.js';
+import {schedulerAuthorized} from '../server/scheduler-auth.mjs';
 
 // Scheduled by vercel.json: 02:00 UTC Sunday-Thursday = 05:00 Asia/Riyadh, before school.
 // With CRON_SECRET set, only Vercel's scheduler can call it. The response never carries student data, only counts.
-function authorized(req){const secret=process.env.CRON_SECRET?.trim();return !secret||String(req.headers?.authorization||'')===`Bearer ${secret}`}
 export default async function handler(req,res){
-  if(!authorized(req))return res.status(401).json({ok:false,error:'CRON_UNAUTHORIZED'});
+  if(!await schedulerAuthorized(req))return res.status(401).json({ok:false,error:'CRON_UNAUTHORIZED'});
   try{
     const remediation=await syncRemediationPlans();
     const run=await runScheduled('cron-daily');
