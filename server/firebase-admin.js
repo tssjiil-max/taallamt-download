@@ -1,4 +1,5 @@
-import {cert,getApps,initializeApp} from 'firebase-admin/app';
+import {cert,getApps,initializeApp,applicationDefault} from 'firebase-admin/app';
+import {validateRuntime} from './firebase-runtime.mjs';
 import {getFirestore} from 'firebase-admin/firestore';
 import {getStorage} from 'firebase-admin/storage';
 
@@ -21,16 +22,21 @@ function credentials(){
   return {projectId,clientEmail,privateKey:normalizePrivateKey(privateKeyRaw)};
 }
 function app(){
+  if(process.env.TAALLAMT_RUNTIME==='cloudrun'){
+    const config=validateRuntime();
+    return getApps().find(app=>app.name==='taallamt-cloudrun-staging')||initializeApp({projectId:config.projectId,credential:applicationDefault(),storageBucket:config.storageBucket},'taallamt-cloudrun-staging');
+  }
   if(getApps().length)return getApps()[0];
   const account=credentials();
   const storageBucket=process.env.FIREBASE_STORAGE_BUCKET?.trim()||process.env.VITE_FIREBASE_STORAGE_BUCKET?.trim()||`${account.projectId}.appspot.com`;
   return initializeApp({credential:cert(account),storageBucket});
 }
-export function adminDb(){return getFirestore(app())}
+export function adminDb(){return process.env.TAALLAMT_RUNTIME==='cloudrun'?getFirestore(app(),validateRuntime().databaseId):getFirestore(app())}
 export function adminStorageBucket(){return getStorage(app()).bucket()}
 // Preview remains writable for staging tests. Production writes require either the canonical
 // production branch or an explicit production-only release switch in Vercel.
 export function previewWriteGuard(){
+  if(process.env.TAALLAMT_RUNTIME==='cloudrun'){validateRuntime();return}
   const env=process.env.VERCEL_ENV,ref=process.env.VERCEL_GIT_COMMIT_REF?.trim();
   const productionWriteEnabled=process.env.TAALLAMT_PRODUCTION_WRITE_ENABLED==='1';
   if(env==='production'&&ref!=='build/taallamt-flex-v1'&&!productionWriteEnabled)throw new Error('PRODUCTION_WRITE_BLOCKED');

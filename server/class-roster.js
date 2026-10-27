@@ -1,5 +1,5 @@
 // Staging (Vercel preview / local) never shares records with Production: only the production deployment uses the live workspace.
-export const IS_PRODUCTION=process.env.VERCEL_ENV==='production';
+export const IS_PRODUCTION=(process.env.TAALLAMT_ENV||process.env.VERCEL_ENV)==='production';
 export const PRODUCTION_WORKSPACE_ID='second-4';
 export const STAGING_WORKSPACE_ID='second-4-staging';
 export const WORKSPACE_ID=IS_PRODUCTION?PRODUCTION_WORKSPACE_ID:STAGING_WORKSPACE_ID;

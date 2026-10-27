@@ -58,11 +58,13 @@ const db={
   }},
   runTransaction:async fn=>fn({get:ref=>ref.get(),set:(ref,data,options)=>setDoc(ref.path,data,options),update:(ref,data)=>setDoc(ref.path,data,{merge:true}),delete:ref=>store.delete(ref.path)})
 };
-export const getFirestore=()=>db;
+export const fakeDatabases=[];
+export const getFirestore=(app,database)=>{fakeDatabases.push(database||'(default)');return db};
 export const fakeStore=store;
 export const fakeStats=stats;
 // firebase-admin/app
 export const cert=value=>value;
+export const applicationDefault=()=>({testOnly:true});
 export const getApps=()=>[{name:'fake'}];
 export const initializeApp=()=>({name:'fake'});
 // firebase-admin/storage
